@@ -1,0 +1,4 @@
+#+TITLE: lwqq -- A Linux WebQQ Client
+
+This Project is based on kernelhcy's gtkqq project, i rewrite the qq
+library to impove its stability
