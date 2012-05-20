@@ -9,6 +9,7 @@
  */
 
 #include "login.h"
+#include "logger.h"
 
 /** 
  * WebQQ login function
@@ -18,5 +19,22 @@
  */
 void lwqq_login(LwqqInfo *info, LwqqLoginCode *err)
 {
+    if (!info || !err) {
+        lwqq_log(LOG_WARNING, "Invalid pointer\n");
+        goto failed;
+    }
+
+    /**
+     * 1. get_pwvc_md5
+     * 2. get_ptcz_skey
+     * 3. check whether logining successfully
+     * 
+     */
+
     return ;
+    
+failed:
+    if (err) {
+        err = LWQQ_LOGIN_ERROR;
+    }
 }
