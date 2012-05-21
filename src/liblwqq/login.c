@@ -35,6 +35,6 @@ void lwqq_login(LwqqInfo *info, LwqqLoginCode *err)
     
 failed:
     if (err) {
-        err = LWQQ_LOGIN_ERROR;
+        *err = LWQQ_LOGIN_ERROR;
     }
 }
