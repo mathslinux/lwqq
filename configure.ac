@@ -40,7 +40,8 @@ AC_CHECK_FUNCS([bzero gethostbyname memset mkdir select socket strstr strtol])
 
 AC_CONFIG_FILES([Makefile
          src/Makefile 
-         src/liblwqq/Makefile 
+         src/liblwqq/Makefile
+         src/liblwqq/libghttp/Makefile
          src/gui/Makefile
          ])
 AC_OUTPUT
