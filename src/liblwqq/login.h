@@ -25,9 +25,9 @@ typedef enum {
 /** 
  * WebQQ login function
  * 
- * @param info Client information
+ * @param client Lwqq Client 
  * @param err Error code
  */
-void lwqq_login(LwqqInfo *info, LwqqLoginCode *err);
+void lwqq_login(LwqqClient *client, LwqqLoginCode *err);
 
 #endif  /* LWQQ_LOGIN_H */

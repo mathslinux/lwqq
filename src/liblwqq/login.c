@@ -14,19 +14,20 @@
 /** 
  * WebQQ login function
  * 
- * @param info Client information
+ * @param client Lwqq Client 
  * @param err Error code
  */
-void lwqq_login(LwqqInfo *info, LwqqLoginCode *err)
+void lwqq_login(LwqqClient *client, LwqqLoginCode *err)
 {
-    if (!info || !err) {
+    if (!client || !err) {
         lwqq_log(LOG_WARNING, "Invalid pointer\n");
         goto failed;
     }
 
     /**
-     * 1. get_pwvc_md5
-     * 2. get_ptcz_skey
+     * 0. check_verify_code
+     * 1. calculate_password_md5
+     * 2. do_login
      * 3. check whether logining successfully
      * 
      */

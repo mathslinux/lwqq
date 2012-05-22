@@ -9,3 +9,76 @@
  */
 
 #include "type.h"
+#include "smemory.h"
+
+
+/** 
+ * Create a new lwqq client
+ * 
+ * @param username QQ username
+ * @param password QQ password
+ * 
+ * @return A new LwqqClient instance, or NULL failed
+ */
+LwqqClient *lwqq_client_new(const char *username, const char *password)
+{
+    if (!username || !password)
+        return NULL;
+
+    LwqqClient *lc = s_malloc0(sizeof(*lc));
+    lc->username = s_strdup(username);
+    lc->password = s_strdup(password);
+    lc->myself = lwqq_buddy_new();
+    if (!lc->myself) {
+        goto failed;
+    }
+
+failed:
+    lwqq_client_free(lc);
+    return NULL;
+}
+
+/** 
+ * Free LwqqClient instance
+ * 
+ * @param client LwqqClient instance
+ */
+void lwqq_client_free(LwqqClient *client)
+{
+    if (client) {
+        s_free(client->username);
+        s_free(client->password);
+        lwqq_buddy_free(client->myself);
+        
+        /* Free friends list */
+        LwqqBuddy *b_entry, *next;
+        LIST_FOREACH_SAFE(b_entry, &client->friends, entries, next) {
+            LIST_REMOVE(b_entry, entries);
+            s_free(b_entry);
+        }
+        
+        lwqq_client_free(client);
+    }
+}
+
+/** 
+ * 
+ * Create a new buddy
+ * 
+ * @return A LwqqBuddy instance
+ */
+LwqqBuddy *lwqq_buddy_new()
+{
+    LwqqBuddy *b = s_malloc0(sizeof(*b));
+    return b;
+}
+
+/** 
+ * Free a LwqqBuddy instance
+ * 
+ * @param buddy 
+ */
+void lwqq_buddy_free(LwqqBuddy *buddy)
+{
+    s_free(buddy);
+}
