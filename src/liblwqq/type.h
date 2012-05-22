@@ -19,6 +19,8 @@
 typedef enum {
     LWQQ_OK,
     LWQQ_ERROR,
+    LWQQ_LOGIN_NEED_VC = 10,
+    LWQQ_NETWORK_ERROR = 20,
 } LwqqErrorCode;
 
 /************************************************************************/
@@ -45,13 +47,23 @@ LwqqBuddy *lwqq_buddy_new();
 void lwqq_buddy_free(LwqqBuddy *buddy);
 
 /************************************************************************/
-/* LwqqClient API  */
+/**
+ * 
+ * 
+ */
+typedef struct LwqqVerifyCode {
+    char *str;
+    char *type;
+    char *img;
+} LwqqVerifyCode ;
+
+/* LwqqClient API */
 typedef struct LwqqClient {
+    LwqqVerifyCode *vc;          /**< Verify Code */
     char *username;             /**< Username */
     char *password;             /**< Password */
     LwqqBuddy *myself;          /**< Myself */
-    LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */
-    
+    LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */ 
 } LwqqClient;
 
 /** 

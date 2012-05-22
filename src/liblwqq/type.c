@@ -11,7 +11,6 @@
 #include "type.h"
 #include "smemory.h"
 
-
 /** 
  * Create a new lwqq client
  * 
@@ -33,9 +32,21 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
         goto failed;
     }
 
+    return lc;
+    
 failed:
     lwqq_client_free(lc);
     return NULL;
+}
+
+static void vc_free(LwqqVerifyCode *vc)
+{
+    if (vc) {
+        s_free(vc->str);
+        s_free(vc->type);
+        s_free(vc->img);
+        s_free(vc);
+    }
 }
 
 /** 
@@ -45,20 +56,24 @@ failed:
  */
 void lwqq_client_free(LwqqClient *client)
 {
-    if (client) {
-        s_free(client->username);
-        s_free(client->password);
-        lwqq_buddy_free(client->myself);
+    if (!client)
+        return ;
+
+    /* Free LwqqVerifyCode instance */
+    vc_free(client->vc);
+    s_free(client->vc);
+    s_free(client->username);
+    s_free(client->password);
+    lwqq_buddy_free(client->myself);
         
-        /* Free friends list */
-        LwqqBuddy *b_entry, *next;
-        LIST_FOREACH_SAFE(b_entry, &client->friends, entries, next) {
-            LIST_REMOVE(b_entry, entries);
-            s_free(b_entry);
-        }
-        
-        lwqq_client_free(client);
+    /* Free friends list */
+    LwqqBuddy *b_entry, *next;
+    LIST_FOREACH_SAFE(b_entry, &client->friends, entries, next) {
+        LIST_REMOVE(b_entry, entries);
+        s_free(b_entry);
     }
+        
+    s_free(client);
 }
 
 /** 
