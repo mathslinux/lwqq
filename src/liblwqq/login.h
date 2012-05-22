@@ -13,21 +13,12 @@
 
 #include "type.h"
 
-/**
- * Login Error Code
- * 
- */
-typedef enum {
-    LWQQ_LOGIN_OK,
-    LWQQ_LOGIN_ERROR,
-} LwqqLoginCode;
-
 /** 
  * WebQQ login function
  * 
  * @param client Lwqq Client 
  * @param err Error code
  */
-void lwqq_login(LwqqClient *client, LwqqLoginCode *err);
+void lwqq_login(LwqqClient *client, LwqqErrorCode *err);
 
 #endif  /* LWQQ_LOGIN_H */
