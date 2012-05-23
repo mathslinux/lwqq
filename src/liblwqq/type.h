@@ -65,6 +65,13 @@ typedef struct LwqqClient {
     LwqqBuddy *myself;          /**< Myself */
     LwqqVerifyCode *vc;          /**< Verify Code */
     char *ptvfsession;          /**< ptvfsession */
+    char *ptcz;
+    char *skey;
+    char *ptwebqq;
+    char *ptuserinfo;
+    char *uin;
+    char *ptisp;
+    char *pt2gguin;
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */ 
 } LwqqClient;
 

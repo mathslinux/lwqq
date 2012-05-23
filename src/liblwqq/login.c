@@ -11,6 +11,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include "login.h"
 #include "logger.h"
@@ -91,10 +92,10 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
         lc->vc->str = s_strdup(s);
 
         /* We need get the ptvfsession from the header "Set-Cookie" */
-        char ptvfsession[128] = {0};
-        char *t = req->get_cookie(req, "ptvfsession", ptvfsession, sizeof(ptvfsession));
-        if (t) {
+        char *ptvfsession = req->get_cookie(req, "ptvfsession");
+        if (ptvfsession) {
             lc->ptvfsession = s_strdup(ptvfsession);
+            s_free(ptvfsession);
         } else {
             lwqq_log(LOG_WARNING, "Cant get cookie ptvfsession\n");
         }
@@ -185,7 +186,7 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;
-        goto failed;
+        goto done;
     }
     lwqq_log(LOG_DEBUG, "Send a login request to server: %s\n", url);
 
@@ -200,18 +201,81 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
     ret = req->do_request(req, &http_code, &response, &response_len);
     if (ret) {
         *err = LWQQ_NETWORK_ERROR;
-        goto failed;
+        goto done;
     }
     if (http_code != 200) {
         *err = LWQQ_HTTP_ERROR;
-        goto failed;
+        goto done;
     }
 
-    s_free(response);
-    lwqq_http_request_free(req);
-    return ;
+    char *p = strstr(response, "\'");
+    if (!p) {
+        *err = LWQQ_ERROR;
+        goto done;
+    }
+    char buf[4] = {0};
+    int status;
+    strncpy(buf, p + 1, 1);
+    status = atoi(buf);
 
-failed:
+    switch (status) {
+    case 0:
+        *err = 0;
+        lc->ptcz = req->get_cookie(req, "ptcz");
+        lc->skey = req->get_cookie(req, "skey");
+        lc->ptwebqq = req->get_cookie(req, "ptwebqq");
+        lc->ptuserinfo = req->get_cookie(req, "ptuserinfo");
+        lc->uin = req->get_cookie(req, "uin");
+        lc->ptisp = req->get_cookie(req, "ptisp");
+        lc->pt2gguin = req->get_cookie(req, "pt2gguin");
+        goto done;
+        
+    case 1:
+        lwqq_log(LOG_WARNING, "Server busy! Please try again\n");
+        *err = LWQQ_ERROR;
+        goto done;
+
+    case 2:
+        lwqq_log(LOG_ERROR, "Out of date QQ number\n");
+        *err = LWQQ_ERROR;
+        goto done;
+
+    case 3:
+        lwqq_log(LOG_ERROR, "Wrong password\n");
+        *err = LWQQ_ERROR;
+        goto done;
+
+    case 4:
+        lwqq_log(LOG_ERROR, "Wrong verify code\n");
+        *err = LWQQ_ERROR;
+        goto done;
+
+    case 5:
+        lwqq_log(LOG_ERROR, "Verify failed\n");
+        *err = LWQQ_ERROR;
+        goto done;
+
+    case 6:
+        lwqq_log(LOG_WARNING, "You may need to try login again\n");
+        *err = LWQQ_ERROR;
+        goto done;
+
+    case 7:
+        lwqq_log(LOG_ERROR, "Wrong input\n");
+        *err = LWQQ_ERROR;
+        goto done;
+
+    case 8:
+        lwqq_log(LOG_ERROR, "Too many logins on this IP. Please try again\n");
+        *err = LWQQ_ERROR;
+        goto done;
+
+    default:
+        lwqq_log(LOG_ERROR, "Unknow error");
+        goto done;
+    }
+    
+done:
     s_free(response);
     lwqq_http_request_free(req);
 }
