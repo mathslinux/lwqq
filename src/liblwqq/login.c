@@ -8,6 +8,7 @@
  * 
  */
 
+#include <string.h>
 #include "login.h"
 #include "logger.h"
 #include "http.h"
@@ -28,7 +29,7 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
     int response_len;
     int ret;
 
-    snprintf(uri, sizeof(uri), "%s%s?uin=%sappid=%s", LWQQ_LOGIN_HOST,
+    snprintf(uri, sizeof(uri), "%s%s?uin=%s&appid=%s", LWQQ_LOGIN_HOST,
              VCCHECKPATH, lc->username, APPID);
     req = lwqq_http_request_new(uri);
     if (!req) {
@@ -38,13 +39,69 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
     }
     
     lwqq_log(LOG_NOTICE, "Send a request to: %s\n", uri);
+    req->set_default_header(req);
     ret = req->do_request(req, &http_code, &response, &response_len);
     if (ret) {
         *err = LWQQ_NETWORK_ERROR;
         goto failed;
     }
-
+    if (http_code != 200) {
+        *err = LWQQ_HTTP_ERROR;
+        goto failed;
+    }
     lwqq_log(LOG_NOTICE, "Get response verify code: %s\n", response);
+
+    /**
+     * 
+	 * The http message body has two format:
+	 *
+	 * ptui_checkVC('1','9ed32e3f644d968809e8cbeaaf2cce42de62dfee12c14b74');
+	 * ptui_checkVC('0','!LOB');
+	 * The former means we need verify code image and the second
+	 * parameter is vc_type.
+	 * The later means we don't need the verify code image. The second
+	 * parameter is the verify code. The vc_type is in the header
+	 * "Set-Cookie".
+	 */
+    char *c = strstr(response, "ptui_checkVC");
+    char *s;
+    if (!c) {
+        *err = LWQQ_HTTP_ERROR;
+        goto failed;
+    }
+    c = strchr(response, '\'');
+    if (!c) {
+        *err = LWQQ_HTTP_ERROR;
+        goto failed;
+    }
+    c++;
+    lc->vc = s_malloc0(sizeof(*lc->vc));
+    if (*c == '0') {
+        /* We got the verify code. */
+        s = c;
+        c = strstr(s, "'");
+        s = c + 1;
+        c = strstr(s, "'");
+        s = c + 1;
+        c = strstr(s, "'");
+        *c = '\0';
+        lc->vc->type = s_strdup("0");
+        lc->vc->str = s_strdup(s);
+        lwqq_log(LOG_NOTICE, "Verify code: %s\n", lc->vc->str);
+    } else if (*c == '1') {
+        /* We need get the verify image. */
+        s = c;
+        c = strstr(s, "'");
+        s = c + 1;
+        c = strstr(s, "'");
+        s = c + 1;
+        c = strstr(s, "'");
+        *c = '\0';
+        lc->vc->type = s_strdup("1");
+        lc->vc->str = s_strdup(s);
+        lwqq_log(LOG_NOTICE, "We need verify code image: %s\n", lc->vc->str);
+    }
+    
     s_free(response);
     lwqq_http_request_free(req);
     return ;
@@ -110,7 +167,7 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
         default:
             lwqq_log(LOG_ERROR, "Unknown error\n");
             return ;
-        }    
+        }
     }
 
     calculate_password_md5(client);

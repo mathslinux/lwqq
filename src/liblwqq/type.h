@@ -21,6 +21,7 @@ typedef enum {
     LWQQ_ERROR,
     LWQQ_LOGIN_NEED_VC = 10,
     LWQQ_NETWORK_ERROR = 20,
+    LWQQ_HTTP_ERROR = 99,
 } LwqqErrorCode;
 
 /************************************************************************/
