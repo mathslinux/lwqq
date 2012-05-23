@@ -14,6 +14,10 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
                                  const char *value);
 static void lwqq_http_set_default_header(LwqqHttpRequest *request);
+static char *lwqq_http_get_header(LwqqHttpRequest *request, const char *name,
+                                  char *output, int maxlen);
+static char *lwqq_http_get_cookie(LwqqHttpRequest *request, const char *name,
+                                  char *output, int maxlen);
 
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
                                 const char *value)
@@ -35,6 +39,60 @@ static void lwqq_http_set_default_header(LwqqHttpRequest *request)
     lwqq_http_set_header(request, "Accept-Encoding", "deflate, gzip, x-gzip, "
                          "identity, *;q=0");
     lwqq_http_set_header(request, "Connection", "Keep-Alive");
+}
+
+static char *lwqq_http_get_header(LwqqHttpRequest *request, const char *name,
+                                  char *output, int maxlen)
+{
+    if (!name || !output || maxlen <= 0) {
+        lwqq_log(LOG_ERROR, "Invalid parameter\n");
+        return NULL; 
+    }
+
+    const char *h = ghttp_get_header(request->req, name);
+    if (!h) {
+        lwqq_log(LOG_WARNING, "Cant get http header\n");
+        return NULL;
+    }
+
+    snprintf(output, maxlen, "%s", h);
+    return output;
+}
+
+static char *lwqq_http_get_cookie(LwqqHttpRequest *request, const char *name,
+                                  char *output, int maxlen)
+{
+    if (!name || !output || maxlen <= 0) {
+        lwqq_log(LOG_ERROR, "Invalid parameter\n");
+        return NULL; 
+    }
+
+    /* Get http header */
+    char cookie[1024] = {0};
+    char *ret;
+    ret = lwqq_http_get_header(request, "Set-Cookie", cookie, sizeof(cookie));
+    if (!ret) {
+        lwqq_log(LOG_WARNING, "Cant get http header\n");
+        return NULL;
+    }
+
+	char *start;
+    char *end;
+
+    start = strstr(cookie, name);
+	if(!start){
+		lwqq_log(LOG_WARNING, "No cookie: %s\n", name);
+        return NULL;
+	}
+	start += strlen(name) + 1;
+	end = strstr(start, ";");
+    if (end) {
+        *end = '\0';
+    }
+    
+    snprintf(output, maxlen, "%s", start);
+    lwqq_log(LOG_DEBUG, "Parse Cookie: %s=%s\n", name, output);
+	return output;
 }
 
 /** 
@@ -87,6 +145,8 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
     request->do_request = lwqq_http_do_request;
     request->set_header = lwqq_http_set_header;
     request->set_default_header = lwqq_http_set_default_header;
+    request->get_header = lwqq_http_get_header;
+    request->get_cookie = lwqq_http_get_cookie;
     return request;
 
 failed:
@@ -132,9 +192,11 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
     }
     
     /* OK, done */
+    /* Realloc a more byte, cause *response has no termial char '\0' */
+    *response = s_realloc(*response, have_read_bytes + 1);
+    (*response)[have_read_bytes] = '\0';
     *response_len = have_read_bytes;
     *http_code = ghttp_status_code(request->req);
-    printf("Status code -> %d\n", ghttp_status_code(request->req));
     return 0;
 
 failed:

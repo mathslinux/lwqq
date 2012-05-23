@@ -27,6 +27,14 @@ typedef struct LwqqHttpRequest {
 
     /* Set default http header */
     void (*set_default_header)(struct LwqqHttpRequest *request);
+
+    /* Get header, value will be stored in output which user passed */
+    char * (*get_header)(struct LwqqHttpRequest *request, const char *name,
+                         char *output, int maxlen);
+
+    /* Get Cookie, value will be stored in output which user passed */
+    char * (*get_cookie)(struct LwqqHttpRequest *request, const char *name,
+                         char *output, int maxlen);
     
 } LwqqHttpRequest;
 
