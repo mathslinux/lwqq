@@ -60,10 +60,11 @@ typedef struct LwqqVerifyCode {
 
 /* LwqqClient API */
 typedef struct LwqqClient {
-    LwqqVerifyCode *vc;          /**< Verify Code */
     char *username;             /**< Username */
     char *password;             /**< Password */
     LwqqBuddy *myself;          /**< Myself */
+    LwqqVerifyCode *vc;          /**< Verify Code */
+    char *ptvfsession;          /**< ptvfsession */
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */ 
 } LwqqClient;
 

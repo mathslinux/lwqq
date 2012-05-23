@@ -60,9 +60,10 @@ void lwqq_client_free(LwqqClient *client)
         return ;
 
     /* Free LwqqVerifyCode instance */
-    vc_free(client->vc);
     s_free(client->username);
     s_free(client->password);
+    vc_free(client->vc);
+    s_free(client->ptvfsession);
     lwqq_buddy_free(client->myself);
         
     /* Free friends list */
