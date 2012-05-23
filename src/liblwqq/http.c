@@ -6,10 +6,14 @@
 #include "http.h"
 #include "logger.h"
 
+#define LWQQ_HTTP_USER_AGENT "User-Agent: Mozilla/5.0 \
+(X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"
+
 static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
                                 char **response, int *response_len);
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
                                  const char *value);
+static void lwqq_http_set_default_header(LwqqHttpRequest *request);
 
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
                                 const char *value)
@@ -18,6 +22,19 @@ static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
         return ;
 
     ghttp_set_header(request->req, name, value);
+}
+
+static void lwqq_http_set_default_header(LwqqHttpRequest *request)
+{
+    lwqq_http_set_header(request, "User-Agent", LWQQ_HTTP_USER_AGENT);
+    lwqq_http_set_header(request, "Accept", "text/html, application/xml;q=0.9, "
+                         "application/xhtml+xml, image/png, image/jpeg, "
+                         "image/gif, image/x-xbitmap, */*;q=0.1");
+    lwqq_http_set_header(request, "Accept-Language", "en-US,zh-CN,zh;q=0.9,en;q=0.8");
+    lwqq_http_set_header(request, "Accept-Charset", "GBK, utf-8, utf-16, *;q=0.1");
+    lwqq_http_set_header(request, "Accept-Encoding", "deflate, gzip, x-gzip, "
+                         "identity, *;q=0");
+    lwqq_http_set_header(request, "Connection", "Keep-Alive");
 }
 
 /** 
@@ -69,6 +86,7 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
 
     request->do_request = lwqq_http_do_request;
     request->set_header = lwqq_http_set_header;
+    request->set_default_header = lwqq_http_set_default_header;
     return request;
 
 failed:
