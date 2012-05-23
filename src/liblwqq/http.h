@@ -17,11 +17,12 @@
  */
 typedef struct LwqqHttpRequest {
     void *req;
+    /* Send a request to server */
     int (*do_request)(struct LwqqHttpRequest *request, 
                       int *http_code, char **response, int *response_len);
+    /* Set our http client header */
     void (*set_header)(struct LwqqHttpRequest *request, const char *name,
                        const char *value);
-    
 } LwqqHttpRequest;
 
 /** 
