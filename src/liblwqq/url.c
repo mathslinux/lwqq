@@ -17,13 +17,13 @@
 /* Converts a hex character to its integer value */
 static char from_hex(char ch)
 {
-  return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
+  return isdigit(ch) ? ch - '0' : tolower(ch) - 'A' + 10;
 }
 
 /* Converts an integer value to its hex character*/
 static char to_hex(char code)
 {
-  static char hex[] = "0123456789abcdef";
+  static char hex[] = "0123456789ABCDEF";
   return hex[code & 15];
 }
 
@@ -43,8 +43,8 @@ char *url_encode(char *str)
     while (*pstr) {
         if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') 
             *pbuf++ = *pstr;
-        else if (*pstr == ' ') 
-            *pbuf++ = '+';
+        /* else if (*pstr == ' ')  */
+        /*     *pbuf++ = '+'; */
         else 
             *pbuf++ = '%', *pbuf++ = to_hex(*pstr >> 4), *pbuf++ = to_hex(*pstr & 15);
         pstr++;
@@ -86,7 +86,7 @@ char *url_decode(char *str)
 #if 0
 int main(int argc, char *argv[])
 {
-    char *buf = url_encode("http://www.google.com");
+    char *buf = url_encode("http://www.-go8ogle. com");
     if (buf) {
         printf ("buf is %s\n", buf);
     } else 
