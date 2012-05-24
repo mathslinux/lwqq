@@ -14,20 +14,26 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <alloca.h>
+#include <time.h>
+#include <sys/time.h>
 #include "login.h"
 #include "logger.h"
 #include "http.h"
 #include "smemory.h"
 #include "md5.h"
+#include "url.h"
 
 /* URL for webqq login */
 #define LWQQ_URL_LOGIN_HOST "http://ptlogin2.qq.com"
 #define LWQQ_URL_CHECK_HOST "http://check.ptlogin2.qq.com"
 #define VCCHECKPATH "/check"
 #define APPID "1003903"
+#define LWQQ_URL_SET_STATUS "http://d.web2.qq.com/channel/login2"
 
 /* URL for get webqq version */
 #define LWQQ_URL_VERSION "http://ui.ptlogin2.qq.com/cgi-bin/ver"
+
+static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err);
 
 static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 {
@@ -237,7 +243,7 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
         lc->uin = req->get_cookie(req, "uin");
         lc->ptisp = req->get_cookie(req, "ptisp");
         lc->pt2gguin = req->get_cookie(req, "pt2gguin");
-        goto done;
+        break;
         
     case 1:
         lwqq_log(LOG_WARNING, "Server busy! Please try again\n");
@@ -283,7 +289,8 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
         lwqq_log(LOG_ERROR, "Unknow error");
         goto done;
     }
-    
+
+    set_online_status(lc, "online", err);
 done:
     s_free(response);
     lwqq_http_request_free(req);
@@ -347,6 +354,89 @@ done:
     lwqq_http_request_free(req);
 }
 
+static char *generate_clientid()
+{
+    int r;
+    struct timeval tv;
+    long t;
+    char buf[20] = {0};
+    
+    srand(time(NULL));
+    r = rand() % 90 + 10;
+    if (gettimeofday(&tv, NULL)) {
+        return NULL;
+    }
+    t = tv.tv_usec % 1000000;
+    snprintf(buf, sizeof(buf), "%d%ld", r, t);
+    return s_strdup(buf);
+}
+
+/** 
+ * Set online status, this is the last step of login
+ * 
+ * @param err
+ * @param lc 
+ */
+static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
+{
+    char msg[1024] ={0};
+    char *ptwebqq;
+    char *buf;
+    LwqqHttpRequest *req = NULL;  
+    int http_code;
+    char *response = NULL;
+    int response_len;
+    int ret;
+    char cookie[512];
+
+    if (!status || !err) {
+        *err = LWQQ_ERROR;
+        return ;
+    }
+
+    lc->clientid = generate_clientid();
+    if (!lc->clientid) {
+        lwqq_log(LOG_ERROR, "Generate clientid error\n");
+        *err = LWQQ_ERROR;
+        return ;
+    }
+
+    /* Do we really need ptwebqq */
+    ptwebqq = lc->ptwebqq ? lc->ptwebqq : "";
+    snprintf(msg, sizeof(msg), "{\"status\":\"%s\",\"ptwebqq\":\"%s\","
+             "\"passwd_sig\":""\"\",\"clientid\":\"%s\""
+             ", \"psessionid\":null}"
+             ,status, lc->ptwebqq
+             ,lc->clientid);
+    buf = url_encode(msg);
+    snprintf(msg, sizeof(msg), "r=%s", buf);
+    s_free(buf);
+
+    /* Create a POST request */
+    req = lwqq_http_request_new(LWQQ_URL_SET_STATUS, 1);
+    if (!req) {
+        lwqq_log(LOG_ERROR, "Create request instance failed\n");
+        *err = LWQQ_ERROR;
+        goto failed;
+    }
+    req->set_default_header(req);
+    req->set_header(req, "Cookie2", "$Version=1");
+    req->set_header(req, "Referer", "http://d.web2.qq.com/proxy.html?v=20101025002");
+    req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
+    snprintf(cookie, sizeof(cookie), "ptwebqq=%s; ptisp=%s; ptvfsession=%s; "
+             "ptcz=%s; ptuserinfo=%s; skey=%s; uin=%s; pt2gguin=%s; ",
+             lc->ptwebqq, lc->ptisp, lc->ptvfsession, lc->ptcz, lc->ptuserinfo,
+             lc->skey, lc->uin, lc->pt2gguin);
+    req->set_header(req, "Cookie", cookie);
+    ret = req->do_post_request(req, msg, &http_code, &response, &response_len);
+
+    return ;
+    
+failed:
+    s_free(response);
+    lwqq_http_request_free(req);
+}
+
 /** 
  * WebQQ login function
  * Step:
@@ -362,6 +452,7 @@ done:
 void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
 {
     if (!client || !err) {
+        *err = LWQQ_ERROR;
         lwqq_log(LOG_ERROR, "Invalid pointer\n");
         return ;
     }
