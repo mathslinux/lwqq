@@ -167,6 +167,11 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
             break;
         }
     }
+
+    /* NB: *response may null */
+    if (*response == NULL) {
+        goto failed;
+    }
     
     /* OK, done */
     /* Realloc a more byte, cause *response has no termial char '\0' */
