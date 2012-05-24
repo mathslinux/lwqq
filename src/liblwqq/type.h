@@ -73,6 +73,7 @@ typedef struct LwqqClient {
     char *uin;
     char *ptisp;
     char *pt2gguin;
+    char *clientid;
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */ 
 } LwqqClient;
 
