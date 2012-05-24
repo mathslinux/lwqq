@@ -68,6 +68,11 @@ char *
 http_hdr_get_value(http_hdr_list *a_list,
 		   const char *a_name);
 
+/* Get a_name's cookie, caller must free the return string */
+char *
+http_hdr_get_cookie(http_hdr_list *a_list,
+                   const char *a_name);
+
 /* get a copy of the headers in a list */
 int
 http_hdr_get_headers(http_hdr_list *a_list,

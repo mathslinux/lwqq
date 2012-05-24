@@ -530,6 +530,11 @@ ghttp_get_header(ghttp_request *a_request,
 			    a_hdr);
 }
 
+char *ghttp_get_cookie(ghttp_request *a_request, const char *a_hdr)
+{
+  return http_hdr_get_cookie(a_request->resp->headers, a_hdr);
+}
+
 int
 ghttp_get_header_names(ghttp_request *a_request,
 		       char ***a_hdrs, int *a_num_hdrs)

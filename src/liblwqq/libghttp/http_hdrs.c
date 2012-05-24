@@ -238,52 +238,70 @@ http_hdr_set_value_no_nts(http_hdr_list *a_list,
 
 int
 http_hdr_set_value(http_hdr_list *a_list,
-		   const char *a_name,
-		   const char *a_val)
+                   const char *a_name,
+                   const char *a_val)
 {
-  int i = 0;
-  char *l_temp_value = NULL;
-  int l_return = 0;
+    int i = 0;
+    char *l_temp_value = NULL;
+    int l_return = 0;
   
-  if ((a_list == NULL) || (a_name == NULL) || (a_val == NULL))
-    goto ec;
-  l_temp_value = http_hdr_get_value(a_list, a_name);
-  if (l_temp_value == NULL)
-    {
-      for (i=0; i < HTTP_HDRS_MAX; i++)
-	{
-	  if (a_list->header[i] == NULL)
-	    {
-	      /* I promise not to mess with this value. */
-	      l_temp_value = (char *)http_hdr_is_known(a_name);
-	      if (l_temp_value)
-		{
-		  a_list->header[i] = l_temp_value;
-		  /* dont free this later... */
-		}
-	      else
-		a_list->header[i] = strdup(a_name);
-	      a_list->value[i] = strdup(a_val);
-	      l_return = 1;
-	      break;
-	    }
-	}
+    if ((a_list == NULL) || (a_name == NULL) || (a_val == NULL)) {
+        return l_return;
     }
-  else
-    {
-      for(i = 0; i < HTTP_HDRS_MAX; i++)
-	{
-	  if (a_list->value[i] == l_temp_value)
-	    {
-	      free(a_list->value[i]);
-	      a_list->value[i] = strdup(a_val);
-	      l_return = 1;
-	      break;
-	    }
+    for (i = 0; i < HTTP_HDRS_MAX; i++) {
+        if (a_list->header[i])
+            continue;
+        
+        /* I promise not to mess with this value. */
+        l_temp_value = (char *)http_hdr_is_known(a_name);
+        if (l_temp_value) {
+            a_list->header[i] = l_temp_value;
+            /* dont free this later... */
+        } else{
+            a_list->header[i] = strdup(a_name);
+        }
+        a_list->value[i] = strdup(a_val);
+        l_return = 1;
+        break;
 	}
+    return l_return;
+}
+
+char *http_hdr_get_cookie(http_hdr_list *a_list, const char *a_name)
+{
+    int i = 0;
+    char *l_return = NULL;
+
+    if (a_name == NULL)
+        goto ec;
+    for (i=0; i < HTTP_HDRS_MAX; i++) {
+        if (a_list->header[i] == NULL ||
+            a_list->value[i] == NULL||
+            strcasecmp(a_list->header[i], "Set-Cookie")) {
+            continue;
+        }
+        if (strstr(a_list->value[i], a_name)) {
+            char cookie[256] = {0};
+            char *start;
+            char *end;
+
+            strncpy(cookie, a_list->value[i], sizeof(cookie) - 1);
+            start = strstr(cookie, a_name);
+            if(!start){
+                goto ec;
+            }
+            start += strlen(a_name) + 1;
+            end = strstr(start, ";");
+            if (end) {
+                *end = '\0';
+            }
+
+            l_return = strdup(start);
+            break;
+        }
     }
- ec:
-  return l_return;
+ec:
+    return l_return;
 }
 
 char *

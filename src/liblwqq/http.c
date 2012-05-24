@@ -61,35 +61,15 @@ static char *lwqq_http_get_cookie(LwqqHttpRequest *request, const char *name)
         lwqq_log(LOG_ERROR, "Invalid parameter\n");
         return NULL; 
     }
-
-    /* Get http header */
-    char *cookie;
-    cookie = lwqq_http_get_header(request, "Set-Cookie");
+    
+    char *cookie = ghttp_get_cookie(request->req, name);
     if (!cookie) {
-        lwqq_log(LOG_WARNING, "Cant get http header\n");
-        return NULL;
-    }
-
-    char *start;
-    char *end;
-    char *value;
-
-    start = strstr(cookie, name);
-    if(!start){
         lwqq_log(LOG_WARNING, "No cookie: %s\n", name);
         return NULL;
     }
-    start += strlen(name) + 1;
-    end = strstr(start, ";");
-    if (end) {
-        *end = '\0';
-    }
 
-    lwqq_log(LOG_DEBUG, "Parse Cookie: %s=%s\n", name, start);
-    
-    value = s_strdup(start);
-    s_free(cookie);
-    return value;
+    lwqq_log(LOG_DEBUG, "Parse Cookie: %s=%s\n", name, cookie);
+    return cookie;
 }
 
 /** 

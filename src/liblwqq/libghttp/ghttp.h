@@ -178,6 +178,9 @@ const char *
 ghttp_get_header(ghttp_request *a_request,
 		 const char *a_hdr);
 
+/* Get a_name's cookie, caller must free the return string */
+char * ghttp_get_cookie(ghttp_request *a_request, const char *a_hdr);
+
 /* Get the list of headers that were returned in the response.  You
    must free the returned string values.  This function will return 0
    on success, -1 on some kind of error. */
