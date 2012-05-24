@@ -41,7 +41,7 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 
     snprintf(url, sizeof(url), "%s%s?uin=%s&appid=%s", LWQQ_URL_CHECK_HOST,
              VCCHECKPATH, lc->username, APPID);
-    req = lwqq_http_request_new(url);
+    req = lwqq_http_request_new(url, 0);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;
@@ -191,7 +191,7 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
              "ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&"
              "action=4-30-764935&mibao_css=m_webqq", LWQQ_URL_LOGIN_HOST, lc->username, md5, lc->vc->str);
 
-    req = lwqq_http_request_new(url);
+    req = lwqq_http_request_new(url, 0);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;
@@ -307,7 +307,7 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
     int response_len;
     int ret;
     
-    req = lwqq_http_request_new(LWQQ_URL_VERSION);
+    req = lwqq_http_request_new(LWQQ_URL_VERSION, 0);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;

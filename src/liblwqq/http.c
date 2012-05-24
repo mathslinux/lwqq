@@ -9,6 +9,7 @@
 #define LWQQ_HTTP_USER_AGENT "User-Agent: Mozilla/5.0 \
 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"
 
+static int lwqq_http_set_method(LwqqHttpRequest *request, int method);
 static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
                                 char **response, int *response_len);
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
@@ -95,7 +96,7 @@ void lwqq_http_request_free(LwqqHttpRequest *request)
  * 
  * @return 
  */
-LwqqHttpRequest *lwqq_http_request_new(const char *uri)
+LwqqHttpRequest *lwqq_http_request_new(const char *uri, int method)
 {
     if (!uri) {
         return NULL;
@@ -114,11 +115,12 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
         lwqq_log(LOG_WARNING, "Invalid uri: %s\n", uri);
         goto failed;
     }
-    if(ghttp_set_type(request->req, ghttp_type_get) == -1) {
+    if (lwqq_http_set_method(request, method)) {
         lwqq_log(LOG_WARNING, "Set request type error\n");
         goto failed;
     }
 
+    request->set_method = lwqq_http_set_method;
     request->do_request = lwqq_http_do_request;
     request->set_header = lwqq_http_set_header;
     request->set_default_header = lwqq_http_set_default_header;
@@ -131,6 +133,29 @@ failed:
         lwqq_http_request_free(request);
     }
     return NULL;
+}
+
+static int lwqq_http_set_method(LwqqHttpRequest *request, int method)
+{
+    if (!request->req)
+        return -1;
+
+    ghttp_type m;
+    if (method == 0) {
+        m = ghttp_type_get;
+    } else if (method == 1) {
+        m = ghttp_type_post;
+    } else {
+        lwqq_log(LOG_WARNING, "Wrong http method\n");
+        return -1;
+    }
+    
+    if (ghttp_set_type(request->req, m) == -1) {
+        lwqq_log(LOG_WARNING, "Set request type error\n");
+        return -1;
+    }
+
+    return 0;
 }
 
 static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
@@ -189,7 +214,7 @@ failed:
 int main(int argc, char *argv[])
 {
     char *uri = "http://www.google.com";
-    LwqqHttpRequest *req = lwqq_http_request_new(uri);
+    LwqqHttpRequest *req = lwqq_http_request_new(uri, 0);
     if (req) {
         int http_code;
         char *response;

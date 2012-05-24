@@ -17,6 +17,10 @@
  */
 typedef struct LwqqHttpRequest {
     void *req;
+
+    /* Set http method: GET or POST, 0 mean get, 1 mean post */
+    int (*set_method)(struct LwqqHttpRequest *request, int method);
+    
     /* Send a request to server */
     int (*do_request)(struct LwqqHttpRequest *request, 
                       int *http_code, char **response, int *response_len);
@@ -53,9 +57,10 @@ void lwqq_http_request_free(LwqqHttpRequest *request);
  * Create a new Http request instance
  * 
  * @param uri Request service from
+ * @param method Http method. e.g. 0 mean GET, 1 mean POST
  * 
  * @return 
  */
-LwqqHttpRequest *lwqq_http_request_new(const char *uri);
+LwqqHttpRequest *lwqq_http_request_new(const char *uri, int method);
 
 #endif  /* LWQQ_HTTP_H */
