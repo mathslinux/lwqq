@@ -63,6 +63,7 @@ typedef struct LwqqClient {
     char *username;             /**< Username */
     char *password;             /**< Password */
     LwqqBuddy *myself;          /**< Myself */
+    char *version;              /**< WebQQ version */
     LwqqVerifyCode *vc;          /**< Verify Code */
     char *ptvfsession;          /**< ptvfsession */
     char *ptcz;

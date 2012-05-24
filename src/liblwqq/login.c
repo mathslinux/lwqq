@@ -13,15 +13,21 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <alloca.h>
 #include "login.h"
 #include "logger.h"
 #include "http.h"
 #include "smemory.h"
 #include "md5.h"
 
-#define LWQQ_LOGIN_HOST "http://ptlogin2.qq.com"
+/* URL for webqq login */
+#define LWQQ_URL_LOGIN_HOST "http://ptlogin2.qq.com"
+#define LWQQ_URL_CHECK_HOST "http://check.ptlogin2.qq.com"
 #define VCCHECKPATH "/check"
 #define APPID "1003903"
+
+/* URL for get webqq version */
+#define LWQQ_URL_VERSION "http://ui.ptlogin2.qq.com/cgi-bin/ver"
 
 static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 {
@@ -31,8 +37,9 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
     char *response = NULL;
     int response_len;
     int ret;
+    char chkuin[64];
 
-    snprintf(url, sizeof(url), "%s%s?uin=%s&appid=%s", LWQQ_LOGIN_HOST,
+    snprintf(url, sizeof(url), "%s%s?uin=%s&appid=%s", LWQQ_URL_CHECK_HOST,
              VCCHECKPATH, lc->username, APPID);
     req = lwqq_http_request_new(url);
     if (!req) {
@@ -43,6 +50,8 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
     
     lwqq_log(LOG_NOTICE, "Send a request to: %s\n", url);
     req->set_default_header(req);
+    snprintf(chkuin, sizeof(chkuin), "chkuin=%s", lc->username);
+    req->set_header(req, "Cookie", chkuin);
     ret = req->do_request(req, &http_code, &response, &response_len);
     if (ret) {
         *err = LWQQ_NETWORK_ERROR;
@@ -180,7 +189,7 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
              "u1=http%%3A%%2F%%2Fweb.qq.com%%2Floginproxy.html"
              "%%3Flogin2qq%%3D1%%26webqq_type%%3D10&h=1&ptredirect=0&"
              "ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&"
-             "action=4-30-764935&mibao_css=m_webqq", LWQQ_LOGIN_HOST, lc->username, md5, lc->vc->str);
+             "action=4-30-764935&mibao_css=m_webqq", LWQQ_URL_LOGIN_HOST, lc->username, md5, lc->vc->str);
 
     req = lwqq_http_request_new(url);
     if (!req) {
@@ -280,13 +289,72 @@ done:
     lwqq_http_request_free(req);
 }
 
+/**
+ * Get WebQQ version from tencent server
+ * The response is like "ptuiV(201205211530)", what we do is get "201205211530"
+ * from the response and set it to lc->version.
+ * 
+ * @param lc 
+ * @param err *err will be set LWQQ_OK if everything is ok, else
+ *        *err will be set LWQQ_ERROR.
+ */
+
+static void get_version(LwqqClient *lc, LwqqErrorCode *err)
+{
+    LwqqHttpRequest *req;
+    char *response = NULL;
+    int http_code;
+    int response_len;
+    int ret;
+    
+    req = lwqq_http_request_new(LWQQ_URL_VERSION);
+    if (!req) {
+        lwqq_log(LOG_ERROR, "Create request instance failed\n");
+        *err = LWQQ_ERROR;
+        goto done;
+    }
+
+    /* Setup http header */
+    req->set_default_header(req);
+
+    /* Send request */
+    lwqq_log(LOG_DEBUG, "Get webqq version from %s\n", LWQQ_URL_VERSION);
+    ret = req->do_request(req, &http_code, &response, &response_len);
+    if (ret) {
+        *err = LWQQ_NETWORK_ERROR;
+        goto done;
+    }
+    if (strstr(response, "ptuiV")) {
+        char *s, *t;
+        char *v;
+        s = strchr(response, '(');
+        t = strchr(response, ')');
+        if (!s || !t) {
+            *err = LWQQ_ERROR;
+            goto done;
+        }
+        s++;
+        v = alloca(t - s + 1);
+        memset(v, 0, t - s + 1);
+        strncpy(v, s, t - s);
+        lc->version = s_strdup(v);
+        *err = LWQQ_OK;
+        printf ("vvvvvvvvvv%s \n", lc->version);
+    }
+
+done:
+    s_free(response);
+    lwqq_http_request_free(req);
+}
+
 /** 
  * WebQQ login function
  * Step:
- * 1. Get verify code
- * 2. Calculate password's md5
- * 3. Do real login 
- * 4. check whether logining successfully
+ * 1. Get webqq version
+ * 2. Get verify code
+ * 3. Calculate password's md5
+ * 4. Do real login 
+ * 5. check whether logining successfully
  * 
  * @param client Lwqq Client 
  * @param err Error code
@@ -298,8 +366,16 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
         return ;
     }
 
+    /* First: get webqq version */
+    get_version(client, err);
+    if (*err) {
+        lwqq_log(LOG_ERROR, "Get webqq version error\n");
+        return ;
+    }
+    lwqq_log(LOG_NOTICE, "Get webqq version: %s\n", client->version);
+
     /**
-     * First, we get the verify code from server.
+     * Second, we get the verify code from server.
      * If server provide us a image and let us enter code shown
      * in image number, in this situation, we just return LWQQ_LOGIN_NEED_VC
      * simply, so user should call lwqq_login() again after he set correct
@@ -327,9 +403,11 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
             return ;
         }
     }
-
-    /* Second, calculate the md5 */
+    
+    /* Third: calculate the md5 */
     char *md5 = calculate_password_md5(client);
+
+    /* Last: do real login */
     do_login(client, md5, err);
     s_free(md5);
 }

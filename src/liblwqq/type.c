@@ -62,6 +62,7 @@ void lwqq_client_free(LwqqClient *client)
     /* Free LwqqVerifyCode instance */
     s_free(client->username);
     s_free(client->password);
+    s_free(client->version);
     vc_free(client->vc);
     s_free(client->ptvfsession);
     s_free(client->ptcz);
