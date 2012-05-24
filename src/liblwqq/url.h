@@ -28,6 +28,6 @@ char *url_encode(char *str);
  * 
  * @return A url-decoded version of str
  */
-char *url_decode(char *str)
+char *url_decode(char *str);
 
 #endif  /* LWQQ_URL_H */
