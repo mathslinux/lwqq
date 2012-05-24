@@ -21,8 +21,12 @@ typedef struct LwqqHttpRequest {
     /* Set http method: GET or POST, 0 mean get, 1 mean post */
     int (*set_method)(struct LwqqHttpRequest *request, int method);
     
-    /* Send a request to server */
+    /* Send a request to server, NB, this method is GET */
     int (*do_request)(struct LwqqHttpRequest *request, 
+                      int *http_code, char **response, int *response_len);
+
+    /* Send a POST request to server */
+    int (*do_post_request)(struct LwqqHttpRequest *request, char *body,
                       int *http_code, char **response, int *response_len);
     
     /* Set our http client header */

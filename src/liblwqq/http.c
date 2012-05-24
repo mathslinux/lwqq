@@ -12,6 +12,9 @@
 static int lwqq_http_set_method(LwqqHttpRequest *request, int method);
 static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
                                 char **response, int *response_len);
+static int lwqq_http_do_post_request(LwqqHttpRequest *request, char *body,
+                                int *http_code, char **response,
+                                int *response_len);
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
                                  const char *value);
 static void lwqq_http_set_default_header(LwqqHttpRequest *request);
@@ -122,6 +125,7 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri, int method)
 
     request->set_method = lwqq_http_set_method;
     request->do_request = lwqq_http_do_request;
+    request->do_post_request = lwqq_http_do_post_request;
     request->set_header = lwqq_http_set_header;
     request->set_default_header = lwqq_http_set_default_header;
     request->get_header = lwqq_http_get_header;
@@ -169,6 +173,61 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
     int have_read_bytes = 0;
 
     *response = NULL;
+    if (ghttp_prepare(request->req)) {
+        goto failed;
+    }
+
+    for ( ; ; ) {
+        int len = 0;
+        status = ghttp_process(request->req);
+        if(status == ghttp_error) {
+            goto failed;
+        }
+        /* NOTE: buf may NULL, notice it */
+        buf = ghttp_get_body(request->req);
+        if (buf) {
+            len = ghttp_get_body_len(request->req);
+            *response = s_realloc(*response, have_read_bytes + len);
+            memcpy(*response + have_read_bytes, buf, len);
+            have_read_bytes += len;
+        }
+        if(status == ghttp_done) {
+            /* NOTE: Ok, done */
+            break;
+        }
+    }
+
+    /* NB: *response may null */
+    if (*response == NULL) {
+        goto failed;
+    }
+    
+    /* OK, done */
+    /* Realloc a more byte, cause *response has no termial char '\0' */
+    *response = s_realloc(*response, have_read_bytes + 1);
+    (*response)[have_read_bytes] = '\0';
+    *response_len = have_read_bytes;
+    *http_code = ghttp_status_code(request->req);
+    return 0;
+
+failed:
+    return -1;
+}
+
+static int lwqq_http_do_post_request(LwqqHttpRequest *request, char *body,
+                                int *http_code, char **response,
+                                int *response_len)
+{
+    if (!request->req || !body || !http_code || !response || !response_len)
+        return -1;
+
+    ghttp_status status;
+    char *buf;
+    int have_read_bytes = 0;
+
+    *response = NULL;
+    
+    ghttp_set_body(request->req, body, strlen(body));
     if (ghttp_prepare(request->req)) {
         goto failed;
     }
