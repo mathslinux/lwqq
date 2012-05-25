@@ -347,7 +347,6 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
         strncpy(v, s, t - s);
         lc->version = s_strdup(v);
         *err = LWQQ_OK;
-        printf ("vvvvvvvvvv%s \n", lc->version);
     }
 
 done:
@@ -467,7 +466,6 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
      * {"retcode":0,"result":{"uin":1421032531,"cip":2013211875,"index":1060,"port":43415,"status":"online","vfwebqq":"e7ce7913336ad0d28de9cdb9b46a57e4a6127161e35b87d09486001870226ec1fca4c2ba31c025c7","psessionid":"8368046764001e636f6e6e7365727665725f77656271714031302e3133332e34312e32303200006b2900001544016e0400533cb3546d0000000a4046674d4652585136496d00000028e7ce7913336ad0d28de9cdb9b46a57e4a6127161e35b87d09486001870226ec1fca4c2ba31c025c7","user_state":0,"f":0}}
      * 
      */
-    printf ("resp is %s\n", response);
     ret = json_parse_document(&json, response);
     if (ret != JSON_OK) {
         *err = LWQQ_ERROR;
@@ -484,12 +482,12 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
      * 
      */
     if ((value = parse_json(json, "seskey"))) {
+        lc->seskey = s_strdup(value);
     }
-    lc->seskey = s_strdup(value);
 
     if ((value = parse_json(json, "cip"))) {
+        lc->cip = s_strdup(value);
     }
-    lc->cip = s_strdup(value);
 
     if ((value = parse_json(json, "index"))) {
         lc->index = s_strdup(value);
@@ -511,7 +509,8 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     if ((value = parse_json(json, "psessionid"))) {
         lc->psessionid = s_strdup(value);
     }
-    
+
+    *err = LWQQ_OK;
     
 done:
     if (json)
