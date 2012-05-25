@@ -9,6 +9,7 @@
  */
 
 #include "login.h"
+#include "logger.h"
 
 int main(int argc, char *argv[])
 {
@@ -18,7 +19,13 @@ int main(int argc, char *argv[])
 
     LwqqErrorCode err;
     lwqq_login(lc, &err);
-    
+    if (err != LWQQ_OK) {
+        lwqq_log(LOG_ERROR, "Login error, exit\n");
+        goto done;
+    }
+    lwqq_log(LOG_NOTICE, "Login successfully\n");
+
+done:
     lwqq_client_free(lc);
     return 0;
 }
