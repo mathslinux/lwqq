@@ -22,6 +22,7 @@
 #include "smemory.h"
 #include "md5.h"
 #include "url.h"
+#include "json.h"
 
 /* URL for webqq login */
 #define LWQQ_URL_LOGIN_HOST "http://ptlogin2.qq.com"
@@ -372,6 +373,27 @@ static char *generate_clientid()
 }
 
 /** 
+ * Parse value from json object setup by json_parse_document().
+ * Dont need to free the string returned.
+ * 
+ * @param json Json object setup by json_parse_document()
+ * @param key the key you want to search
+ * 
+ * @return Key whose value will be searched
+ */
+static char *parse_json(json_t *json, const char *key)
+{
+    json_t *val;
+
+    val = json_find_first_label_all(json, key);
+    if (val && val->child && val->child->text) {
+        return val->child->text;
+    }
+    
+    return NULL;
+}
+
+/** 
  * Set online status, this is the last step of login
  * 
  * @param err
@@ -388,17 +410,19 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     int response_len;
     int ret;
     char cookie[512];
+    json_t *json = NULL;
+    char *value;
 
     if (!status || !err) {
         *err = LWQQ_ERROR;
-        return ;
+        goto done ;
     }
 
     lc->clientid = generate_clientid();
     if (!lc->clientid) {
         lwqq_log(LOG_ERROR, "Generate clientid error\n");
         *err = LWQQ_ERROR;
-        return ;
+        goto done ;
     }
 
     /* Do we really need ptwebqq */
@@ -417,7 +441,7 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;
-        goto failed;
+        goto done;
     }
     req->set_default_header(req);
     req->set_header(req, "Cookie2", "$Version=1");
@@ -429,10 +453,69 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
              lc->skey, lc->uin, lc->pt2gguin);
     req->set_header(req, "Cookie", cookie);
     ret = req->do_post_request(req, msg, &http_code, &response, &response_len);
+    if (ret) {
+        *err = LWQQ_NETWORK_ERROR;
+        goto done;
+    }
+    if (http_code != 200) {
+        *err = LWQQ_HTTP_ERROR;
+        goto done;
+    }
 
-    return ;
+    /**
+     * Here, we got a json object like this:
+     * {"retcode":0,"result":{"uin":1421032531,"cip":2013211875,"index":1060,"port":43415,"status":"online","vfwebqq":"e7ce7913336ad0d28de9cdb9b46a57e4a6127161e35b87d09486001870226ec1fca4c2ba31c025c7","psessionid":"8368046764001e636f6e6e7365727665725f77656271714031302e3133332e34312e32303200006b2900001544016e0400533cb3546d0000000a4046674d4652585136496d00000028e7ce7913336ad0d28de9cdb9b46a57e4a6127161e35b87d09486001870226ec1fca4c2ba31c025c7","user_state":0,"f":0}}
+     * 
+     */
+    printf ("resp is %s\n", response);
+    ret = json_parse_document(&json, response);
+    if (ret != JSON_OK) {
+        *err = LWQQ_ERROR;
+        goto done;
+    }
+
+    if (!(value = parse_json(json, "retcode"))) {
+        *err = LWQQ_ERROR;
+        goto done;
+    }
+    /**
+     * Do we need parse "seskey? from kernelhcy's code, we need it,
+     * but from the response we got like above, we dont need
+     * 
+     */
+    if ((value = parse_json(json, "seskey"))) {
+    }
+    lc->seskey = s_strdup(value);
+
+    if ((value = parse_json(json, "cip"))) {
+    }
+    lc->cip = s_strdup(value);
+
+    if ((value = parse_json(json, "index"))) {
+        lc->index = s_strdup(value);
+    }
+
+    if ((value = parse_json(json, "port"))) {
+        lc->port = s_strdup(value);
+    }
+
+    if ((value = parse_json(json, "status"))) {
+        /* This really need? */
+        lc->status = s_strdup(value);
+    }
+
+    if ((value = parse_json(json, "vfwebqq"))) {
+        lc->vfwebqq = s_strdup(value);
+    }
+
+    if ((value = parse_json(json, "psessionid"))) {
+        lc->psessionid = s_strdup(value);
+    }
     
-failed:
+    
+done:
+    if (json)
+        json_free_value(&json);
     s_free(response);
     lwqq_http_request_free(req);
 }

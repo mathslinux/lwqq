@@ -73,6 +73,13 @@ void lwqq_client_free(LwqqClient *client)
     s_free(client->ptisp);
     s_free(client->pt2gguin);
     s_free(client->clientid);
+    s_free(client->seskey);
+    s_free(client->cip);
+    s_free(client->index);
+    s_free(client->port);
+    s_free(client->status);
+    s_free(client->vfwebqq);
+    s_free(client->psessionid);
     lwqq_buddy_free(client->myself);
         
     /* Free friends list */
