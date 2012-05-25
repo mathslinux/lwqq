@@ -54,7 +54,7 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
         goto failed;
     }
     
-    lwqq_log(LOG_NOTICE, "Send a request to: %s\n", url);
+    lwqq_log(LOG_NOTICE, "Send a request to: %s\n", LWQQ_URL_CHECK_HOST);
     req->set_default_header(req);
     snprintf(chkuin, sizeof(chkuin), "chkuin=%s", lc->username);
     req->set_header(req, "Cookie", chkuin);
@@ -203,7 +203,7 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
         *err = LWQQ_ERROR;
         goto done;
     }
-    lwqq_log(LOG_DEBUG, "Send a login request to server: %s\n", url);
+    lwqq_log(LOG_DEBUG, "Send a login request to server: %s\n", LWQQ_URL_LOGIN_HOST);
 
     /* Setup http header */
     req->set_default_header(req);
