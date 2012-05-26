@@ -9,12 +9,7 @@
 #define LWQQ_HTTP_USER_AGENT "User-Agent: Mozilla/5.0 \
 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"
 
-static int lwqq_http_set_method(LwqqHttpRequest *request, int method);
-static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
-                                char **response, int *response_len);
-static int lwqq_http_do_post_request(LwqqHttpRequest *request, char *body,
-                                int *http_code, char **response,
-                                int *response_len);
+static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body);
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
                                  const char *value);
 static void lwqq_http_set_default_header(LwqqHttpRequest *request);
@@ -87,6 +82,7 @@ void lwqq_http_request_free(LwqqHttpRequest *request)
         return ;
     
     if (request) {
+        s_free(request->response);
         ghttp_request_destroy(request->req);
         s_free(request);
     }
@@ -99,15 +95,14 @@ void lwqq_http_request_free(LwqqHttpRequest *request)
  * 
  * @return 
  */
-LwqqHttpRequest *lwqq_http_request_new(const char *uri, int method)
+LwqqHttpRequest *lwqq_http_request_new(const char *uri)
 {
     if (!uri) {
         return NULL;
     }
 
     LwqqHttpRequest *request;
-    request = s_malloc(sizeof(*request));
-    memset(request, 0, sizeof(*request));
+    request = s_malloc0(sizeof(*request));
     
     request->req = ghttp_request_new();
     if (!request->req) {
@@ -118,14 +113,8 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri, int method)
         lwqq_log(LOG_WARNING, "Invalid uri: %s\n", uri);
         goto failed;
     }
-    if (lwqq_http_set_method(request, method)) {
-        lwqq_log(LOG_WARNING, "Set request type error\n");
-        goto failed;
-    }
 
-    request->set_method = lwqq_http_set_method;
     request->do_request = lwqq_http_do_request;
-    request->do_post_request = lwqq_http_do_post_request;
     request->set_header = lwqq_http_set_header;
     request->set_default_header = lwqq_http_set_default_header;
     request->get_header = lwqq_http_get_header;
@@ -139,40 +128,42 @@ failed:
     return NULL;
 }
 
-static int lwqq_http_set_method(LwqqHttpRequest *request, int method)
+static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body)
 {
     if (!request->req)
         return -1;
 
+    ghttp_status status;
+    char *buf;
+    int have_read_bytes = 0;
     ghttp_type m;
+    char **resp = &request->response;
+
+    /* Clear off last response */
+    if (*resp) {
+        s_free(*resp);
+        *resp = NULL;
+    }
+
+    /* Set http method */
     if (method == 0) {
         m = ghttp_type_get;
     } else if (method == 1) {
         m = ghttp_type_post;
     } else {
         lwqq_log(LOG_WARNING, "Wrong http method\n");
-        return -1;
+        goto failed;
     }
-    
     if (ghttp_set_type(request->req, m) == -1) {
         lwqq_log(LOG_WARNING, "Set request type error\n");
-        return -1;
+        goto failed;
     }
 
-    return 0;
-}
-
-static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
-                         char **response, int *response_len)
-{
-    if (!request->req || !http_code || !response || !response_len)
-        return -1;
-
-    ghttp_status status;
-    char *buf;
-    int have_read_bytes = 0;
-
-    *response = NULL;
+    /* For POST method, set http body */
+    if (m == ghttp_type_post && body) {
+        ghttp_set_body(request->req, body, strlen(body));
+    }
+    
     if (ghttp_prepare(request->req)) {
         goto failed;
     }
@@ -187,8 +178,8 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
         buf = ghttp_get_body(request->req);
         if (buf) {
             len = ghttp_get_body_len(request->req);
-            *response = s_realloc(*response, have_read_bytes + len);
-            memcpy(*response + have_read_bytes, buf, len);
+            *resp = s_realloc(*resp, have_read_bytes + len);
+            memcpy(*resp + have_read_bytes, buf, len);
             have_read_bytes += len;
         }
         if(status == ghttp_done) {
@@ -198,93 +189,42 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int *http_code,
     }
 
     /* NB: *response may null */
-    if (*response == NULL) {
+    if (*resp == NULL) {
         goto failed;
     }
     
     /* OK, done */
-    /* Realloc a more byte, cause *response has no termial char '\0' */
-    *response = s_realloc(*response, have_read_bytes + 1);
-    (*response)[have_read_bytes] = '\0';
-    *response_len = have_read_bytes;
-    *http_code = ghttp_status_code(request->req);
+    /* Realloc a byte, cause *resp has no termial char '\0' */
+    *resp = s_realloc(*resp, have_read_bytes + 1);
+    (*resp)[have_read_bytes] = '\0';
+    request->http_code = ghttp_status_code(request->req);
     return 0;
 
 failed:
-    return -1;
-}
-
-static int lwqq_http_do_post_request(LwqqHttpRequest *request, char *body,
-                                int *http_code, char **response,
-                                int *response_len)
-{
-    if (!request->req || !body || !http_code || !response || !response_len)
-        return -1;
-
-    ghttp_status status;
-    char *buf;
-    int have_read_bytes = 0;
-
-    *response = NULL;
-    
-    ghttp_set_body(request->req, body, strlen(body));
-    if (ghttp_prepare(request->req)) {
-        goto failed;
+    if (*resp) {
+        s_free(*resp);
+        *resp = NULL;
     }
-
-    for ( ; ; ) {
-        int len = 0;
-        status = ghttp_process(request->req);
-        if(status == ghttp_error) {
-            goto failed;
-        }
-        /* NOTE: buf may NULL, notice it */
-        buf = ghttp_get_body(request->req);
-        if (buf) {
-            len = ghttp_get_body_len(request->req);
-            *response = s_realloc(*response, have_read_bytes + len);
-            memcpy(*response + have_read_bytes, buf, len);
-            have_read_bytes += len;
-        }
-        if(status == ghttp_done) {
-            /* NOTE: Ok, done */
-            break;
-        }
-    }
-
-    /* NB: *response may null */
-    if (*response == NULL) {
-        goto failed;
-    }
-    
-    /* OK, done */
-    /* Realloc a more byte, cause *response has no termial char '\0' */
-    *response = s_realloc(*response, have_read_bytes + 1);
-    (*response)[have_read_bytes] = '\0';
-    *response_len = have_read_bytes;
-    *http_code = ghttp_status_code(request->req);
-    return 0;
-
-failed:
     return -1;
 }
 
 #if 0
 int main(int argc, char *argv[])
 {
-    char *uri = "http://www.google.com";
-    LwqqHttpRequest *req = lwqq_http_request_new(uri, 0);
+    if (argc != 2)
+        return -1;
+    
+    char *uri = argv[1];
+    LwqqHttpRequest *req = lwqq_http_request_new(uri);
     if (req) {
-        int http_code;
-        char *response;
-        int response_len;
-        int ret;
-        ret = req->do_request(req, &http_code, &response, &response_len);
+        int ret = 0;
+        ret = req->do_request(req, 0, NULL);
+        ret = req->do_request(req, 0, NULL);
+        ret = req->do_request(req, 0, NULL);
+        ret = req->do_request(req, 0, NULL);
         if (ret == 0) {
-            printf ("code: %d\n", http_code);
-            printf ("buf: %s\n", response);
-            if (response)
-                free(response);
+            printf ("code: %d\n", req->http_code);
+            printf ("buf: %s\n", req->response);
         }
         lwqq_http_request_free(req);
     }

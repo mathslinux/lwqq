@@ -12,23 +12,28 @@
 #define LWQQ_HTTP_H
 
 /**
- * Http request struct
+ * Lwqq Http request struct, this http object worked donw for lwqq,
+ * But for other app, it may work bad.
  * 
  */
 typedef struct LwqqHttpRequest {
     void *req;
 
-    /* Set http method: GET or POST, 0 mean get, 1 mean post */
-    int (*set_method)(struct LwqqHttpRequest *request, int method);
+    /**
+     * Http code return from server. e.g. 200, 404, this maybe changed
+     * after do_request() called.
+     */
+    int http_code;
     
-    /* Send a request to server, NB, this method is GET */
-    int (*do_request)(struct LwqqHttpRequest *request, 
-                      int *http_code, char **response, int *response_len);
+    /* Server response, this maybe changed after do_request() called */
+    char *response;
 
-    /* Send a POST request to server */
-    int (*do_post_request)(struct LwqqHttpRequest *request, char *body,
-                      int *http_code, char **response, int *response_len);
-    
+    /**
+     * Send a request to server, method is GET(0) or POST(1), if we make a
+     * POST request, we must provide a http body.
+     */
+    int (*do_request)(struct LwqqHttpRequest *request, int method, char *body);
+
     /* Set our http client header */
     void (*set_header)(struct LwqqHttpRequest *request, const char *name,
                        const char *value);
@@ -61,10 +66,9 @@ void lwqq_http_request_free(LwqqHttpRequest *request);
  * Create a new Http request instance
  * 
  * @param uri Request service from
- * @param method Http method. e.g. 0 mean GET, 1 mean POST
  * 
  * @return 
  */
-LwqqHttpRequest *lwqq_http_request_new(const char *uri, int method);
+LwqqHttpRequest *lwqq_http_request_new(const char *uri);
 
 #endif  /* LWQQ_HTTP_H */
