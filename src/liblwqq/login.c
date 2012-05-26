@@ -40,15 +40,13 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 {
     LwqqHttpRequest *req;  
     char url[512];
-    int http_code;
     char *response = NULL;
-    int response_len;
     int ret;
     char chkuin[64];
 
     snprintf(url, sizeof(url), "%s%s?uin=%s&appid=%s", LWQQ_URL_CHECK_HOST,
              VCCHECKPATH, lc->username, APPID);
-    req = lwqq_http_request_new(url, 0);
+    req = lwqq_http_request_new(url);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;
@@ -59,16 +57,15 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
     req->set_default_header(req);
     snprintf(chkuin, sizeof(chkuin), "chkuin=%s", lc->username);
     req->set_header(req, "Cookie", chkuin);
-    ret = req->do_request(req, &http_code, &response, &response_len);
+    ret = req->do_request(req, 0, NULL);
     if (ret) {
         *err = LWQQ_NETWORK_ERROR;
         goto failed;
     }
-    if (http_code != 200) {
+    if (req->http_code != 200) {
         *err = LWQQ_HTTP_ERROR;
         goto failed;
     }
-    lwqq_log(LOG_NOTICE, "Get response verify code: %s\n", response);
 
     /**
      * 
@@ -82,6 +79,9 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 	 * parameter is the verify code. The vc_type is in the header
 	 * "Set-Cookie".
 	 */
+    response = req->response;
+    lwqq_log(LOG_NOTICE, "Get response verify code: %s\n", response);
+
     char *c = strstr(response, "ptui_checkVC");
     char *s;
     if (!c) {
@@ -130,12 +130,10 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
         lwqq_log(LOG_NOTICE, "We need verify code image: %s\n", lc->vc->str);
     }
     
-    s_free(response);
     lwqq_http_request_free(req);
     return ;
     
 failed:
-    s_free(response);
     lwqq_http_request_free(req);
 }
 
@@ -186,8 +184,6 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
     char url[1024];
     LwqqHttpRequest *req;
     char *response = NULL;
-    int http_code;
-    int response_len;
     int ret;
     char ptvfsession[128];
     
@@ -198,7 +194,7 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
              "ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&"
              "action=4-30-764935&mibao_css=m_webqq", LWQQ_URL_LOGIN_HOST, lc->username, md5, lc->vc->str);
 
-    req = lwqq_http_request_new(url, 0);
+    req = lwqq_http_request_new(url);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;
@@ -214,16 +210,17 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
     }
 
     /* Send request */
-    ret = req->do_request(req, &http_code, &response, &response_len);
+    ret = req->do_request(req, 0, NULL);
     if (ret) {
         *err = LWQQ_NETWORK_ERROR;
         goto done;
     }
-    if (http_code != 200) {
+    if (req->http_code != 200) {
         *err = LWQQ_HTTP_ERROR;
         goto done;
     }
 
+    response = req->response;
     char *p = strstr(response, "\'");
     if (!p) {
         *err = LWQQ_ERROR;
@@ -293,7 +290,6 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
 
     set_online_status(lc, "online", err);
 done:
-    s_free(response);
     lwqq_http_request_free(req);
 }
 
@@ -311,11 +307,9 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
 {
     LwqqHttpRequest *req;
     char *response = NULL;
-    int http_code;
-    int response_len;
     int ret;
     
-    req = lwqq_http_request_new(LWQQ_URL_VERSION, 0);
+    req = lwqq_http_request_new(LWQQ_URL_VERSION);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;
@@ -327,11 +321,12 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
 
     /* Send request */
     lwqq_log(LOG_DEBUG, "Get webqq version from %s\n", LWQQ_URL_VERSION);
-    ret = req->do_request(req, &http_code, &response, &response_len);
+    ret = req->do_request(req, 0, NULL);
     if (ret) {
         *err = LWQQ_NETWORK_ERROR;
         goto done;
     }
+    response = req->response;
     if (strstr(response, "ptuiV")) {
         char *s, *t;
         char *v;
@@ -350,7 +345,6 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
     }
 
 done:
-    s_free(response);
     lwqq_http_request_free(req);
 }
 
@@ -404,9 +398,7 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     char *ptwebqq;
     char *buf;
     LwqqHttpRequest *req = NULL;  
-    int http_code;
     char *response = NULL;
-    int response_len;
     int ret;
     char cookie[512];
     json_t *json = NULL;
@@ -436,7 +428,7 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     s_free(buf);
 
     /* Create a POST request */
-    req = lwqq_http_request_new(LWQQ_URL_SET_STATUS, 1);
+    req = lwqq_http_request_new(LWQQ_URL_SET_STATUS);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request instance failed\n");
         *err = LWQQ_ERROR;
@@ -451,12 +443,12 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
              lc->ptwebqq, lc->ptisp, lc->ptvfsession, lc->ptcz, lc->ptuserinfo,
              lc->skey, lc->uin, lc->pt2gguin);
     req->set_header(req, "Cookie", cookie);
-    ret = req->do_post_request(req, msg, &http_code, &response, &response_len);
+    ret = req->do_request(req, 1, msg);
     if (ret) {
         *err = LWQQ_NETWORK_ERROR;
         goto done;
     }
-    if (http_code != 200) {
+    if (req->http_code != 200) {
         *err = LWQQ_HTTP_ERROR;
         goto done;
     }
@@ -466,6 +458,7 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
      * {"retcode":0,"result":{"uin":1421032531,"cip":2013211875,"index":1060,"port":43415,"status":"online","vfwebqq":"e7ce7913336ad0d28de9cdb9b46a57e4a6127161e35b87d09486001870226ec1fca4c2ba31c025c7","psessionid":"8368046764001e636f6e6e7365727665725f77656271714031302e3133332e34312e32303200006b2900001544016e0400533cb3546d0000000a4046674d4652585136496d00000028e7ce7913336ad0d28de9cdb9b46a57e4a6127161e35b87d09486001870226ec1fca4c2ba31c025c7","user_state":0,"f":0}}
      * 
      */
+    response = req->response;
     ret = json_parse_document(&json, response);
     if (ret != JSON_OK) {
         *err = LWQQ_ERROR;
@@ -515,7 +508,6 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
 done:
     if (json)
         json_free_value(&json);
-    s_free(response);
     lwqq_http_request_free(req);
 }
 
