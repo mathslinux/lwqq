@@ -80,6 +80,7 @@ void lwqq_client_free(LwqqClient *client)
     s_free(client->status);
     s_free(client->vfwebqq);
     s_free(client->psessionid);
+    s_free(client->cookie);
     lwqq_buddy_free(client->myself);
         
     /* Free friends list */

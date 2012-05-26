@@ -199,6 +199,35 @@ static char *calculate_password_md5(LwqqClient *lc)
     return s_strdup((char *)buf);
 }
 
+static int sava_cookie(LwqqClient *lc, LwqqHttpRequest *req, LwqqErrorCode *err)
+{
+    /* FIXME, is cookie less than 2K always? */
+    char cookie[2048];
+    
+    lc->ptcz = req->get_cookie(req, "ptcz");
+    lc->skey = req->get_cookie(req, "skey");
+    lc->ptwebqq = req->get_cookie(req, "ptwebqq");
+    lc->ptuserinfo = req->get_cookie(req, "ptuserinfo");
+    lc->uin = req->get_cookie(req, "uin");
+    lc->ptisp = req->get_cookie(req, "ptisp");
+    lc->pt2gguin = req->get_cookie(req, "pt2gguin");
+    if (!lc->ptcz || !lc->skey || !lc->ptwebqq || !lc->ptuserinfo ||
+        !lc->uin || !lc->ptisp || !lc->pt2gguin) {
+        *err = LWQQ_ERROR;
+        lwqq_log(LOG_ERROR, "Parse cookie error\n");
+        return -1;
+    }
+    snprintf(cookie, sizeof(cookie), "ptwebqq=%s; ptisp=%s; "
+             "ptcz=%s; ptuserinfo=%s; skey=%s; uin=%s; pt2gguin=%s; ",
+             lc->ptwebqq, lc->ptisp, lc->ptcz, lc->ptuserinfo,
+             lc->skey, lc->uin, lc->pt2gguin);
+    if (lc->cookie) {
+        s_free(lc->cookie);
+    }
+    lc->cookie = s_strdup(cookie);
+    return 0;
+}
+
 /** 
  * Do really login
  * 
@@ -255,14 +284,9 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
 
     switch (status) {
     case 0:
-        *err = 0;
-        lc->ptcz = req->get_cookie(req, "ptcz");
-        lc->skey = req->get_cookie(req, "skey");
-        lc->ptwebqq = req->get_cookie(req, "ptwebqq");
-        lc->ptuserinfo = req->get_cookie(req, "ptuserinfo");
-        lc->uin = req->get_cookie(req, "uin");
-        lc->ptisp = req->get_cookie(req, "ptisp");
-        lc->pt2gguin = req->get_cookie(req, "pt2gguin");
+        if (sava_cookie(lc, req, err)) {
+            goto done;
+        }
         break;
         
     case 1:
@@ -306,6 +330,7 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
         goto done;
 
     default:
+        *err = LWQQ_ERROR;
         lwqq_log(LOG_ERROR, "Unknow error");
         goto done;
     }
@@ -417,7 +442,6 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     LwqqHttpRequest *req = NULL;  
     char *response = NULL;
     int ret;
-    char cookie[512];
     json_t *json = NULL;
     char *value;
 
@@ -449,14 +473,16 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     if (!req) {
         goto done;
     }
+
+    /* Set header needed by server */
     req->set_header(req, "Cookie2", "$Version=1");
     req->set_header(req, "Referer", "http://d.web2.qq.com/proxy.html?v=20101025002");
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
-    snprintf(cookie, sizeof(cookie), "ptwebqq=%s; ptisp=%s; ptvfsession=%s; "
-             "ptcz=%s; ptuserinfo=%s; skey=%s; uin=%s; pt2gguin=%s; ",
-             lc->ptwebqq, lc->ptisp, lc->ptvfsession, lc->ptcz, lc->ptuserinfo,
-             lc->skey, lc->uin, lc->pt2gguin);
-    req->set_header(req, "Cookie", cookie);
+    
+    /* Set http cookie */
+    if (lc->cookie)
+        req->set_header(req, "Cookie", lc->cookie);
+    
     ret = req->do_request(req, 1, msg);
     if (ret) {
         *err = LWQQ_NETWORK_ERROR;

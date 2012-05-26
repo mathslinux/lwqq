@@ -81,6 +81,7 @@ typedef struct LwqqClient {
     char *status;
     char *vfwebqq;
     char *psessionid;
+    char *cookie;
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */ 
 } LwqqClient;
 
