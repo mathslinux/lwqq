@@ -36,6 +36,37 @@
 
 static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err);
 
+/** 
+ * Create a default http request object using default http header.
+ * 
+ * @param url Which your want send this request to
+ * @param err This parameter can be null, if so, we dont give thing
+ *        error information.
+ * 
+ * @return Null if failed, else a new http request object
+ */
+static LwqqHttpRequest *lwqq_http_create_default_request(const char *url, LwqqErrorCode *err)
+{
+    LwqqHttpRequest *req;
+    
+    if (!url) {
+        if (err)
+            *err = LWQQ_ERROR;
+        return NULL;
+    }
+
+    req = lwqq_http_request_new(url);
+    if (!req) {
+        lwqq_log(LOG_ERROR, "Create request object for url: %s failed\n", url);
+        *err = LWQQ_ERROR;
+        return NULL;
+    }
+
+    req->set_default_header(req);
+    lwqq_log(LOG_DEBUG, "Create request object for url: %s sucessfully\n", url);
+    return req;
+}
+
 static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 {
     LwqqHttpRequest *req;  
@@ -46,15 +77,11 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 
     snprintf(url, sizeof(url), "%s%s?uin=%s&appid=%s", LWQQ_URL_CHECK_HOST,
              VCCHECKPATH, lc->username, APPID);
-    req = lwqq_http_request_new(url);
+    req = lwqq_http_create_default_request(url, err);
     if (!req) {
-        lwqq_log(LOG_ERROR, "Create request instance failed\n");
-        *err = LWQQ_ERROR;
         goto failed;
     }
     
-    lwqq_log(LOG_NOTICE, "Send a request to: %s\n", LWQQ_URL_CHECK_HOST);
-    req->set_default_header(req);
     snprintf(chkuin, sizeof(chkuin), "chkuin=%s", lc->username);
     req->set_header(req, "Cookie", chkuin);
     ret = req->do_request(req, 0, NULL);
@@ -194,16 +221,11 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
              "ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&"
              "action=4-30-764935&mibao_css=m_webqq", LWQQ_URL_LOGIN_HOST, lc->username, md5, lc->vc->str);
 
-    req = lwqq_http_request_new(url);
+    req = lwqq_http_create_default_request(url, err);
     if (!req) {
-        lwqq_log(LOG_ERROR, "Create request instance failed\n");
-        *err = LWQQ_ERROR;
         goto done;
     }
-    lwqq_log(LOG_DEBUG, "Send a login request to server: %s\n", LWQQ_URL_LOGIN_HOST);
-
     /* Setup http header */
-    req->set_default_header(req);
     if (lc->ptvfsession) {
         snprintf(ptvfsession, sizeof(ptvfsession), "ptvfsession=%s", lc->ptvfsession);
         req->set_header(req, "Cookie", ptvfsession);
@@ -308,16 +330,11 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
     LwqqHttpRequest *req;
     char *response = NULL;
     int ret;
-    
-    req = lwqq_http_request_new(LWQQ_URL_VERSION);
+
+    req = lwqq_http_create_default_request(LWQQ_URL_VERSION, err);
     if (!req) {
-        lwqq_log(LOG_ERROR, "Create request instance failed\n");
-        *err = LWQQ_ERROR;
         goto done;
     }
-
-    /* Setup http header */
-    req->set_default_header(req);
 
     /* Send request */
     lwqq_log(LOG_DEBUG, "Get webqq version from %s\n", LWQQ_URL_VERSION);
@@ -428,13 +445,10 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     s_free(buf);
 
     /* Create a POST request */
-    req = lwqq_http_request_new(LWQQ_URL_SET_STATUS);
+    req = lwqq_http_create_default_request(LWQQ_URL_SET_STATUS, err);
     if (!req) {
-        lwqq_log(LOG_ERROR, "Create request instance failed\n");
-        *err = LWQQ_ERROR;
         goto done;
     }
-    req->set_default_header(req);
     req->set_header(req, "Cookie2", "$Version=1");
     req->set_header(req, "Referer", "http://d.web2.qq.com/proxy.html?v=20101025002");
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
