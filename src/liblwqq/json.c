@@ -4237,3 +4237,31 @@ json_t *json_find_first_label_all (const json_t * json, const char *text_label)
 	
 	return NULL;
 }
+
+/* ************************************************************ */
+/* Below code written for LWQQ */
+/**
+ * Parse value from json object whose value is a simle string
+ * Caller dont need to free the returned string.
+ * 
+ * @param json Json object setup by json_parse_document()
+ * @param key the key you want to search
+ * 
+ * @return Key whose value will be searched
+ */
+char *json_parse_simple_value(json_t *json, const char *key)
+{
+    json_t *val;
+
+    if (!json || !key)
+        return NULL;
+    
+    val = json_find_first_label_all(json, key);
+    if (val && val->child && val->child->text) {
+        return val->child->text;
+    }
+    
+    return NULL;
+}
+
+/* ************************************************************ */

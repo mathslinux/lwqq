@@ -36,37 +36,6 @@
 
 static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err);
 
-/** 
- * Create a default http request object using default http header.
- * 
- * @param url Which your want send this request to
- * @param err This parameter can be null, if so, we dont give thing
- *        error information.
- * 
- * @return Null if failed, else a new http request object
- */
-static LwqqHttpRequest *lwqq_http_create_default_request(const char *url, LwqqErrorCode *err)
-{
-    LwqqHttpRequest *req;
-    
-    if (!url) {
-        if (err)
-            *err = LWQQ_ERROR;
-        return NULL;
-    }
-
-    req = lwqq_http_request_new(url);
-    if (!req) {
-        lwqq_log(LOG_ERROR, "Create request object for url: %s failed\n", url);
-        *err = LWQQ_ERROR;
-        return NULL;
-    }
-
-    req->set_default_header(req);
-    lwqq_log(LOG_DEBUG, "Create request object for url: %s sucessfully\n", url);
-    return req;
-}
-
 static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 {
     LwqqHttpRequest *req;  
@@ -408,27 +377,6 @@ static char *generate_clientid()
 }
 
 /** 
- * Parse value from json object setup by json_parse_document().
- * Dont need to free the string returned.
- * 
- * @param json Json object setup by json_parse_document()
- * @param key the key you want to search
- * 
- * @return Key whose value will be searched
- */
-static char *parse_json(json_t *json, const char *key)
-{
-    json_t *val;
-
-    val = json_find_first_label_all(json, key);
-    if (val && val->child && val->child->text) {
-        return val->child->text;
-    }
-    
-    return NULL;
-}
-
-/** 
  * Set online status, this is the last step of login
  * 
  * @param err
@@ -505,7 +453,7 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
         goto done;
     }
 
-    if (!(value = parse_json(json, "retcode"))) {
+    if (!(value = json_parse_simple_value(json, "retcode"))) {
         *err = LWQQ_ERROR;
         goto done;
     }
@@ -514,32 +462,32 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
      * but from the response we got like above, we dont need
      * 
      */
-    if ((value = parse_json(json, "seskey"))) {
+    if ((value = json_parse_simple_value(json, "seskey"))) {
         lc->seskey = s_strdup(value);
     }
 
-    if ((value = parse_json(json, "cip"))) {
+    if ((value = json_parse_simple_value(json, "cip"))) {
         lc->cip = s_strdup(value);
     }
 
-    if ((value = parse_json(json, "index"))) {
+    if ((value = json_parse_simple_value(json, "index"))) {
         lc->index = s_strdup(value);
     }
 
-    if ((value = parse_json(json, "port"))) {
+    if ((value = json_parse_simple_value(json, "port"))) {
         lc->port = s_strdup(value);
     }
 
-    if ((value = parse_json(json, "status"))) {
+    if ((value = json_parse_simple_value(json, "status"))) {
         /* This really need? */
         lc->status = s_strdup(value);
     }
 
-    if ((value = parse_json(json, "vfwebqq"))) {
+    if ((value = json_parse_simple_value(json, "vfwebqq"))) {
         lc->vfwebqq = s_strdup(value);
     }
 
-    if ((value = parse_json(json, "psessionid"))) {
+    if ((value = json_parse_simple_value(json, "psessionid"))) {
         lc->psessionid = s_strdup(value);
     }
 
