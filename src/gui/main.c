@@ -10,6 +10,7 @@
 
 #include "login.h"
 #include "logger.h"
+#include "info.h"
 
 int main(int argc, char *argv[])
 {
@@ -24,6 +25,8 @@ int main(int argc, char *argv[])
         goto done;
     }
     lwqq_log(LOG_NOTICE, "Login successfully\n");
+    
+    lwqq_info_get_friends_info(lc, &err);
 
 done:
     lwqq_client_free(lc);
