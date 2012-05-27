@@ -11,6 +11,8 @@
 #ifndef LWQQ_HTTP_H
 #define LWQQ_HTTP_H
 
+#include "type.h"
+
 /**
  * Lwqq Http request struct, this http object worked donw for lwqq,
  * But for other app, it may work bad.
@@ -70,5 +72,17 @@ void lwqq_http_request_free(LwqqHttpRequest *request);
  * @return 
  */
 LwqqHttpRequest *lwqq_http_request_new(const char *uri);
+
+/** 
+ * Create a default http request object using default http header.
+ * 
+ * @param url Which your want send this request to
+ * @param err This parameter can be null, if so, we dont give thing
+ *        error information.
+ * 
+ * @return Null if failed, else a new http request object
+ */
+LwqqHttpRequest *lwqq_http_create_default_request(const char *url,
+                                                  LwqqErrorCode *err);
 
 #endif  /* LWQQ_HTTP_H */

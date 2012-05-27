@@ -318,6 +318,38 @@ failed:
     return -1;
 }
 
+/** 
+ * Create a default http request object using default http header.
+ * 
+ * @param url Which your want send this request to
+ * @param err This parameter can be null, if so, we dont give thing
+ *        error information.
+ * 
+ * @return Null if failed, else a new http request object
+ */
+LwqqHttpRequest *lwqq_http_create_default_request(const char *url,
+                                                  LwqqErrorCode *err)
+{
+    LwqqHttpRequest *req;
+    
+    if (!url) {
+        if (err)
+            *err = LWQQ_ERROR;
+        return NULL;
+    }
+
+    req = lwqq_http_request_new(url);
+    if (!req) {
+        lwqq_log(LOG_ERROR, "Create request object for url: %s failed\n", url);
+        *err = LWQQ_ERROR;
+        return NULL;
+    }
+
+    req->set_default_header(req);
+    lwqq_log(LOG_DEBUG, "Create request object for url: %s sucessfully\n", url);
+    return req;
+}
+
 #if 0
 int main(int argc, char *argv[])
 {
