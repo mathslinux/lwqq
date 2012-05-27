@@ -27,8 +27,32 @@ typedef enum {
 /************************************************************************/
 /* LwqqBuddy API  */
 
+typedef struct LwqqFriendCategory {
+    int index;
+    int sort;
+    int name;
+    LIST_ENTRY(LwqqFriendCategory) entries;
+} LwqqFriendCategory;
+
 /* QQ buddy */
 typedef struct LwqqBuddy {
+    char *uin;                  /**< Uin. Change every login */
+    char *qqnumber;             /**< QQ number */
+    int vip_info;
+    char *nick;
+    char *markname;
+
+    char *face;
+    char *flag;
+
+    int cate_index;             /**< Index of the category */
+
+    /*
+     * 1 : Desktop client
+     * 21: Mobile client
+     * 41: Web QQ Client
+     */
+    int client_type;
     LIST_ENTRY(LwqqBuddy) entries;
 } LwqqBuddy;
 
