@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <zlib.h>
 #include <ghttp.h>
 #include "smemory.h"
 #include "http.h"
@@ -47,7 +48,7 @@ static char *lwqq_http_get_header(LwqqHttpRequest *request, const char *name)
 
     const char *h = ghttp_get_header(request->req, name);
     if (!h) {
-        lwqq_log(LOG_WARNING, "Cant get http header\n");
+        lwqq_log(LOG_WARNING, "Cant get http header: %s\n", name);
         return NULL;
     }
 
@@ -128,6 +129,92 @@ failed:
     return NULL;
 }
 
+static char *unzlib(const char *source, int len, int *total, int isgzip)
+{
+#define CHUNK 16 * 1024
+    int ret;
+    unsigned have;
+    z_stream strm;
+    unsigned char out[CHUNK];
+    int totalsize = 0;
+    char *dest = NULL;
+
+    if (!source || len <= 0 || !total)
+        return NULL;
+
+/* allocate inflate state */
+    strm.zalloc = Z_NULL;
+    strm.zfree = Z_NULL;
+    strm.opaque = Z_NULL;
+    strm.avail_in = 0;
+    strm.next_in = Z_NULL;
+
+    if(isgzip) {
+        /**
+         * 47 enable zlib and gzip decoding with automatic header detection,
+         * So if the format of compress data is gzip, we need passed it to
+         * inflateInit2
+         */
+        ret = inflateInit2(&strm, 47);
+    } else {
+        ret = inflateInit(&strm);
+    }
+
+    if (ret != Z_OK) {
+        lwqq_log(LOG_ERROR, "Init zlib error\n");
+        return NULL;
+    }
+
+    strm.avail_in = len;
+    strm.next_in = (Bytef *)source;
+
+    do {
+        strm.avail_out = CHUNK;
+        strm.next_out = out;
+        ret = inflate(&strm, Z_NO_FLUSH);
+        switch (ret) {
+        case Z_STREAM_END:
+            break;
+        case Z_BUF_ERROR:
+            lwqq_log(LOG_ERROR, "Unzlib error\n");
+            break;
+        case Z_NEED_DICT:
+            ret = Z_DATA_ERROR; /* and fall through */
+            break;
+        case Z_DATA_ERROR:
+        case Z_MEM_ERROR:
+        case Z_STREAM_ERROR:
+            lwqq_log(LOG_ERROR, "Ungzip stream error!", strm.msg);
+            inflateEnd(&strm);
+            goto failed;
+        }
+        have = CHUNK - strm.avail_out;
+        totalsize += have;
+        dest = s_realloc(dest, totalsize);
+        memcpy(dest + totalsize - have, out, have);
+    } while (strm.avail_out == 0);
+
+/* clean up and return */
+    (void)inflateEnd(&strm);
+    if (ret != Z_STREAM_END) {
+        goto failed;
+    }
+    *total = totalsize;
+    return dest;
+
+failed:
+    if (dest) {
+        s_free(dest);
+    }
+    lwqq_log(LOG_ERROR, "Unzip error\n");
+    return NULL;
+}
+
+static char *ungzip(const char *source, int len, int *total)
+{
+    return unzlib(source, len, total, 1);
+}
+
 static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body)
 {
     if (!request->req)
@@ -192,11 +279,34 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
     if (*resp == NULL) {
         goto failed;
     }
-    
+
+    /* Uncompress data here if we have a Content-Encoding header */
+    char *enc_type = NULL;
+    enc_type = lwqq_http_get_header(request, "Content-Encoding");
+    if (enc_type && strstr(enc_type, "gzip")) {
+        char *outdata;
+        int total = 0;
+        
+        outdata = ungzip(*resp, have_read_bytes, &total);
+        if (!outdata) {
+            s_free(enc_type);
+            goto failed;
+        }
+
+        s_free(*resp);
+        /* Update response data to uncompress data */
+        *resp = s_strdup(outdata);
+        s_free(outdata);
+        have_read_bytes = total;
+    }
+    s_free(enc_type);
+
     /* OK, done */
-    /* Realloc a byte, cause *resp has no termial char '\0' */
-    *resp = s_realloc(*resp, have_read_bytes + 1);
-    (*resp)[have_read_bytes] = '\0';
+    if ((*resp)[have_read_bytes] != '\0') {
+        /* Realloc a byte, cause *resp hasn't end with char '\0' */
+        *resp = s_realloc(*resp, have_read_bytes + 1);
+        (*resp)[have_read_bytes + 1] = '\0';
+    }
     request->http_code = ghttp_status_code(request->req);
     return 0;
 

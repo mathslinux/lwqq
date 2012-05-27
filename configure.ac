@@ -28,6 +28,14 @@ AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdint.h\
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
 
+# checks for zlib
+PKG_CHECK_MODULES(ZLIB, [zlib >= 1.2], [
+            AC_DEFINE(USE_ZLIB, 1, [Use ZLIB])
+            AC_SUBST(ZLIB_CFLAGS)
+            AC_SUBST(ZLIB_LIBS)
+            ] ,
+            )
+			
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
 AC_TYPE_SIZE_T
