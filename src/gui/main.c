@@ -28,6 +28,14 @@ int main(int argc, char *argv[])
     
     lwqq_info_get_friends_info(lc, &err);
 
+    if (err == LWQQ_OK) {
+        LwqqBuddy *buddy;
+        LIST_FOREACH(buddy, &lc->friends, entries) {
+            if (buddy->nick)
+                lwqq_log(LOG_DEBUG, "Nick: %s\n", buddy->nick);
+        }
+    }
+
 done:
     lwqq_client_free(lc);
     return 0;
