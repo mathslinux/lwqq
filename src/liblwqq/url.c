@@ -9,8 +9,6 @@
  * 
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -43,8 +41,6 @@ char *url_encode(char *str)
     while (*pstr) {
         if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') 
             *pbuf++ = *pstr;
-        /* else if (*pstr == ' ')  */
-        /*     *pbuf++ = '+'; */
         else 
             *pbuf++ = '%', *pbuf++ = to_hex(*pstr >> 4), *pbuf++ = to_hex(*pstr & 15);
         pstr++;
@@ -88,7 +84,7 @@ int main(int argc, char *argv[])
 {
     char *buf = url_encode("http://www.-go8ogle. com");
     if (buf) {
-        printf ("buf is %s\n", buf);
+        lwqq_log(LOG_NOTICE, "Encode data: %s\n", buf);
     } else 
     puts(buf);
     return 0;

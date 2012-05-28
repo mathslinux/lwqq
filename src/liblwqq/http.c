@@ -1,6 +1,4 @@
 #include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <zlib.h>
 #include <ghttp.h>
 #include "smemory.h"
@@ -365,8 +363,8 @@ int main(int argc, char *argv[])
         ret = req->do_request(req, 0, NULL);
         ret = req->do_request(req, 0, NULL);
         if (ret == 0) {
-            printf ("code: %d\n", req->http_code);
-            printf ("buf: %s\n", req->response);
+            lwqq_log(LOG_NOTICE, "Http response code: %d\n", req->http_code);
+            lwqq_log("LOG_NOTICE, Http response buf: %s\n", req->response);
         }
         lwqq_http_request_free(req);
     }
