@@ -8,6 +8,7 @@
  * 
  */
 
+#include <unistd.h>
 #include "login.h"
 #include "logger.h"
 #include "info.h"
@@ -36,6 +37,15 @@ int main(int argc, char *argv[])
         }
     }
 
+    /* Logout test */
+    sleep(1);
+    lwqq_logout(lc, &err);
+    if (err != LWQQ_OK) {
+        lwqq_log(LOG_DEBUG, "Logout failed\n");        
+    } else {
+        lwqq_log(LOG_DEBUG, "Logout sucessfully\n");
+    }
+    
 done:
     lwqq_client_free(lc);
     return 0;

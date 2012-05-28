@@ -564,3 +564,88 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
     do_login(client, md5, err);
     s_free(md5);
 }
+
+/** 
+ * WebQQ logout function
+ * 
+ * @param client Lwqq Client 
+ * @param err Error code
+ */
+void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
+{
+    char url[512];
+    LwqqHttpRequest *req = NULL;  
+    int ret;
+    json_t *json = NULL;
+    char *value;
+    struct timeval tv;
+    long int re;
+
+    if (!client || !err) {
+        *err = LWQQ_ERROR;
+        lwqq_log(LOG_ERROR, "Invalid pointer\n");
+        return ;
+    }
+
+    /* Get the milliseconds of now */
+    if (gettimeofday(&tv, NULL)) {
+        *err = LWQQ_ERROR;
+        return ;
+    }
+    re = tv.tv_usec / 1000;
+    re += tv.tv_sec;
+    
+    /* Do we really need ptwebqq */
+    snprintf(url, sizeof(url), "%s/channel/logout2?clientid=%s&psessionid=%s&t=%ld",
+             "http://d.web2.qq.com", client->clientid, client->psessionid, re);
+
+    /* Create a GET request */
+    req = lwqq_http_create_default_request(url, err);
+    if (!req) {
+        goto done;
+    }
+
+    /* Set header needed by server */
+    req->set_header(req, "Referer", "http://ptlogin2.qq.com/proxy.html?v=20101025002");
+    
+    /* Set http cookie */
+    if (client->cookie)
+        req->set_header(req, "Cookie", client->cookie);
+    
+    ret = req->do_request(req, 0, NULL);
+    if (ret) {
+        lwqq_log(LOG_ERROR, "Send logout request failed\n");
+        *err = LWQQ_NETWORK_ERROR;
+        goto done;
+    }
+    if (req->http_code != 200) {
+        *err = LWQQ_HTTP_ERROR;
+        goto done;
+    }
+
+    ret = json_parse_document(&json, req->response);
+    if (ret != JSON_OK) {
+        *err = LWQQ_ERROR;
+        goto done;
+    }
+
+    /* Check whether logout correctly */
+    value = json_parse_simple_value(json, "retcode");
+    if (!value || strcmp(value, "0")) {
+        *err = LWQQ_ERROR;
+        goto done;
+    }
+    value = json_parse_simple_value(json, "result");
+    if (!value || strcmp(value, "ok")) {
+        *err = LWQQ_ERROR;
+        goto done;
+    }
+
+    /* Ok, seems like all thing is ok */
+    *err = LWQQ_OK;
+    
+done:
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);    
+}

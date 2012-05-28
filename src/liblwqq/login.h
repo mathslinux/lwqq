@@ -21,4 +21,12 @@
  */
 void lwqq_login(LwqqClient *client, LwqqErrorCode *err);
 
+/** 
+ * WebQQ logout function
+ * 
+ * @param client Lwqq Client 
+ * @param err Error code
+ */
+void lwqq_logout(LwqqClient *client, LwqqErrorCode *err);
+
 #endif  /* LWQQ_LOGIN_H */
