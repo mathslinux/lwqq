@@ -8,6 +8,7 @@
  * 
  */
 
+#include <string.h>
 #include "type.h"
 #include "smemory.h"
 
@@ -49,6 +50,15 @@ static void vc_free(LwqqVerifyCode *vc)
     }
 }
 
+static void lwqq_categories_free(LwqqFriendCategory *cate)
+{
+    if (!cate)
+        return ;
+
+    s_free(cate->name);
+    s_free(cate);
+}
+
 /** 
  * Free LwqqClient instance
  * 
@@ -84,14 +94,24 @@ void lwqq_client_free(LwqqClient *client)
     lwqq_buddy_free(client->myself);
         
     /* Free friends list */
-    LwqqBuddy *b_entry, *next;
-    LIST_FOREACH_SAFE(b_entry, &client->friends, entries, next) {
+    LwqqBuddy *b_entry, *b_next;
+    LIST_FOREACH_SAFE(b_entry, &client->friends, entries, b_next) {
         LIST_REMOVE(b_entry, entries);
-        s_free(b_entry);
+        lwqq_buddy_free(b_entry);
+    }
+
+    /* Free categories list */
+    LwqqFriendCategory *c_entry, *c_next;
+    LIST_FOREACH_SAFE(c_entry, &client->categories, entries, c_next) {
+        LIST_REMOVE(c_entry, entries);
+        lwqq_categories_free(c_entry);
     }
         
     s_free(client);
 }
+
+/************************************************************************/
+/* LwqqBuddy API */
 
 /** 
  * 
@@ -112,5 +132,41 @@ LwqqBuddy *lwqq_buddy_new()
  */
 void lwqq_buddy_free(LwqqBuddy *buddy)
 {
+    if (!buddy)
+        return ;
+
+    s_free(buddy->uin);
+    s_free(buddy->qqnumber);
+    s_free(buddy->nick);
+    s_free(buddy->markname);
+    s_free(buddy->face);
+    s_free(buddy->flag);
+    
     s_free(buddy);
 }
+
+/** 
+ * Find buddy object by buddy's uin member
+ * 
+ * @param lc Our Lwqq client object
+ * @param uin The uin of buddy which we want to find
+ * 
+ * @return 
+ */
+LwqqBuddy *lwqq_buddy_find_buddy_by_uin(LwqqClient *lc, const char *uin)
+{
+    LwqqBuddy *buddy;
+    
+    if (!lc || !uin)
+        return NULL;
+
+    LIST_FOREACH(buddy, &lc->friends, entries) {
+        if (buddy->uin && (strcmp(buddy->uin, uin) == 0))
+            return buddy;
+    }
+
+    return NULL;
+}
+
+/* LwqqBuddy API END*/
+/************************************************************************/
