@@ -13,6 +13,13 @@
 
 #include "type.h"
 
+/** 
+ * Get QQ friends information. These information include basic friend
+ * information, friends group information, and so on
+ * 
+ * @param lc 
+ * @param err 
+ */
 void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err);
 
 #endif  /* LWQQ_INFO_H */
