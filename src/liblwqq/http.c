@@ -300,10 +300,10 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
     s_free(enc_type);
 
     /* OK, done */
-    if ((*resp)[have_read_bytes] != '\0') {
+    if ((*resp)[have_read_bytes -1] != '\0') {
         /* Realloc a byte, cause *resp hasn't end with char '\0' */
         *resp = s_realloc(*resp, have_read_bytes + 1);
-        (*resp)[have_read_bytes + 1] = '\0';
+        (*resp)[have_read_bytes] = '\0';
     }
     request->http_code = ghttp_status_code(request->req);
     return 0;
