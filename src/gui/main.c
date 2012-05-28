@@ -8,16 +8,19 @@
  * 
  */
 
+#include <gtk/gtk.h>
 #include <unistd.h>
 #include "login.h"
 #include "logger.h"
 #include "info.h"
+#include "mainwindow.h"
 
-int main(int argc, char *argv[])
+static void test_login()
 {
+    return ;
     LwqqClient *lc = lwqq_client_new("1421032531", "1234567890");
     if (!lc)
-        return -1;
+        return ;
 
     LwqqErrorCode err;
     lwqq_login(lc, &err);
@@ -48,5 +51,18 @@ int main(int argc, char *argv[])
     
 done:
     lwqq_client_free(lc);
+}
+
+int main(int argc, char *argv[])
+{
+    GtkWidget *main_win = NULL;
+    
+    gtk_init(&argc, &argv);
+
+    main_win = qq_mainwindow_new();
+    gtk_widget_show_all(main_win);
+    gtk_main();
+    
+    test_login();
     return 0;
 }

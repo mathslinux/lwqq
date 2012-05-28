@@ -33,7 +33,22 @@ PKG_CHECK_MODULES(ZLIB, [zlib >= 1.2], [
             AC_DEFINE(USE_ZLIB, 1, [Use ZLIB])
             AC_SUBST(ZLIB_CFLAGS)
             AC_SUBST(ZLIB_LIBS)
-            ] ,
+            ],
+            )
+
+# checks for gtk+3.0
+PKG_CHECK_MODULES(GTK, [gtk+-3.0 >= 3.0], [
+            AC_DEFINE(USE_GTK, 1, [Use GTK])
+            AC_SUBST(GTK_CFLAGS)
+            AC_SUBST(GTK_LIBS)
+            ],
+            )
+# checks for glib2.0
+PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.18], [
+            AC_DEFINE(USE_GLIB, 1, [Use GLIB])
+            AC_SUBST(GLIB_CFLAGS)
+            AC_SUBST(GLIB_LIBS)
+            ],
             )
 			
 # Checks for typedefs, structures, and compiler characteristics.
