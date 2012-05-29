@@ -18,17 +18,15 @@
 #include <sqlite3.h>
 #include "logger.h"
 
-static const char *global_table_sql =
+static const char *global_db_sql =
     "create table if not exists config("
-    "   id integer primary key asc autoincrement,family,key,value);"
+    "    id integer primary key asc autoincrement,family,key,value);"
     "create table if not exists user("
-    "   qqnumber primary key,database_name);";
+    "    qqnumber primary key,database_name,password,status,rempwd);";
 
-static const char *user_table_sql =
-    "create table if not exists ("
-    "   id integer primary key asc autoincrement,family,key,value);"
-    "create table if not exists user("
-    "   qqnumber primary key,database_name);";
+static const char *user_db_sql =
+    "create table if not exists buddies("
+    "     primary key,database_name);";
 
 /** 
  * Create user's database
@@ -37,7 +35,7 @@ static const char *user_table_sql =
  * @param db_type Type of database you want to create. 0 means
  *        global database, 1 means user database
  * 
- * @return 
+ * @return 0 if everything is ok, else return -1
  */
 int lwdb_create_user_db(const char *filename, int db_type)
 {
@@ -55,9 +53,9 @@ int lwdb_create_user_db(const char *filename, int db_type)
     }
 
     if (db_type == 0) {
-        ret = sqlite3_exec(db, global_table_sql, NULL, NULL, &err);
+        ret = sqlite3_exec(db, global_db_sql, NULL, NULL, &err);
     } else if (db_type == 1) {
-        ret = sqlite3_exec(db, user_table_sql, NULL, NULL, &err);
+        ret = sqlite3_exec(db, user_db_sql, NULL, NULL, &err);
     } else {
         lwqq_log(LOG_ERROR, "No such database type\n");
         goto failed;

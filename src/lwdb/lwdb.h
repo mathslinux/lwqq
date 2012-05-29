@@ -18,8 +18,8 @@
  * @param filename 
  * @param db_type Type of database you want to create. 0 means
  *        global database, 1 means user database
- * 
- * @return 
+ *
+ * @return 0 if everything is ok, else return -1
  */
 int lwdb_create_user_db(const char *filename, int db_type);
 
