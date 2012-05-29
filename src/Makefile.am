@@ -1,1 +1,1 @@
-SUBDIRS=liblwqq gui
+SUBDIRS=liblwqq lwdb gui

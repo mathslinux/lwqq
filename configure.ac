@@ -50,7 +50,19 @@ PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.18], [
             AC_SUBST(GLIB_LIBS)
             ],
             )
-			
+
+ checks for libsqlite3
+PKG_CHECK_MODULES(SQLITE3, [sqlite3 > 3.3], [
+            AC_DEFINE(USE_SQLITE3, 1, [Use sqlite3])
+            AC_SUBST(SQLITE3_CFLAGS)
+            AC_SUBST(SQLITE3_LIBS)
+        ] , [
+            echo ""
+            echo "configure: error: "
+            echo "libsqlite3 development headers not found."
+            echo ""
+            exit -1
+             ])
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
 AC_TYPE_SIZE_T
@@ -65,6 +77,7 @@ AC_CONFIG_FILES([Makefile
          src/Makefile 
          src/liblwqq/Makefile
          src/liblwqq/libghttp/Makefile
+		 src/lwdb/Makefile
          src/gui/Makefile
          ])
 AC_OUTPUT

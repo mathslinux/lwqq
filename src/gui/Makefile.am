@@ -5,5 +5,5 @@ AM_CFLAGS=-I$(srcdir)/../liblwqq/\
 
 bin_PROGRAMS=lwqq
 lwqq_LDADD=../liblwqq/liblwqq.la ../liblwqq/libghttp/libghttp.la \
-			$(ZLIB_LIBS) $(GTK_LIBS)
+		   ../lwdb/liblwdb.la $(ZLIB_LIBS) $(GTK_LIBS)
 lwqq_SOURCES=main.c mainwindow.c
