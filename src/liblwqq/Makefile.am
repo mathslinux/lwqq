@@ -1,6 +1,6 @@
 SUBDIRS=libghttp
 lib_LTLIBRARIES=liblwqq.la
-liblwqq_la_CPPFLAGS=-I./libghttp $(GLIB_CFLAGS)
+liblwqq_la_CPPFLAGS=-I./libghttp
 liblwqq_la_LIBADD= 
 liblwqq_la_SOURCES=logger.c login.c type.c smemory.c\
 			logger.h login.h queue.h type.h smemory.h\
