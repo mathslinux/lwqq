@@ -25,7 +25,7 @@
  * 
  * @return A new SwsDB object, or NULL if something error happens
  */
-SwsDB *sws_open_db(char *filename, char **errmsg)
+SwsDB *sws_open_db(const char *filename, char **errmsg)
 {
     int ret;
     sqlite3 *db = NULL;
@@ -233,6 +233,46 @@ int sws_query_end(SwsStmt *stmt, char **errmsg)
     return 0;
 }
 
+/** 
+ * Excute a SQL directly, dont need to open DB and close DB
+ * 
+ * @param filename 
+ * @param sql 
+ * @param errmsg 
+ * 
+ * @return 0 if excute successfully, else return -1.
+ */
+int sws_exec_sql_directly(const char *filename, const char *sql, char **errmsg)
+{
+    int ret;
+    SwsDB *db;
+    
+    if (!filename || !sql) {
+        SET_ERRMSG(errmsg, "Some parameterment is null");
+        goto failed;
+    }
+
+    db = sws_open_db(filename, errmsg);
+    if (!db) {
+        goto failed;
+    }
+
+    ret = sws_exec_sql(db, sql, errmsg);
+    if (ret) {
+        goto failed;
+    }
+
+    sws_close_db(db, NULL);
+
+    return 0;
+
+failed:
+    if (db)
+        sws_close_db(db, NULL);
+    return -1;    
+}
+
+#if 1
 /* gcc -o test swsqlite.c -Wall -lsqlite3 */
 #include <stdlib.h>
 int main(int argc, char *argv[])
@@ -274,9 +314,14 @@ int main(int argc, char *argv[])
     /* Close DB */
     sws_close_db(db, NULL);
 
+    /* Excute SQL directly */
+    sws_exec_sql_directly("/tmp/test_sws.db", "INSERT INTO config "
+                          "(family,key,value) VALUES('1', '2', '3');", NULL);
+    
     return 0;
 
 failed:
     sws_close_db(db, NULL);
     return -1;
 }
+#endif

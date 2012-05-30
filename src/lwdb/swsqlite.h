@@ -23,7 +23,7 @@ typedef void SwsStmt;
  * 
  * @return A new SwsDB object, or NULL if something error happens
  */
-SwsDB *sws_open_db(char *filename, char **errmsg);
+SwsDB *sws_open_db(const char *filename, char **errmsg);
 
 /** 
  * Close a sqlite3 database
@@ -111,5 +111,16 @@ int sws_query_column(SwsStmt *stmt, int clm_index, char *buf, int buflen,
  *         information in errmsg if errmsg is not null.
  */
 int sws_query_end(SwsStmt *stmt, char **errmsg);
+
+/** 
+ * Excute a SQL directly, dont need to open DB and close DB
+ * 
+ * @param filename 
+ * @param sql 
+ * @param errmsg 
+ * 
+ * @return 0 if excute successfully, else return -1.
+ */
+int sws_exec_sql_directly(const char *filename, const char *sql, char **errmsg);
 
 #endif
