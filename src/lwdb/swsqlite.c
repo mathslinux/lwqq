@@ -245,7 +245,7 @@ int sws_query_end(SwsStmt *stmt, char **errmsg)
 int sws_exec_sql_directly(const char *filename, const char *sql, char **errmsg)
 {
     int ret;
-    SwsDB *db;
+    SwsDB *db = NULL;
     
     if (!filename || !sql) {
         SET_ERRMSG(errmsg, "Some parameterment is null");
@@ -272,7 +272,7 @@ failed:
     return -1;    
 }
 
-#if 1
+#if 0
 /* gcc -o test swsqlite.c -Wall -lsqlite3 */
 #include <stdlib.h>
 int main(int argc, char *argv[])
