@@ -332,14 +332,14 @@ LwqqHttpRequest *lwqq_http_create_default_request(const char *url,
     
     if (!url) {
         if (err)
-            *err = LWQQ_ERROR;
+            *err = LWQQ_EC_ERROR;
         return NULL;
     }
 
     req = lwqq_http_request_new(url);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request object for url: %s failed\n", url);
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         return NULL;
     }
 

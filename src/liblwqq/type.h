@@ -81,11 +81,15 @@ typedef struct LwqqClient {
 
 /* Lwqq Error Code */
 typedef enum {
-    LWQQ_OK,
-    LWQQ_ERROR,
-    LWQQ_LOGIN_NEED_VC = 10,
-    LWQQ_NETWORK_ERROR = 20,
-    LWQQ_HTTP_ERROR = 99,
+    LWQQ_EC_OK,
+    LWQQ_EC_ERROR,
+    LWQQ_EC_NULL_POINTER,
+    LWQQ_EC_FILE_NOT_EXIST,
+    LWQQ_EC_LOGIN_NEED_VC = 10,
+    LWQQ_EC_NETWORK_ERROR = 20,
+    LWQQ_EC_HTTP_ERROR = 30,
+    LWQQ_EC_DB_EXEC_FAIELD = 50,
+    LWQQ_EC_DB_CLOSE_FAILED,
 } LwqqErrorCode;
 
 /* Struct defination end */

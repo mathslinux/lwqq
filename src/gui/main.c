@@ -17,14 +17,13 @@
 
 static void test_login()
 {
-    return ;
     LwqqClient *lc = lwqq_client_new("1421032531", "1234567890");
     if (!lc)
         return ;
 
     LwqqErrorCode err;
     lwqq_login(lc, &err);
-    if (err != LWQQ_OK) {
+    if (err != LWQQ_EC_OK) {
         lwqq_log(LOG_ERROR, "Login error, exit\n");
         goto done;
     }
@@ -32,7 +31,7 @@ static void test_login()
     
     lwqq_info_get_friends_info(lc, &err);
 
-    if (err == LWQQ_OK) {
+    if (err == LWQQ_EC_OK) {
         LwqqBuddy *buddy;
         LIST_FOREACH(buddy, &lc->friends, entries) {
             if (buddy->nick)
@@ -43,7 +42,7 @@ static void test_login()
     /* Logout test */
     sleep(1);
     lwqq_logout(lc, &err);
-    if (err != LWQQ_OK) {
+    if (err != LWQQ_EC_OK) {
         lwqq_log(LOG_DEBUG, "Logout failed\n");        
     } else {
         lwqq_log(LOG_DEBUG, "Logout sucessfully\n");
@@ -55,6 +54,7 @@ done:
 
 int main(int argc, char *argv[])
 {
+#if 0
     GtkWidget *main_win = NULL;
     
     gtk_init(&argc, &argv);
@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
     main_win = qq_mainwindow_new();
     gtk_widget_show_all(main_win);
     gtk_main();
+#endif
     
     test_login();
     return 0;

@@ -55,11 +55,11 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
     req->set_header(req, "Cookie", chkuin);
     ret = req->do_request(req, 0, NULL);
     if (ret) {
-        *err = LWQQ_NETWORK_ERROR;
+        *err = LWQQ_EC_NETWORK_ERROR;
         goto failed;
     }
     if (req->http_code != 200) {
-        *err = LWQQ_HTTP_ERROR;
+        *err = LWQQ_EC_HTTP_ERROR;
         goto failed;
     }
 
@@ -81,12 +81,12 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
     char *c = strstr(response, "ptui_checkVC");
     char *s;
     if (!c) {
-        *err = LWQQ_HTTP_ERROR;
+        *err = LWQQ_EC_HTTP_ERROR;
         goto failed;
     }
     c = strchr(response, '\'');
     if (!c) {
-        *err = LWQQ_HTTP_ERROR;
+        *err = LWQQ_EC_HTTP_ERROR;
         goto failed;
     }
     c++;
@@ -182,7 +182,7 @@ static int sava_cookie(LwqqClient *lc, LwqqHttpRequest *req, LwqqErrorCode *err)
     lc->pt2gguin = req->get_cookie(req, "pt2gguin");
     if (!lc->ptcz || !lc->skey || !lc->ptwebqq || !lc->ptuserinfo ||
         !lc->uin || !lc->ptisp || !lc->pt2gguin) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         lwqq_log(LOG_ERROR, "Parse cookie error\n");
         return -1;
     }
@@ -232,18 +232,18 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
     /* Send request */
     ret = req->do_request(req, 0, NULL);
     if (ret) {
-        *err = LWQQ_NETWORK_ERROR;
+        *err = LWQQ_EC_NETWORK_ERROR;
         goto done;
     }
     if (req->http_code != 200) {
-        *err = LWQQ_HTTP_ERROR;
+        *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
     response = req->response;
     char *p = strstr(response, "\'");
     if (!p) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
     }
     char buf[4] = {0};
@@ -260,46 +260,46 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
         
     case 1:
         lwqq_log(LOG_WARNING, "Server busy! Please try again\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
 
     case 2:
         lwqq_log(LOG_ERROR, "Out of date QQ number\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
 
     case 3:
         lwqq_log(LOG_ERROR, "Wrong password\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
 
     case 4:
         lwqq_log(LOG_ERROR, "Wrong verify code\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
 
     case 5:
         lwqq_log(LOG_ERROR, "Verify failed\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
 
     case 6:
         lwqq_log(LOG_WARNING, "You may need to try login again\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
 
     case 7:
         lwqq_log(LOG_ERROR, "Wrong input\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
 
     case 8:
         lwqq_log(LOG_ERROR, "Too many logins on this IP. Please try again\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
 
     default:
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         lwqq_log(LOG_ERROR, "Unknow error");
         goto done;
     }
@@ -315,8 +315,8 @@ done:
  * from the response and set it to lc->version.
  * 
  * @param lc 
- * @param err *err will be set LWQQ_OK if everything is ok, else
- *        *err will be set LWQQ_ERROR.
+ * @param err *err will be set LWQQ_EC_OK if everything is ok, else
+ *        *err will be set LWQQ_EC_ERROR.
  */
 
 static void get_version(LwqqClient *lc, LwqqErrorCode *err)
@@ -334,7 +334,7 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
     lwqq_log(LOG_DEBUG, "Get webqq version from %s\n", LWQQ_URL_VERSION);
     ret = req->do_request(req, 0, NULL);
     if (ret) {
-        *err = LWQQ_NETWORK_ERROR;
+        *err = LWQQ_EC_NETWORK_ERROR;
         goto done;
     }
     response = req->response;
@@ -344,7 +344,7 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
         s = strchr(response, '(');
         t = strchr(response, ')');
         if (!s || !t) {
-            *err = LWQQ_ERROR;
+            *err = LWQQ_EC_ERROR;
             goto done;
         }
         s++;
@@ -352,7 +352,7 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
         memset(v, 0, t - s + 1);
         strncpy(v, s, t - s);
         lc->version = s_strdup(v);
-        *err = LWQQ_OK;
+        *err = LWQQ_EC_OK;
     }
 
 done:
@@ -394,14 +394,14 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     char *value;
 
     if (!status || !err) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done ;
     }
 
     lc->clientid = generate_clientid();
     if (!lc->clientid) {
         lwqq_log(LOG_ERROR, "Generate clientid error\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done ;
     }
 
@@ -433,11 +433,11 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     
     ret = req->do_request(req, 1, msg);
     if (ret) {
-        *err = LWQQ_NETWORK_ERROR;
+        *err = LWQQ_EC_NETWORK_ERROR;
         goto done;
     }
     if (req->http_code != 200) {
-        *err = LWQQ_HTTP_ERROR;
+        *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
@@ -449,12 +449,12 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     response = req->response;
     ret = json_parse_document(&json, response);
     if (ret != JSON_OK) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
     }
 
     if (!(value = json_parse_simple_value(json, "retcode"))) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
     }
     /**
@@ -491,7 +491,7 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
         lc->psessionid = s_strdup(value);
     }
 
-    *err = LWQQ_OK;
+    *err = LWQQ_EC_OK;
     
 done:
     if (json)
@@ -514,7 +514,7 @@ done:
 void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
 {
     if (!client || !err) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         lwqq_log(LOG_ERROR, "Invalid pointer\n");
         return ;
     }
@@ -530,7 +530,7 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
     /**
      * Second, we get the verify code from server.
      * If server provide us a image and let us enter code shown
-     * in image number, in this situation, we just return LWQQ_LOGIN_NEED_VC
+     * in image number, in this situation, we just return LWQQ_EC_LOGIN_NEED_VC
      * simply, so user should call lwqq_login() again after he set correct
      * code to vc->str;
      * Else, if we can get the code directly, do login immediately.
@@ -539,15 +539,15 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
     if (!client->vc) {
         get_verify_code(client, err);
         switch (*err) {
-        case LWQQ_LOGIN_NEED_VC:
+        case LWQQ_EC_LOGIN_NEED_VC:
             lwqq_log(LOG_WARNING, "Need to enter verify code\n");
             return ;
         
-        case LWQQ_NETWORK_ERROR:
+        case LWQQ_EC_NETWORK_ERROR:
             lwqq_log(LOG_ERROR, "Network error\n");
             return ;
 
-        case LWQQ_OK:
+        case LWQQ_EC_OK:
             lwqq_log(LOG_DEBUG, "Get verify code OK\n");
             break;
 
@@ -582,14 +582,14 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     long int re;
 
     if (!client || !err) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         lwqq_log(LOG_ERROR, "Invalid pointer\n");
         return ;
     }
 
     /* Get the milliseconds of now */
     if (gettimeofday(&tv, NULL)) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         return ;
     }
     re = tv.tv_usec / 1000;
@@ -615,34 +615,34 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     ret = req->do_request(req, 0, NULL);
     if (ret) {
         lwqq_log(LOG_ERROR, "Send logout request failed\n");
-        *err = LWQQ_NETWORK_ERROR;
+        *err = LWQQ_EC_NETWORK_ERROR;
         goto done;
     }
     if (req->http_code != 200) {
-        *err = LWQQ_HTTP_ERROR;
+        *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
     }
 
     /* Check whether logout correctly */
     value = json_parse_simple_value(json, "retcode");
     if (!value || strcmp(value, "0")) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
     }
     value = json_parse_simple_value(json, "result");
     if (!value || strcmp(value, "ok")) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
     }
 
     /* Ok, seems like all thing is ok */
-    *err = LWQQ_OK;
+    *err = LWQQ_EC_OK;
     
 done:
     if (json)

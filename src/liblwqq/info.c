@@ -200,7 +200,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     char *value = NULL;
 
     if (!err) {
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done ;
     }
 
@@ -224,11 +224,11 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
         req->set_header(req, "Cookie", lc->cookie);
     ret = req->do_request(req, 1, msg);
     if (ret) {
-        *err = LWQQ_NETWORK_ERROR;
+        *err = LWQQ_EC_NETWORK_ERROR;
         goto done;
     }
     if (req->http_code != 200) {
-        *err = LWQQ_HTTP_ERROR;
+        *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
@@ -240,7 +240,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
         lwqq_log(LOG_ERROR, "Parse json object of friends error\n");
-        *err = LWQQ_ERROR;
+        *err = LWQQ_EC_ERROR;
         goto done;
     }
     
@@ -290,7 +290,7 @@ done:
     return ;
 
 json_error:
-    *err = LWQQ_ERROR;
+    *err = LWQQ_EC_ERROR;
     /* Free temporary string */
     if (json)
         json_free_value(&json);
