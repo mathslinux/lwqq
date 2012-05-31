@@ -1,7 +1,6 @@
 AM_CFLAGS=-I$(srcdir)/../liblwqq/\
       -I$(srcdir)\
-	  $(GTK_CFLAGS)\
-      -Wall -Werror
+	  $(GTK_CFLAGS)
 
 bin_PROGRAMS=lwqq
 lwqq_LDADD=../liblwqq/liblwqq.la ../liblwqq/libghttp/libghttp.la \

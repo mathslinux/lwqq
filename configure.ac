@@ -2,10 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.60])
-AC_INIT([lwqq], [0.1], [huangcongyu2006@gmail.com], [http://github.com/mathslinux/lwqq])
+AC_INIT([lwqq], [0.1], [riegamaths@gmail.com], [http://github.com/mathslinux/lwqq])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([-Wall -Werror])
+AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE
@@ -73,6 +73,18 @@ AC_FUNC_MMAP
 # AC_FUNC_STRNLEN
 AC_CHECK_FUNCS([bzero gethostbyname memset mkdir select socket strstr strtol])
 
+# Set build CFLAGS
+CFLAGS="$CFLAGS -Wall"
+
+######################################################################
+AC_ARG_ENABLE([werror],
+    [AS_HELP_STRING([--enable-werror],[enable compilation abort on warning (default is no)])],
+    [if test "$enableval" == "yes"; then
+        CFLAGS="$CFLAGS -Werror"
+    fi
+    ])
+######################################################################
+
 AC_CONFIG_FILES([Makefile
          src/Makefile 
          src/liblwqq/Makefile
@@ -82,5 +94,6 @@ AC_CONFIG_FILES([Makefile
          ])
 AC_OUTPUT
 
-echo ======== OPTIONS ============
-echo =============================
+echo ============================== OPTIONS ==============================
+echo Build CFLAGS: $CFLAGS
+echo =====================================================================

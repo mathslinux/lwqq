@@ -10,4 +10,4 @@ libghttp_la_SOURCES= ghttp.c http_base64.h \
 			http_req.c http_trans.c\
 			http_base64.c http_global.h\
 			http_req.h http_trans.h
-AM_CFLAGS = -Wall -Werror
+AM_CFLAGS = 
