@@ -11,6 +11,7 @@
  */
 
 #include <string.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <alloca.h>
@@ -40,7 +41,7 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 {
     LwqqHttpRequest *req;  
     char url[512];
-    char *response = NULL;
+    char response[256];
     int ret;
     char chkuin[64];
 
@@ -75,7 +76,7 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 	 * parameter is the verify code. The vc_type is in the header
 	 * "Set-Cookie".
 	 */
-    response = req->response;
+    snprintf(response, sizeof(response), "%s", req->response);
     lwqq_log(LOG_NOTICE, "Get response verify code: %s\n", response);
 
     char *c = strstr(response, "ptui_checkVC");
@@ -100,6 +101,7 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
         s = c + 1;
         c = strstr(s, "'");
         *c = '\0';
+
         lc->vc->type = s_strdup("0");
         lc->vc->str = s_strdup(s);
 
@@ -133,39 +135,76 @@ failed:
     lwqq_http_request_free(req);
 }
 
-/**
- * Calculate md5 by user's password
- * Workflow(thank kernelhcy):
- * First, compute check sum of password for three times.
- * Then, join the result with the capitalizaion of the verify code.
- * Compute the chekc sum of the new string.
- * 
- * @param lc
- *
- * @return The result of calculate
- */
-static char *calculate_password_md5(LwqqClient *lc)
+static void upcase_string(char *str, int len)
 {
-//    char *s = get_pwvc_md52(lc);
-    unsigned char buf[128] = {0};
     int i;
+    for (i = 0; i < len; ++i) {
+        if (islower(str[i]))
+            str[i]= toupper(str[i]);
+    }
+}
 
-    lutil_md5_digest((unsigned char *)lc->password, strlen(lc->password), (char *)buf);
-    lutil_md5_digest(buf, 16 , (char *)buf);
-    lutil_md5_data(buf, 16, (char *)buf);
-    for (i = strlen((char *)buf) - 1; i >= 0; i--) {
-        if (islower(buf[i]))
-            buf[i] = toupper(buf[i]);
+/**
+ * I hacked the javascript file named comm.js, which received from tencent
+ * server, and find that fuck tencent has changed encryption algorithm
+ * for password in webqq3 . The new algorithm is below(descripted with javascript):
+ * var M=C.p.value; // M is the qq password 
+ * var I=hexchar2bin(md5(M)); // Make a md5 digest
+ * var H=md5(I+pt.uin); // Make md5 with I and uin(see below)
+ * var G=md5(H+C.verifycode.value.toUpperCase());
+ * 
+ * @param pwd User's password
+ * @param vc Verify Code. e.g. "!M6C"
+ * @param uin A string like "\x00\x00\x00\x00\x54\xb3\x3c\x53", NB: it
+ *        must contain 8 hexadecimal number, in this example, it equaled
+ *        to "0x0,0x0,0x0,0x0,0x54,0xb3,0x3c,0x53"
+ * 
+ * @return Encoded password on success, else NULL on failed
+ */
+static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
+{
+    int i;
+    int uin_byte_length;
+    char buf[128] = {0};
+    char _uin[9] = {0};
+
+    /* Calculate the length of uin (it must be 8?) */
+    uin_byte_length = strlen(uin) / 4;
+
+    /**
+     * Ok, parse uin from string format.
+     * "\x00\x00\x00\x00\x54\xb3\x3c\x53" -> {0,0,0,0,54,b3,3c,53}
+     */
+    for (i = 0; i < uin_byte_length ; i++) {
+        char u[5] = {0};
+        char tmp;
+        strncpy(u, uin + i * 4 + 2, 2);
+
+        errno = 0;
+        tmp = strtol(u, NULL, 16);
+        if (errno) {
+            return NULL;
+        }
+        _uin[i] = tmp;
     }
-    strncat((char *)buf, lc->vc->str, strlen(lc->vc->str) + 1);
-    lutil_md5_data(buf, strlen((char *)buf), (char *)buf);
-    for( i = strlen((char *)buf) - 1; i >= 0 ; i--) {
-        if (islower(buf[i]))
-            buf[i]= toupper(buf[i]);
-    }
+
+    /* Equal to "var I=hexchar2bin(md5(M));" */
+    lutil_md5_digest((unsigned char *)pwd, strlen(pwd), (char *)buf);
+
+    /* Equal to "var H=md5(I+pt.uin);" */
+    memcpy(buf + 16, _uin, uin_byte_length);
+    lutil_md5_data((unsigned char *)buf, 16 + uin_byte_length, (char *)buf);
     
-    lwqq_log(LOG_NOTICE, "Get password md5: %s\n", buf);
-    return s_strdup((char *)buf);
+    /* Equal to var G=md5(H+C.verifycode.value.toUpperCase()); */
+    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "%s", vc);
+    upcase_string(buf, strlen(buf));
+
+    lutil_md5_data((unsigned char *)buf, strlen(buf), (char *)buf);
+    upcase_string(buf, strlen(buf));
+
+    /* OK, seems like every is OK */
+    puts(buf);
+    return strdup(buf);            /* FIXME */
 }
 
 static int sava_cookie(LwqqClient *lc, LwqqHttpRequest *req, LwqqErrorCode *err)
@@ -211,14 +250,13 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
     char *response = NULL;
     int ret;
     char ptvfsession[128];
-
+    
     snprintf(url, sizeof(url), "%s/login?u=%s&p=%s&verifycode=%s&"
              "webqq_type=10&remember_uin=1&aid=1003903&login2qq=1&"
              "u1=http%%3A%%2F%%2Fweb.qq.com%%2Floginproxy.html"
              "%%3Flogin2qq%%3D1%%26webqq_type%%3D10&h=1&ptredirect=0&"
              "ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&"
-             "action=2-11-7438&mibao_css=m_webqq&t=1&g=1",
-             LWQQ_URL_LOGIN_HOST, lc->username, md5, lc->vc->str);
+             "action=2-11-7438&mibao_css=m_webqq&t=1&g=1", LWQQ_URL_LOGIN_HOST, lc->username, md5, lc->vc->str);
 
     req = lwqq_http_create_default_request(url, err);
     if (!req) {
@@ -559,7 +597,7 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
     }
     
     /* Third: calculate the md5 */
-    char *md5 = calculate_password_md5(client);
+    char *md5 = lwqq_enc_pwd(client->password, client->vc->str, NULL);
 
     /* Last: do real login */
     do_login(client, md5, err);
