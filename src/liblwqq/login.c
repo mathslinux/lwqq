@@ -37,6 +37,26 @@
 
 static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err);
 
+// ptui_checkVC('0','!IJG, ptui_checkVC('0','!IJG', '\x00\x00\x00\x00\x54\xb3\x3c\x53');
+static char *parse_verify_uin(const char *str)
+{
+    char *start;
+    char *end;
+    char uin[128] = {0};
+
+    start = strchr(str, '\\');
+    if (!start)
+        return NULL;
+
+    end = strchr(start, '\'');
+    if (!end)
+        return NULL;
+
+    strncpy(uin, start, end - start);
+
+    return s_strdup(uin);
+}
+
 static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 {
     LwqqHttpRequest *req;  
@@ -94,6 +114,12 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
     lc->vc = s_malloc0(sizeof(*lc->vc));
     if (*c == '0') {
         /* We got the verify code. */
+        
+        /* Parse uin first */
+        lc->vc->uin = parse_verify_uin(response);
+        if (!lc->vc->uin)
+            goto failed;
+        
         s = c;
         c = strstr(s, "'");
         s = c + 1;
@@ -204,7 +230,7 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
 
     /* OK, seems like every is OK */
     puts(buf);
-    return strdup(buf);            /* FIXME */
+    return s_strdup(buf);
 }
 
 static int sava_cookie(LwqqClient *lc, LwqqHttpRequest *req, LwqqErrorCode *err)
@@ -597,7 +623,7 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
     }
     
     /* Third: calculate the md5 */
-    char *md5 = lwqq_enc_pwd(client->password, client->vc->str, NULL);
+    char *md5 = lwqq_enc_pwd(client->password, client->vc->str, client->vc->uin);
 
     /* Last: do real login */
     do_login(client, md5, err);

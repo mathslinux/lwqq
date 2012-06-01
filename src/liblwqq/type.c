@@ -46,6 +46,7 @@ static void vc_free(LwqqVerifyCode *vc)
         s_free(vc->str);
         s_free(vc->type);
         s_free(vc->img);
+        s_free(vc->uin);
         s_free(vc);
     }
 }

@@ -49,6 +49,7 @@ typedef struct LwqqVerifyCode {
     char *str;
     char *type;
     char *img;
+    char *uin;
 } LwqqVerifyCode ;
 
 /* LwqqClient API */
