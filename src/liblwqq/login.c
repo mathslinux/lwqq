@@ -194,6 +194,11 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
     char buf[128] = {0};
     char _uin[9] = {0};
 
+    if (!pwd || !vc || !uin) {
+        lwqq_log(LOG_ERROR, "Null parameterment\n");
+        return NULL;
+    }
+    
     /* Calculate the length of uin (it must be 8?) */
     uin_byte_length = strlen(uin) / 4;
 
