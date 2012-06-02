@@ -239,7 +239,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
      */
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
-        lwqq_log(LOG_ERROR, "Parse json object of friends error\n");
+        lwqq_log(LOG_ERROR, "Parse json object of friends error: %s\n", req->response);
         *err = LWQQ_EC_ERROR;
         goto done;
     }
@@ -250,7 +250,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
      */
     value = json_parse_simple_value(json, "retcode");
     if (!value || strcmp(value, "0")) {
-        lwqq_log(LOG_ERROR, "Parse json object error\n");
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
         goto json_error;
     }
 
@@ -259,7 +259,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
      */
     json_tmp = json_find_first_label_all(json, "result");
     if (!json_tmp) {
-        lwqq_log(LOG_ERROR, "Parse json object error\n");
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
         goto json_error;
     }
 
