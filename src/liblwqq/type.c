@@ -11,6 +11,7 @@
 #include <string.h>
 #include "type.h"
 #include "smemory.h"
+#include "logger.h"
 
 /** 
  * Create a new lwqq client
@@ -22,8 +23,10 @@
  */
 LwqqClient *lwqq_client_new(const char *username, const char *password)
 {
-    if (!username || !password)
+    if (!username || !password) {
+        lwqq_log(LOG_ERROR, "Username or password is null\n");
         return NULL;
+    }
 
     LwqqClient *lc = s_malloc0(sizeof(*lc));
     lc->username = s_strdup(username);
