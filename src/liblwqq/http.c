@@ -257,6 +257,8 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
         int len = 0;
         status = ghttp_process(request->req);
         if(status == ghttp_error) {
+            lwqq_log(LOG_ERROR, "Http request failed: %s\n",
+                     ghttp_get_error(request->req));
             goto failed;
         }
         /* NOTE: buf may NULL, notice it */
