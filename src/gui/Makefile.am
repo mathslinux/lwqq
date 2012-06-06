@@ -1,6 +1,4 @@
-AM_CFLAGS=-I$(srcdir)/../liblwqq/\
-      -I$(srcdir)\
-	  $(GTK_CFLAGS)
+AM_CFLAGS=-I$(srcdir)/../liblwqq -I$(srcdir)/../lwdb -I$(srcdir) $(GTK_CFLAGS)
 
 bin_PROGRAMS=lwqq
 lwqq_LDADD=../liblwqq/liblwqq.la ../liblwqq/libghttp/libghttp.la \
