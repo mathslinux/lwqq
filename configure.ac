@@ -74,7 +74,7 @@ AC_FUNC_MMAP
 AC_CHECK_FUNCS([bzero gethostbyname memset mkdir select socket strstr strtol])
 
 # Set build CFLAGS
-CFLAGS="$CFLAGS -Wall"
+CFLAGS="$CFLAGS -fno-strict-aliasing -Wall"
 
 ######################################################################
 AC_ARG_ENABLE([werror],
