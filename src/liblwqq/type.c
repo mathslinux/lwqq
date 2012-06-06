@@ -36,10 +36,27 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
         goto failed;
     }
 
+    lc->cookies = s_malloc0(sizeof(*(lc->cookies)));
     return lc;
     
 failed:
     lwqq_client_free(lc);
+    return NULL;
+}
+
+/** 
+ * Get cookies needby by webqq server
+ * 
+ * @param lc 
+ * 
+ * @return Cookies string on success, or null on failure
+ */
+char *lwqq_get_cookies(LwqqClient *lc)
+{
+    if (lc->cookies && lc->cookies->lwcookies) {
+        return s_strdup(lc->cookies->lwcookies);
+    }
+
     return NULL;
 }
 
@@ -51,6 +68,23 @@ static void vc_free(LwqqVerifyCode *vc)
         s_free(vc->img);
         s_free(vc->uin);
         s_free(vc);
+    }
+}
+
+static void cookies_free(LwqqCookies *c)
+{
+    if (c) {
+        s_free(c->ptvfsession);
+        s_free(c->ptcz);
+        s_free(c->skey);
+        s_free(c->ptwebqq);
+        s_free(c->ptuserinfo);
+        s_free(c->uin);
+        s_free(c->ptisp);
+        s_free(c->pt2gguin);
+        s_free(c->verifysession);
+        s_free(c->lwcookies);
+        s_free(c);
     }
 }
 
@@ -78,14 +112,7 @@ void lwqq_client_free(LwqqClient *client)
     s_free(client->password);
     s_free(client->version);
     vc_free(client->vc);
-    s_free(client->ptvfsession);
-    s_free(client->ptcz);
-    s_free(client->skey);
-    s_free(client->ptwebqq);
-    s_free(client->ptuserinfo);
-    s_free(client->uin);
-    s_free(client->ptisp);
-    s_free(client->pt2gguin);
+    cookies_free(client->cookies);
     s_free(client->clientid);
     s_free(client->seskey);
     s_free(client->cip);
@@ -94,7 +121,6 @@ void lwqq_client_free(LwqqClient *client)
     s_free(client->status);
     s_free(client->vfwebqq);
     s_free(client->psessionid);
-    s_free(client->cookie);
     lwqq_buddy_free(client->myself);
         
     /* Free friends list */

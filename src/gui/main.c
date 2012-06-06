@@ -13,8 +13,29 @@
 #include "login.h"
 #include "logger.h"
 #include "info.h"
+#include "smemory.h"
 #include "mainwindow.h"
+#include <string.h>
 
+static char *get_vc()
+{
+    char buf[1024] = {0};
+    
+    FILE *f = fopen("/tmp/test.txt", "r");
+    if (!f)
+        return NULL;
+
+    char *i = fgets(buf, sizeof(buf), f);
+    if (!i)
+        return NULL;
+    fclose(f);
+    int len = strlen(buf);
+    buf[len - 1] = '\0';
+    printf ("%s\n", i);
+    return s_strdup(buf);
+}
+
+char *s = NULL;
 static void test_login()
 {
     LwqqClient *lc = lwqq_client_new("1421032531", "1234567890");
@@ -23,7 +44,19 @@ static void test_login()
 
     LwqqErrorCode err;
     lwqq_login(lc, &err);
-    if (err != LWQQ_EC_OK) {
+    if (err == LWQQ_EC_LOGIN_NEED_VC) {
+        while (1) {
+            if (!access("/tmp/test.txt", F_OK)) {
+                sleep(1);
+                break;
+            }
+            sleep(1);
+        }
+        lc->vc->str = get_vc();
+        printf ("get vc: %s\n", lc->vc->str);
+
+        lwqq_login(lc, &err);
+    } else if (err != LWQQ_EC_OK) {
         lwqq_log(LOG_ERROR, "Login error, exit\n");
         goto done;
     }
@@ -63,7 +96,8 @@ int main(int argc, char *argv[])
     gtk_widget_show_all(main_win);
     gtk_main();
 #endif
-    
+
+    s = argv[1];
     test_login();
     return 0;
 }

@@ -198,6 +198,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     int ret;
     json_t *json = NULL, *json_tmp;
     char *value = NULL;
+    char *cookies;
 
     if (!err) {
         *err = LWQQ_EC_ERROR;
@@ -220,8 +221,11 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     req->set_header(req, "Referer", "http://s.web2.qq.com/proxy.html?v=20101025002");
     req->set_header(req, "Content-Transfer-Encoding", "binary");
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
-    if (lc->cookie)
-        req->set_header(req, "Cookie", lc->cookie);
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
     ret = req->do_request(req, 1, msg);
     if (ret) {
         *err = LWQQ_EC_NETWORK_ERROR;

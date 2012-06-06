@@ -37,6 +37,99 @@
 
 static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err);
 
+/** 
+ * Update the cookies needed by webqq
+ *
+ * @param req  
+ * @param key 
+ * @param value 
+ * @param update_cache Weather update lwcookies member
+ */
+static void update_cookies(LwqqCookies *cookies, LwqqHttpRequest *req,
+                           const char *key, int update_cache)
+{
+    if (!cookies || !req || !key) {
+        lwqq_log(LOG_ERROR, "Null pointer access\n");
+        return ;
+    }
+
+    char *value = req->get_cookie(req, key);
+    if (!value)
+        return ;
+    
+#define FREE_AND_STRDUP(a, b)                   \
+    if (a)                                      \
+        s_free(a);                              \
+    a = s_strdup(b);
+    
+    if (!strcmp(key, "ptvfsession")) {
+        FREE_AND_STRDUP(cookies->ptvfsession, value);
+    } else if (!strcmp(key, "ptcz")) {
+        FREE_AND_STRDUP(cookies->ptcz, value);
+    } else if (!strcmp(key, "skey")) {
+        FREE_AND_STRDUP(cookies->skey, value);
+    } else if (!strcmp(key, "ptwebqq")) {
+        FREE_AND_STRDUP(cookies->ptwebqq, value);
+    } else if (!strcmp(key, "ptuserinfo")) {
+        FREE_AND_STRDUP(cookies->ptuserinfo, value);
+    } else if (!strcmp(key, "uin")) {
+        FREE_AND_STRDUP(cookies->uin, value);
+    } else if (!strcmp(key, "ptisp")) {
+        FREE_AND_STRDUP(cookies->ptisp, value);
+    } else if (!strcmp(key, "pt2gguin")) {
+        FREE_AND_STRDUP(cookies->pt2gguin, value);
+    } else if (!strcmp(key, "verifysession")) {
+        FREE_AND_STRDUP(cookies->verifysession, value);
+    } else {
+        lwqq_log(LOG_WARNING, "No this cookie: %s\n", key);
+    }
+    s_free(value);
+
+    if (update_cache) {
+        char buf[4096] = {0};           /* 4K is enough for cookies. */
+        int buflen = 0;
+        if (cookies->ptvfsession) {
+            snprintf(buf, sizeof(buf), "ptvfsession=%s; ", cookies->ptvfsession);
+            buflen = strlen(buf);
+        }
+        if (cookies->ptcz) {
+            snprintf(buf + buflen, sizeof(buf) - buflen, "ptcz=%s; ", cookies->ptcz);
+            buflen = strlen(buf);
+        }
+        if (cookies->skey) {
+            snprintf(buf + buflen, sizeof(buf) - buflen, "skey=%s; ", cookies->skey);
+            buflen = strlen(buf);
+        }
+        if (cookies->ptwebqq) {
+            snprintf(buf + buflen, sizeof(buf) - buflen, "ptwebqq=%s; ", cookies->ptwebqq);
+            buflen = strlen(buf);
+        }
+        if (cookies->ptuserinfo) {
+            snprintf(buf + buflen, sizeof(buf) - buflen, "ptuserinfo=%s; ", cookies->ptuserinfo);
+            buflen = strlen(buf);
+        }
+        if (cookies->uin) {
+            snprintf(buf + buflen, sizeof(buf) - buflen, "uin=%s; ", cookies->uin);
+            buflen = strlen(buf);
+        }
+        if (cookies->ptisp) {
+            snprintf(buf + buflen, sizeof(buf) - buflen, "ptisp=%s; ", cookies->ptisp);
+            buflen = strlen(buf);
+        }
+        if (cookies->pt2gguin) {
+            snprintf(buf + buflen, sizeof(buf) - buflen, "pt2gguin=%s; ", cookies->pt2gguin);
+            buflen = strlen(buf);
+        }
+        if (cookies->verifysession) {
+            snprintf(buf + buflen, sizeof(buf) - buflen, "verifysession=%s; ", cookies->verifysession);
+            buflen = strlen(buf);
+        }
+        
+        FREE_AND_STRDUP(cookies->lwcookies, buf);
+    }
+#undef FREE_AND_STRDUP
+}
+
 // ptui_checkVC('0','!IJG, ptui_checkVC('0','!IJG', '\x00\x00\x00\x00\x54\xb3\x3c\x53');
 static char *parse_verify_uin(const char *str)
 {
@@ -59,7 +152,7 @@ static char *parse_verify_uin(const char *str)
 
 static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 {
-    LwqqHttpRequest *req;  
+    LwqqHttpRequest *req;
     char url[512];
     char response[256];
     int ret;
@@ -132,16 +225,13 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
         lc->vc->str = s_strdup(s);
 
         /* We need get the ptvfsession from the header "Set-Cookie" */
-        char *ptvfsession = req->get_cookie(req, "ptvfsession");
-        if (ptvfsession) {
-            lc->ptvfsession = s_strdup(ptvfsession);
-            s_free(ptvfsession);
-        } else {
-            lwqq_log(LOG_WARNING, "Cant get cookie ptvfsession\n");
-        }
+        update_cookies(lc->cookies, req, "ptvfsession", 1);
         lwqq_log(LOG_NOTICE, "Verify code: %s\n", lc->vc->str);
     } else if (*c == '1') {
         /* We need get the verify image. */
+
+        /* Parse uin first */
+        lc->vc->uin = parse_verify_uin(response);
         s = c;
         c = strstr(s, "'");
         s = c + 1;
@@ -150,7 +240,9 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
         c = strstr(s, "'");
         *c = '\0';
         lc->vc->type = s_strdup("1");
+        // ptui_checkVC('1','7ea19f6d3d2794eb4184c9ae860babf3b9c61441520c6df0', '\x00\x00\x00\x00\x04\x7e\x73\xb2');
         lc->vc->str = s_strdup(s);
+        *err = LWQQ_EC_LOGIN_NEED_VC;
         lwqq_log(LOG_NOTICE, "We need verify code image: %s\n", lc->vc->str);
     }
     
@@ -199,6 +291,7 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
         return NULL;
     }
     
+
     /* Calculate the length of uin (it must be 8?) */
     uin_byte_length = strlen(uin) / 4;
 
@@ -240,30 +333,14 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
 
 static int sava_cookie(LwqqClient *lc, LwqqHttpRequest *req, LwqqErrorCode *err)
 {
-    /* FIXME, is cookie less than 2K always? */
-    char cookie[2048];
+    update_cookies(lc->cookies, req, "ptcz", 0);
+    update_cookies(lc->cookies, req, "skey",  0);
+    update_cookies(lc->cookies, req, "ptwebqq", 0);
+    update_cookies(lc->cookies, req, "ptuserinfo", 0);
+    update_cookies(lc->cookies, req, "uin", 0);
+    update_cookies(lc->cookies, req, "ptisp", 0);
+    update_cookies(lc->cookies, req, "pt2gguin", 1);
     
-    lc->ptcz = req->get_cookie(req, "ptcz");
-    lc->skey = req->get_cookie(req, "skey");
-    lc->ptwebqq = req->get_cookie(req, "ptwebqq");
-    lc->ptuserinfo = req->get_cookie(req, "ptuserinfo");
-    lc->uin = req->get_cookie(req, "uin");
-    lc->ptisp = req->get_cookie(req, "ptisp");
-    lc->pt2gguin = req->get_cookie(req, "pt2gguin");
-    if (!lc->ptcz || !lc->skey || !lc->ptwebqq || !lc->ptuserinfo ||
-        !lc->uin || !lc->ptisp || !lc->pt2gguin) {
-        *err = LWQQ_EC_ERROR;
-        lwqq_log(LOG_ERROR, "Parse cookie error\n");
-        return -1;
-    }
-    snprintf(cookie, sizeof(cookie), "ptwebqq=%s; ptisp=%s; "
-             "ptcz=%s; ptuserinfo=%s; skey=%s; uin=%s; pt2gguin=%s; ",
-             lc->ptwebqq, lc->ptisp, lc->ptcz, lc->ptuserinfo,
-             lc->skey, lc->uin, lc->pt2gguin);
-    if (lc->cookie) {
-        s_free(lc->cookie);
-    }
-    lc->cookie = s_strdup(cookie);
     return 0;
 }
 
@@ -279,8 +356,8 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
     char url[1024];
     LwqqHttpRequest *req;
     char *response = NULL;
+    char *cookies;
     int ret;
-    char ptvfsession[128];
     
     snprintf(url, sizeof(url), "%s/login?u=%s&p=%s&verifycode=%s&"
              "webqq_type=10&remember_uin=1&aid=1003903&login2qq=1&"
@@ -294,9 +371,10 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
         goto done;
     }
     /* Setup http header */
-    if (lc->ptvfsession) {
-        snprintf(ptvfsession, sizeof(ptvfsession), "ptvfsession=%s", lc->ptvfsession);
-        req->set_header(req, "Cookie", ptvfsession);
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
     }
 
     /* Send request */
@@ -459,6 +537,7 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     char *buf;
     LwqqHttpRequest *req = NULL;  
     char *response = NULL;
+    char *cookies;
     int ret;
     json_t *json = NULL;
     char *value;
@@ -476,11 +555,11 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     }
 
     /* Do we really need ptwebqq */
-    ptwebqq = lc->ptwebqq ? lc->ptwebqq : "";
+    ptwebqq = lc->cookies->ptwebqq ? lc->cookies->ptwebqq : "";
     snprintf(msg, sizeof(msg), "{\"status\":\"%s\",\"ptwebqq\":\"%s\","
              "\"passwd_sig\":""\"\",\"clientid\":\"%s\""
              ", \"psessionid\":null}"
-             ,status, lc->ptwebqq
+             ,status, lc->cookies->ptwebqq
              ,lc->clientid);
     buf = url_encode(msg);
     snprintf(msg, sizeof(msg), "r=%s", buf);
@@ -498,8 +577,11 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
     
     /* Set http cookie */
-    if (lc->cookie)
-        req->set_header(req, "Cookie", lc->cookie);
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
     
     ret = req->do_request(req, 1, msg);
     if (ret) {
@@ -649,6 +731,7 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     json_t *json = NULL;
     char *value;
     struct timeval tv;
+    char *cookies;
     long int re;
 
     if (!client || !err) {
@@ -665,7 +748,6 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     re = tv.tv_usec / 1000;
     re += tv.tv_sec;
     
-    /* Do we really need ptwebqq */
     snprintf(url, sizeof(url), "%s/channel/logout2?clientid=%s&psessionid=%s&t=%ld",
              "http://d.web2.qq.com", client->clientid, client->psessionid, re);
 
@@ -679,8 +761,11 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     req->set_header(req, "Referer", "http://ptlogin2.qq.com/proxy.html?v=20101025002");
     
     /* Set http cookie */
-    if (client->cookie)
-        req->set_header(req, "Cookie", client->cookie);
+    cookies = lwqq_get_cookies(client);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
     
     ret = req->do_request(req, 0, NULL);
     if (ret) {

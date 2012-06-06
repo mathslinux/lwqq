@@ -52,13 +52,7 @@ typedef struct LwqqVerifyCode {
     char *uin;
 } LwqqVerifyCode ;
 
-/* LwqqClient API */
-typedef struct LwqqClient {
-    char *username;             /**< Username */
-    char *password;             /**< Password */
-    LwqqBuddy *myself;          /**< Myself */
-    char *version;              /**< WebQQ version */
-    LwqqVerifyCode *vc;          /**< Verify Code */
+typedef struct LwqqCookies {
     char *ptvfsession;          /**< ptvfsession */
     char *ptcz;
     char *skey;
@@ -67,6 +61,17 @@ typedef struct LwqqClient {
     char *uin;
     char *ptisp;
     char *pt2gguin;
+    char *verifysession;
+    char *lwcookies;
+} LwqqCookies;
+
+/* LwqqClient API */
+typedef struct LwqqClient {
+    char *username;             /**< Username */
+    char *password;             /**< Password */
+    LwqqBuddy *myself;          /**< Myself */
+    char *version;              /**< WebQQ version */
+    LwqqVerifyCode *vc;         /**< Verify Code */
     char *clientid;
     char *seskey;
     char *cip;
@@ -75,7 +80,7 @@ typedef struct LwqqClient {
     char *status;
     char *vfwebqq;
     char *psessionid;
-    char *cookie;
+    LwqqCookies *cookies;
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
 } LwqqClient;
@@ -106,6 +111,15 @@ typedef enum {
  * @return A new LwqqClient instance, or NULL failed
  */
 LwqqClient *lwqq_client_new(const char *username, const char *password);
+
+/** 
+ * Get cookies needby by webqq server
+ * 
+ * @param lc 
+ * 
+ * @return Cookies string on success, or null on failure
+ */
+char *lwqq_get_cookies(LwqqClient *lc);
 
 /** 
  * Free LwqqClient instance
