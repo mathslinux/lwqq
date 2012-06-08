@@ -17,6 +17,11 @@
 #include <alloca.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "login.h"
 #include "logger.h"
 #include "http.h"
@@ -28,6 +33,7 @@
 /* URL for webqq login */
 #define LWQQ_URL_LOGIN_HOST "http://ptlogin2.qq.com"
 #define LWQQ_URL_CHECK_HOST "http://check.ptlogin2.qq.com"
+#define LWQQ_URL_VERIFY_IMG "http://captcha.qq.com/getimage?aid=%s&uin=%s"
 #define VCCHECKPATH "/check"
 #define APPID "1003903"
 #define LWQQ_URL_SET_STATUS "http://d.web2.qq.com/channel/login2"
@@ -252,6 +258,54 @@ static void get_verify_code(LwqqClient *lc, LwqqErrorCode *err)
 failed:
     lwqq_http_request_free(req);
 }
+
+static void get_verify_image(LwqqClient *lc)
+{
+    LwqqHttpRequest *req = NULL;  
+    char url[512];
+    int ret;
+    char chkuin[64];
+    char image_file[256];
+    int image_length = 0;
+    LwqqErrorCode err;
+ 
+    snprintf(url, sizeof(url), LWQQ_URL_VERIFY_IMG, APPID, lc->username);
+    req = lwqq_http_create_default_request(url, &err);
+    if (!req) {
+        goto failed;
+    }
+     
+    snprintf(chkuin, sizeof(chkuin), "chkuin=%s", lc->username);
+    req->set_header(req, "Cookie", chkuin);
+    ret = req->do_request(req, 0, NULL);
+    if (ret) {
+        goto failed;
+    }
+    if (req->http_code != 200) {
+        goto failed;
+    }
+ 
+    char *content_length = req->get_header(req, "Content-Length");
+    if (content_length) {
+        image_length = atoi(content_length);
+    }
+    update_cookies(lc->cookies, req, "verifysession", 1);
+    snprintf(image_file, sizeof(image_file), "/tmp/%s.jpeg", lc->username);
+    /* Delete old file first */
+    unlink(image_file);
+    int fd = creat(image_file, S_IRUSR | S_IWUSR);
+    if (fd != -1) {
+        ret = write(fd, req->response, image_length);
+        if (ret <= 0) {
+            lwqq_log(LOG_ERROR, "Saving erify image file error\n");
+        }
+        close(fd);
+    }
+ 
+failed:
+    lwqq_http_request_free(req);
+}
+ 
 
 static void upcase_string(char *str, int len)
 {
@@ -692,6 +746,7 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
         get_verify_code(client, err);
         switch (*err) {
         case LWQQ_EC_LOGIN_NEED_VC:
+            get_verify_image(client);
             lwqq_log(LOG_WARNING, "Need to enter verify code\n");
             return ;
         
