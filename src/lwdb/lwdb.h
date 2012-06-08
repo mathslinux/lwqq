@@ -69,15 +69,5 @@ void lwdb_userdb_free(LwdbUserDB *db);
 /* LwdbUserDB API end */
 
 /************************************************************************/
-/** 
- * Create database for lwqq
- * 
- * @param filename 
- * @param db_type Type of database you want to create. 0 means
- *        global database, 1 means user database
- * 
- * @return 0 if everything is ok, else return -1
- */
-int lwdb_create_db(const char *filename, int db_type);
 
 #endif

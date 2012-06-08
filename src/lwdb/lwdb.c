@@ -54,7 +54,7 @@ static const char *create_user_db_sql =
  * 
  * @return 0 if everything is ok, else return -1
  */
-int lwdb_create_db(const char *filename, int db_type)
+static int lwdb_create_db(const char *filename, int db_type)
 {
     int ret;
     
