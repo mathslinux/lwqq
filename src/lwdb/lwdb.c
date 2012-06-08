@@ -23,8 +23,8 @@
 #include "lwdb.h"
 
 LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
-                                         const char *qq_number);
-    
+                                         const char *number);
+
 #ifndef LWQQ_CONFIG_DIR
 #define LWQQ_CONFIG_DIR "~/.config/lwqq"
 #endif
@@ -35,7 +35,7 @@ static const char *create_global_db_sql =
     "create table if not exists configs("
     "    id integer primary key asc autoincrement,family,key,value);"
     "create table if not exists users("
-    "    qqnumber primary key,database_name,password,status,rempwd);";
+    "    number primary key,db_name,password,status,rempwd);";
 
 #if 0
 static const char *create_user_db_sql =
@@ -182,22 +182,22 @@ void lwdb_globaldb_free(LwdbGlobalDB *db)
  * 
  * 
  * @param db 
- * @param qq_number 
+ * @param number 
  * 
  * @return LWQQ_EC_OK on success, else return LWQQ_EC_DB_EXEC_FAIELD on failure
  */
 LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
-                                         const char *qq_number)
+                                         const char *number)
 {
     char *errmsg = NULL;
     char sql[256];
 
-    if (!qq_number){
+    if (!number){
         return LWQQ_EC_NULL_POINTER;
     }
     
     snprintf(sql, sizeof(sql), "INSERT INTO users (qqnumber) VALUES('%s');",
-             qq_number);
+             number);
     sws_exec_sql(db->db, sql, &errmsg);
     if (errmsg) {
         lwqq_log(LOG_ERROR, "Add new user error: %s\n", errmsg);

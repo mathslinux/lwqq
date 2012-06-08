@@ -20,7 +20,7 @@
 
 typedef struct LwdbGlobalDB {
     SwsDB *db;                  /**< Pointer sqlite3 db */
-    LwqqErrorCode (*add_new_user)(struct LwdbGlobalDB *db, const char *qq_number);
+    LwqqErrorCode (*add_new_user)(struct LwdbGlobalDB *db, const char *number);
 } LwdbGlobalDB;
 
 /** 
