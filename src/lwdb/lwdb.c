@@ -183,6 +183,23 @@ void lwdb_globaldb_free(LwdbGlobalDB *db)
 }
 
 /** 
+ * Free LwdbGlobalUserEntry object
+ * 
+ * @param e 
+ */
+void lwdb_globaldb_free_user_entry(LwdbGlobalUserEntry *e)
+{
+    if (e) {
+        s_free(e->number);
+        s_free(e->db_name);
+        s_free(e->password);
+        s_free(e->status);
+        s_free(e->rempwd);
+        s_free(e);
+    }
+}
+
+/** 
  * 
  * 
  * @param db 

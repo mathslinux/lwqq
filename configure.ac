@@ -86,12 +86,13 @@ AC_ARG_ENABLE([werror],
 ######################################################################
 
 AC_CONFIG_FILES([Makefile
-         src/Makefile 
-         src/liblwqq/Makefile
-         src/liblwqq/libghttp/Makefile
-		 src/lwdb/Makefile
-         src/gui/Makefile
-         ])
+        src/Makefile 
+        src/liblwqq/Makefile
+        src/liblwqq/libghttp/Makefile
+        src/lwdb/Makefile
+        src/gui/Makefile
+        test/Makefile
+        ])
 AC_OUTPUT
 
 echo ============================== OPTIONS ==============================
