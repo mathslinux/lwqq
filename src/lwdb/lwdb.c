@@ -254,3 +254,50 @@ failed:
     sws_query_end(stmt, NULL);
     return NULL;
 }
+
+static int file_is_user_db(const char *filename)
+{
+    return -1;
+}
+
+LwdbUserDB *lwdb_userdb_new(const char *qqnumber, LwqqErrorCode *err)
+{
+    LwdbUserDB *db = NULL;
+    int ret;
+    char *db_name;
+    
+    if (!qqnumber) {
+        if (*err)
+            *err = LWQQ_EC_NULL_POINTER;
+        return NULL;
+    }
+
+    /* get db name */
+    db_name = NULL;
+    
+    if (!file_is_user_db(db_name)) {
+        ret = lwdb_create_db(db_name, 1);
+        if (ret) {
+            goto failed;
+        }
+    }
+
+    db = s_malloc0(sizeof(*db));
+    db->db = sws_open_db(db_name, NULL);
+    if (!db->db) {
+        goto failed;
+    }
+    
+    return db;
+
+failed:
+    lwdb_userdb_free(db);
+    return NULL;
+}
+
+void lwdb_userdb_free(LwdbUserDB *db)
+{
+    if (db) {
+        s_free(db);
+    }
+}
