@@ -17,22 +17,30 @@
 
 /************************************************************************/
 /* LwdbGlobalDB API */
+typedef struct LwdbGlobalUserEntry {
+    char *number;
+    char *db_name;
+    char *password;
+    char *status;
+    char *rempwd;
+} LwdbGlobalUserEntry;
 
 typedef struct LwdbGlobalDB {
     SwsDB *db;                  /**< Pointer sqlite3 db */
     LwqqErrorCode (*add_new_user)(struct LwdbGlobalDB *db, const char *number);
+    LwdbGlobalUserEntry * (*get_user_info)(struct LwdbGlobalDB *db,
+                                          const char *number);
 } LwdbGlobalDB;
 
 /** 
  * Create a global DB object
  * 
  * @param filename The database filename
- * @param err Used to store error code
  * 
  * @return A new global DB object, or NULL if somethins wrong, and store
  * error code in err
  */
-LwdbGlobalDB *lwdb_globaldb_new(const char *filename, LwqqErrorCode *err);
+LwdbGlobalDB *lwdb_globaldb_new(const char *filename);
 
 /** 
  * Free a LwdbGlobalDb object

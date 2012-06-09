@@ -22,8 +22,10 @@
 #include "swsqlite.h"
 #include "lwdb.h"
 
-LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
-                                         const char *number);
+static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
+                                                const char *number);
+static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
+                                                        const char *number);
 
 #ifndef LWQQ_CONFIG_DIR
 #define LWQQ_CONFIG_DIR "~/.config/lwqq"
@@ -35,12 +37,16 @@ static const char *create_global_db_sql =
     "create table if not exists configs("
     "    id integer primary key asc autoincrement,family,key,value);"
     "create table if not exists users("
-    "    number primary key,db_name,password,status,rempwd);";
+    "    number primary key,"
+    "    db_name default '',"
+    "    password default '',"
+    "    status default 'offline',"
+    "    rempwd default '1');";
 
 #if 0
 static const char *create_user_db_sql =
     "create table if not exists buddies("
-    "    qqnumber primary key,category,vip_info,nick,markname,face,flag);"
+    "    number primary key,category,vip_info,nick,markname,face,flag);"
     "create table if not exists categories("
     "    name primary key,index,sort);";
 #endif 
@@ -88,7 +94,7 @@ static int file_is_global_db(const char *filename)
 {
     int ret;
     SwsStmt *stmt = NULL;
-    char *test_sql = "SELECT value FROM config WHERE key='version'";
+    char *test_sql = "SELECT value FROM configs WHERE key='version'";
     char value[32] = {0};
 
     
@@ -127,20 +133,17 @@ invalid:
  * Create a global DB object
  * 
  * @param filename The database filename
- * @param err Used to store error code
  * 
  * @return A new global DB object, or NULL if somethins wrong, and store
  * error code in err
  */
 
-LwdbGlobalDB *lwdb_globaldb_new(const char *filename, LwqqErrorCode *err)
+LwdbGlobalDB *lwdb_globaldb_new(const char *filename)
 {
     LwdbGlobalDB *db = NULL;
     int ret;
     
     if (!filename) {
-        if (*err)
-            *err = LWQQ_EC_NULL_POINTER;
         return NULL;
     }
 
@@ -157,6 +160,7 @@ LwdbGlobalDB *lwdb_globaldb_new(const char *filename, LwqqErrorCode *err)
         goto failed;
     }
     db->add_new_user = lwdb_globaldb_add_new_user;
+    db->get_user_info = lwdb_globaldb_get_user_info;
     
     return db;
 
@@ -186,8 +190,8 @@ void lwdb_globaldb_free(LwdbGlobalDB *db)
  * 
  * @return LWQQ_EC_OK on success, else return LWQQ_EC_DB_EXEC_FAIELD on failure
  */
-LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
-                                         const char *number)
+static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
+                                                const char *number)
 {
     char *errmsg = NULL;
     char sql[256];
@@ -196,7 +200,7 @@ LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
         return LWQQ_EC_NULL_POINTER;
     }
     
-    snprintf(sql, sizeof(sql), "INSERT INTO users (qqnumber) VALUES('%s');",
+    snprintf(sql, sizeof(sql), "INSERT INTO users (number) VALUES('%s');",
              number);
     sws_exec_sql(db->db, sql, &errmsg);
     if (errmsg) {
@@ -206,4 +210,47 @@ LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
     }
 
     return LWQQ_EC_OK;
+}
+
+static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
+                                                const char *number)
+{
+    int ret;
+    char sql[256];
+    LwdbGlobalUserEntry *e = NULL;
+    SwsStmt *stmt = NULL;
+
+    if (!number) {
+        return NULL;
+    }
+
+    snprintf(sql, sizeof(sql), "SELECT db_name,password,status,rempwd "
+             "FROM users WHERE number='%s';", number);
+    ret = sws_query_start(db->db, sql, &stmt, NULL);
+    if (ret) {
+        goto failed;
+    }
+
+    e = s_malloc0(sizeof(*e));
+    if (!sws_query_next(stmt, NULL)) {
+        char buf[256] = {0};
+#define GET_MEMBER_VALUE(i, member) {                           \
+            sws_query_column(stmt, i, buf, sizeof(buf), NULL);  \
+            e->member = s_strdup(buf);                          \
+        }
+        e->number = s_strdup(number);
+        GET_MEMBER_VALUE(0, db_name);
+        GET_MEMBER_VALUE(1, password);
+        GET_MEMBER_VALUE(2, status);
+        GET_MEMBER_VALUE(3, rempwd);
+#undef GET_MEMBER_VALUE
+    }
+    sws_query_end(stmt, NULL);
+    
+    return e;
+
+failed:
+    s_free(e);
+    sws_query_end(stmt, NULL);
+    return NULL;
 }

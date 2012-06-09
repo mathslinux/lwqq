@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
     sws_close_db(db, NULL);
 
     /* Excute SQL directly */
-    sws_exec_sql_directly("/tmp/test_sws.db", "INSERT INTO config "
+    sws_exec_sql_directly("/tmp/test_sws.db", "INSERT INTO configs "
                           "(family,key,value) VALUES('1', '2', '3');", NULL);
     
     return 0;
