@@ -49,6 +49,13 @@ LwdbGlobalDB *lwdb_globaldb_new(const char *filename);
  */
 void lwdb_globaldb_free(LwdbGlobalDB *db);
 
+/** 
+ * Free LwdbGlobalUserEntry object
+ * 
+ * @param e 
+ */
+void lwdb_globaldb_free_user_entry(LwdbGlobalUserEntry *e);
+
 /* LwdbGlobalDB API end */
 
 /************************************************************************/
