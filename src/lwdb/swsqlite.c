@@ -45,7 +45,8 @@ SwsDB *sws_open_db(const char *filename, char **errmsg)
          */
         sqlite3_close(db);
         char msg[128];
-        snprintf(msg, sizeof(msg), "Open file failed, errcode is %d", ret);
+        snprintf(msg, sizeof(msg), "Open file: %s failed, errcode is %d",
+                 filename, ret);
         SET_ERRMSG(errmsg, msg);
         return NULL;
     }
