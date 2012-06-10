@@ -26,16 +26,20 @@ static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
                                                 const char *number);
 static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
                                                         const char *number);
+static LwqqErrorCode lwdb_globaldb_update_user_info(
+    struct LwdbGlobalDB *db, const char *key, const char *value);
 
-#ifndef LWQQ_CONFIG_DIR
-#define LWQQ_CONFIG_DIR "~/.config/lwqq"
-#endif
+static char *database_path;
+static char *global_database_name;
 
 #define LWDB_INIT_VERSION 1001
 
 static const char *create_global_db_sql =
     "create table if not exists configs("
-    "    id integer primary key asc autoincrement,family,key,value);"
+    "    id integer primary key asc autoincrement,"
+    "    family define '',"
+    "    key default '',"
+    "    value default '');"
     "create table if not exists users("
     "    number primary key,"
     "    db_name default '',"
@@ -43,13 +47,50 @@ static const char *create_global_db_sql =
     "    status default 'offline',"
     "    rempwd default '1');";
 
-#if 0
 static const char *create_user_db_sql =
     "create table if not exists buddies("
-    "    number primary key,category,vip_info,nick,markname,face,flag);"
+    "    number primary key,"
+    "    category default '',"
+    "    vip_info default '',"
+    "    nick default '',"
+    "    markname default '',"
+    "    face default '',"
+    "    flag default '');"
     "create table if not exists categories("
-    "    name primary key,index,sort);";
-#endif 
+    "    name primary key,"
+    "    cg_index default '',"
+    "    sort default '');";
+
+/** 
+ * LWDB initialization
+ * 
+ */
+void lwdb_init()
+{
+    char buf[256];
+    char *home;
+
+    home = getenv("HOME");
+    if (!home) {
+        lwqq_log(LOG_ERROR, "Cant get $HOME, exit\n");
+        exit(1);
+    }
+    snprintf(buf, sizeof(buf), "%s/.config/lwqq", home);
+    database_path = s_strdup(buf);
+    
+    snprintf(buf, sizeof(buf), "%s/lwqq.db", database_path);
+    global_database_name = s_strdup(buf);
+}
+
+/** 
+ * LWDB final
+ * 
+ */
+void lwdb_final()
+{
+    s_free(database_path);
+    s_free(global_database_name);
+}
 
 /** 
  * Create database for lwqq
@@ -63,65 +104,77 @@ static const char *create_user_db_sql =
 static int lwdb_create_db(const char *filename, int db_type)
 {
     int ret;
+    char *errmsg = NULL;
     
     if (!filename) {
         return -1;
     }
 
     if (access(filename, F_OK) == 0) {
+        lwqq_log(LOG_WARNING, "Find a file whose name is same as file "
+                 "we want to create, delete it.\n");
         unlink(filename);
     }
     if (db_type == 0) {
-        ret = sws_exec_sql_directly(filename, create_global_db_sql, NULL);
+        ret = sws_exec_sql_directly(filename, create_global_db_sql, &errmsg);
     } else if (db_type == 1) {
-        ret = sws_exec_sql_directly(filename, create_global_db_sql, NULL);
+        ret = sws_exec_sql_directly(filename, create_user_db_sql, &errmsg);
     } else {
         ret = -1;
     }
 
-    if (ret == 0) {
-        /* Update database version */
-        ret = sws_exec_sql_directly(
-            filename,
-            "INSERT INTO configs (family,key,value) "
-            "VALUES('lwqq','version',1001);", NULL);
+    if (errmsg) {
+        lwqq_log(LOG_ERROR, "%s\n", errmsg);
+        s_free(errmsg);
     }
-    
     return ret;
 }
 
-static int file_is_global_db(const char *filename)
+/** 
+ * Check whether db is valid
+ * 
+ * @param filename The db name
+ * @param type 0 means db is a global db, 1 means db is a user db
+ * 
+ * @return 1 if db is valid, else return 0
+ */
+static int db_is_valid(const char *filename, int type)
 {
     int ret;
     SwsStmt *stmt = NULL;
-    char *test_sql = "SELECT value FROM configs WHERE key='version'";
-    char value[32] = {0};
+    SwsDB *db = NULL;
+    char *sql;
 
+    /* Check whether file exists */
+    if (!filename || access(filename, F_OK)) {
+        goto invalid;
+    }
     
     /* Open DB */
-    SwsDB *db = sws_open_db(filename, NULL);
+    db = sws_open_db(filename, NULL);
     if (!db) {
         goto invalid;
     }
     
     /* Query DB */
-    ret = sws_query_start(db, test_sql, &stmt, NULL);
+    if (type == 0) {
+        sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='configs';";
+    } else {
+        sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='buddies';";
+    }
+    ret = sws_query_start(db, sql, &stmt, NULL);
     if (ret) {
         goto invalid;
     }
     if (sws_query_next(stmt, NULL)) {
         goto invalid;
     }
-    sws_query_column(stmt, 0, value, sizeof(value), NULL);
     sws_query_end(stmt, NULL);
-
-    if (atoi(value) < 1000) {
-        goto invalid;
-    }
     
     /* Close DB */
     sws_close_db(db, NULL);
 
+    /* OK, it is a valid db */
     return 1;
     
 invalid:
@@ -132,35 +185,31 @@ invalid:
 /** 
  * Create a global DB object
  * 
- * @param filename The database filename
- * 
  * @return A new global DB object, or NULL if somethins wrong, and store
  * error code in err
  */
 
-LwdbGlobalDB *lwdb_globaldb_new(const char *filename)
+LwdbGlobalDB *lwdb_globaldb_new()
 {
     LwdbGlobalDB *db = NULL;
     int ret;
     
-    if (!filename) {
-        return NULL;
-    }
-
-    if (!file_is_global_db(filename)) {
-        ret = lwdb_create_db(filename, 0);
+    if (!db_is_valid(global_database_name, 0)) {
+        ret = lwdb_create_db(global_database_name, 0);
         if (ret) {
             goto failed;
         }
     }
 
     db = s_malloc0(sizeof(*db));
-    db->db = sws_open_db(filename, NULL);
+    db->db = sws_open_db(global_database_name, NULL);
     if (!db->db) {
         goto failed;
     }
     db->add_new_user = lwdb_globaldb_add_new_user;
     db->get_user_info = lwdb_globaldb_get_user_info;
+    db->update_user_info = lwdb_globaldb_update_user_info;
+    
     
     return db;
 
@@ -217,8 +266,8 @@ static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
         return LWQQ_EC_NULL_POINTER;
     }
     
-    snprintf(sql, sizeof(sql), "INSERT INTO users (number) VALUES('%s');",
-             number);
+    snprintf(sql, sizeof(sql), "INSERT INTO users (number,db_name) "
+             "VALUES('%s','%s/%s.db');", number, database_path, number);
     sws_exec_sql(db->db, sql, &errmsg);
     if (errmsg) {
         lwqq_log(LOG_ERROR, "Add new user error: %s\n", errmsg);
@@ -248,8 +297,8 @@ static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
         goto failed;
     }
 
-    e = s_malloc0(sizeof(*e));
     if (!sws_query_next(stmt, NULL)) {
+        e = s_malloc0(sizeof(*e));
         char buf[256] = {0};
 #define GET_MEMBER_VALUE(i, member) {                           \
             sws_query_column(stmt, i, buf, sizeof(buf), NULL);  \
@@ -263,7 +312,7 @@ static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
 #undef GET_MEMBER_VALUE
     }
     sws_query_end(stmt, NULL);
-    
+
     return e;
 
 failed:
@@ -272,49 +321,76 @@ failed:
     return NULL;
 }
 
-static int file_is_user_db(const char *filename)
+static LwqqErrorCode lwdb_globaldb_update_user_info(
+    struct LwdbGlobalDB *db, const char *key, const char *value)
 {
-    return -1;
+    char sql[256];
+    
+    if (!key || !value) {
+        return LWQQ_EC_NULL_POINTER;
+    }
+
+    snprintf(sql, sizeof(sql), "UPDATE users SET %s='%s';", key, value);
+    if (!sws_exec_sql(db->db, sql, NULL)) {
+        return LWQQ_EC_DB_EXEC_FAIELD;
+    }
+    
+    return LWQQ_EC_OK;
 }
 
-LwdbUserDB *lwdb_userdb_new(const char *qqnumber, LwqqErrorCode *err)
+LwdbUserDB *lwdb_userdb_new(const char *number)
 {
-    LwdbUserDB *db = NULL;
+    LwdbUserDB *udb = NULL;
+    LwdbGlobalDB *gdb = NULL;
+    LwdbGlobalUserEntry *e = NULL;
     int ret;
     char *db_name;
     
-    if (!qqnumber) {
-        if (*err)
-            *err = LWQQ_EC_NULL_POINTER;
+    if (!number) {
         return NULL;
     }
 
-    /* get db name */
-    db_name = NULL;
-    
-    if (!file_is_user_db(db_name)) {
+    /* Get user's db name */
+    gdb = lwdb_globaldb_new(global_database_name);
+    if (!gdb) {
+        goto failed;
+    }
+    e = gdb->get_user_info(gdb, number);
+    if (!e) {
+        goto failed;
+    }
+    db_name = e->db_name;
+
+    /* If there is no db named "db_name", create it */
+    if (!db_is_valid(db_name, 1)) {
+        lwqq_log(LOG_WARNING, "db doesnt exist, create it\n");
         ret = lwdb_create_db(db_name, 1);
         if (ret) {
             goto failed;
         }
     }
 
-    db = s_malloc0(sizeof(*db));
-    db->db = sws_open_db(db_name, NULL);
-    if (!db->db) {
+    udb = s_malloc0(sizeof(*udb));
+    udb->db = sws_open_db(db_name, NULL);
+    if (!udb->db) {
         goto failed;
     }
-    
-    return db;
+
+    lwdb_globaldb_free(gdb);
+    lwdb_globaldb_free_user_entry(e);
+    return udb;
 
 failed:
-    lwdb_userdb_free(db);
+    lwdb_globaldb_free(gdb);
+    lwdb_globaldb_free_user_entry(e);
+    lwdb_userdb_free(udb);
     return NULL;
 }
 
 void lwdb_userdb_free(LwdbUserDB *db)
 {
     if (db) {
+        sws_close_db(db->db, NULL);
         s_free(db);
     }
 }
