@@ -16,24 +16,36 @@
 
 int main(int argc, char *argv[])
 {
-    LwdbGlobalDB *db = NULL;
+    LwdbGlobalDB *gdb = NULL;
+    LwdbUserDB *udb = NULL;
     LwdbGlobalUserEntry *e = NULL;
-    
-    db = lwdb_globaldb_new("/tmp/test.db");
-    if (!db) {
+
+    lwdb_init();
+    gdb = lwdb_globaldb_new();
+    if (!gdb) {
         lwqq_log(LOG_ERROR, "error\n");
         goto done;
     }
-    db->add_new_user(db, "3456345");
-    e = db->get_user_info(db, "3456345");
+    e = gdb->get_user_info(gdb, "3456345");
     if (!e) {
-        goto done;
+        gdb->add_new_user(gdb, "3456345");
+        e = gdb->get_user_info(gdb, "3456345");
+        if (!e) {
+            goto done;
+        }
     }
 
+    udb = lwdb_userdb_new("3456345");
+    if (!udb) {
+        goto done;
+    }
+    
     lwqq_log(LOG_NOTICE, "%s,%s,%s,%s,%s\n",
              e->number, e->db_name, e->password, e->status, e->rempwd);
 done:
     lwdb_globaldb_free_user_entry(e);
-    lwdb_globaldb_free(db);
+    lwdb_globaldb_free(gdb);
+    lwdb_userdb_free(udb);
+    lwdb_final();
     return 0;
 }

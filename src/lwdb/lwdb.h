@@ -16,6 +16,22 @@
 #include "swsqlite.h"
 
 /************************************************************************/
+/* Initialization and final API */
+/** 
+ * LWDB initialization
+ * 
+ */
+void lwdb_init();
+
+/** 
+ * LWDB final
+ * 
+ */
+void lwdb_final();
+
+/* Initialization and final API end */
+
+/************************************************************************/
 /* LwdbGlobalDB API */
 typedef struct LwdbGlobalUserEntry {
     char *number;
@@ -30,17 +46,17 @@ typedef struct LwdbGlobalDB {
     LwqqErrorCode (*add_new_user)(struct LwdbGlobalDB *db, const char *number);
     LwdbGlobalUserEntry * (*get_user_info)(struct LwdbGlobalDB *db,
                                           const char *number);
+    LwqqErrorCode (*update_user_info)(struct LwdbGlobalDB *db,
+                                      const char *key, const char *value);
 } LwdbGlobalDB;
 
 /** 
  * Create a global DB object
  * 
- * @param filename The database filename
- * 
  * @return A new global DB object, or NULL if somethins wrong, and store
  * error code in err
  */
-LwdbGlobalDB *lwdb_globaldb_new(const char *filename);
+LwdbGlobalDB *lwdb_globaldb_new();
 
 /** 
  * Free a LwdbGlobalDb object
@@ -62,17 +78,17 @@ void lwdb_globaldb_free_user_entry(LwdbGlobalUserEntry *e);
 /* LwdbUserDB API */
 
 typedef struct LwdbUserDB {
+    SwsDB *db;
 } LwdbUserDB;
 /** 
  * Create a user DB object
  * 
- * @param filename The database filename
- * @param err Used to store error code
+ * @param number The qq number
  * 
  * @return A new user DB object, or NULL if somethins wrong, and store
  * error code in err
  */
-LwdbUserDB *lwdb_userdb_new(const char *filename, LwqqErrorCode *err);
+LwdbUserDB *lwdb_userdb_new(const char *number);
 
 /** 
  * Free a LwdbUserDB object
