@@ -45,6 +45,16 @@ typedef struct LwqqBuddy {
     LIST_ENTRY(LwqqBuddy) entries;
 } LwqqBuddy;
 
+/* QQ group */
+typedef struct LwqqGroup {
+    char *flag;                  
+  	char *name;                  /**< QQ Group name */
+    char *gid;
+  	char *code;
+    
+    LIST_ENTRY(LwqqGroup) entries;
+} LwqqGroup;
+
 typedef struct LwqqVerifyCode {
     char *str;
     char *type;
@@ -83,6 +93,7 @@ typedef struct LwqqClient {
     LwqqCookies *cookies;
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
+    LIST_HEAD(, LwqqGroup) groups; /**< QQ groups */
 } LwqqClient;
 
 /* Lwqq Error Code */
@@ -158,6 +169,24 @@ void lwqq_buddy_free(LwqqBuddy *buddy);
 LwqqBuddy *lwqq_buddy_find_buddy_by_uin(LwqqClient *lc, const char *uin);
 
 /* LwqqBuddy API END*/
+
+
+/** 
+ * Free a LwqqGroup instance
+ * 
+ * @param group
+ */
+void lwqq_group_free(LwqqGroup *group);
+
+/** 
+ * 
+ * Create a new group
+ * 
+ * @return A LwqqGroup instance
+ */
+LwqqBuddy *lwqq_group_new();
+
+
 
 /************************************************************************/
 

@@ -21,5 +21,6 @@
  * @param err 
  */
 void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err);
+void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err);
 
 #endif  /* LWQQ_INFO_H */

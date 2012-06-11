@@ -70,6 +70,15 @@ static void test_login()
         }
     }
 
+    lwqq_info_get_groups_info(lc, &err);
+       
+    if (err == LWQQ_EC_OK) {
+        LwqqGroup *group;
+        LIST_FOREACH(group, &lc->groups, entries) {
+            if (group->name)
+                lwqq_log(LOG_DEBUG, "Group name: %s\n", group->name);
+        }
+    }
     /* Logout test */
     sleep(1);
     lwqq_logout(lc, &err);

@@ -300,3 +300,157 @@ json_error:
         json_free_value(&json);
     lwqq_http_request_free(req);
 }
+
+/** 
+ * Parse info group
+ * 
+ * @param lc 
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
+{
+    LwqqGroup *group;
+    json_t *cur;
+    
+    /* Make json point "info" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "gnamelist")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+      	group = s_malloc0(sizeof(*group));
+        group->flag = s_strdup(json_parse_simple_value(cur, "flag"));
+        group->name = s_strdup(json_parse_simple_value(cur, "name"));
+        group->gid = s_strdup(json_parse_simple_value(cur, "gid"));
+        group->code = s_strdup(json_parse_simple_value(cur, "code"));
+
+        /* Add to categories list */
+        LIST_INSERT_HEAD(&lc->groups, group, entries);
+    }
+}
+
+
+/** 
+ * Get QQ groups information. These information include basic group
+ * information
+ * 
+ * @param lc 
+ * @param err 
+ */
+void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
+{
+
+  	lwqq_log(LOG_DEBUG, "in function.");
+
+    char msg[256] ={0};
+    char *buf;
+    LwqqHttpRequest *req = NULL;  
+    int ret;
+    json_t *json = NULL, *json_tmp;
+    char *value = NULL;
+    char *cookies;
+
+    if (!err) {
+        *err = LWQQ_EC_ERROR;
+        goto done ;
+    }
+    
+    
+
+    snprintf(msg, sizeof(msg), "{\"h\":\"hello\",\"vfwebqq\":\"%s\"}",
+             lc->vfwebqq);
+    buf = url_encode(msg);
+    snprintf(msg, sizeof(msg), "r=%s", buf);
+    s_free(buf);
+
+    /* Create a POST request */
+    char url[512];
+    snprintf(url, sizeof(url), "%s/api/get_group_name_list_mask2", "http://s.web2.qq.com");
+    req = lwqq_http_create_default_request(url, err);
+    if (!req) {
+        goto done;
+    }
+    req->set_header(req, "Referer", "http://s.web2.qq.com/proxy.html?v=20101025002");
+    req->set_header(req, "Content-Transfer-Encoding", "binary");
+    req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
+    ret = req->do_request(req, 1, msg);
+    if (ret) {
+        *err = LWQQ_EC_NETWORK_ERROR;
+        goto done;
+    }
+    if (req->http_code != 200) {
+        *err = LWQQ_EC_HTTP_ERROR;
+        goto done;
+    }
+
+
+    /**
+     * Here, we got a json object like this:
+     * {"retcode":0,"result":{"gmasklist":[],"gnamelist":[{"flag":17825793,"name":"EGEC/C++","gid":1253810024,"code":1604013092}],"gmarklist":[]}}
+     * 
+     */
+    
+    ret = json_parse_document(&json, req->response);
+    if (ret != JSON_OK) {
+        lwqq_log(LOG_ERROR, "Parse json object of groups error\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+    }
+    
+    /**
+     * Frist, we parse retcode that indicate whether we get
+     * correct response from server
+     */
+    value = json_parse_simple_value(json, "retcode");
+    if (!value || strcmp(value, "0")) {
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
+        goto json_error;
+    }
+
+    /**
+     * Second, Check whether there is a "result" key in json object
+     */
+    json_tmp = json_find_first_label_all(json, "result");
+    if (!json_tmp) {
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
+        goto json_error;
+    }
+
+    /** Third, it seems everyone is right now, we start parsing information
+     * now
+     */
+
+    if (json_tmp && json_tmp->child && json_tmp->child->child ) {
+        json_tmp = json_tmp->child->child;
+
+        /* Parse friend category information */
+        parse_groups_gnamelist_child(lc, json_tmp);
+               
+    }
+
+        
+done:
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+    return ;
+
+json_error:
+    *err = LWQQ_EC_ERROR;
+    /* Free temporary string */
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+}

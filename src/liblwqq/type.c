@@ -136,6 +136,14 @@ void lwqq_client_free(LwqqClient *client)
         LIST_REMOVE(c_entry, entries);
         lwqq_categories_free(c_entry);
     }
+
+    
+    /* Free groups list */
+    LwqqGroup *g_entry, *g_next;
+    LIST_FOREACH_SAFE(g_entry, &client->groups, entries, g_next) {
+        LIST_REMOVE(g_entry, entries);
+        lwqq_group_free(g_entry);
+    }
         
     s_free(client);
 }
@@ -156,6 +164,18 @@ LwqqBuddy *lwqq_buddy_new()
 }
 
 /** 
+ * 
+ * Create a new group
+ * 
+ * @return A LwqqGroup instance
+ */
+LwqqBuddy *lwqq_group_new()
+{
+    LwqqBuddy *g = s_malloc0(sizeof(*g));
+    return g;
+}
+
+/** 
  * Free a LwqqBuddy instance
  * 
  * @param buddy 
@@ -173,6 +193,24 @@ void lwqq_buddy_free(LwqqBuddy *buddy)
     s_free(buddy->flag);
     
     s_free(buddy);
+}
+
+/** 
+ * Free a LwqqGroup instance
+ * 
+ * @param group
+ */
+void lwqq_group_free(LwqqGroup *group)
+{
+    if (!group)
+        return ;
+
+    s_free(group->flag);
+    s_free(group->name);
+    s_free(group->gid);
+    s_free(group->code);
+        
+    s_free(group);
 }
 
 /** 
