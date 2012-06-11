@@ -169,9 +169,9 @@ LwqqBuddy *lwqq_buddy_new()
  * 
  * @return A LwqqGroup instance
  */
-LwqqBuddy *lwqq_group_new()
+LwqqGroup *lwqq_group_new()
 {
-    LwqqBuddy *g = s_malloc0(sizeof(*g));
+    LwqqGroup *g = s_malloc0(sizeof(*g));
     return g;
 }
 

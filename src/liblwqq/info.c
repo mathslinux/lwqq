@@ -404,7 +404,7 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
     
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
-        lwqq_log(LOG_ERROR, "Parse json object of groups error\n");
+        lwqq_log(LOG_ERROR, "Parse json object of groups error: %s\n", req->response);
         *err = LWQQ_EC_ERROR;
         goto done;
     }

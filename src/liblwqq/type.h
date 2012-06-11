@@ -184,7 +184,7 @@ void lwqq_group_free(LwqqGroup *group);
  * 
  * @return A LwqqGroup instance
  */
-LwqqBuddy *lwqq_group_new();
+LwqqGroup *lwqq_group_new();
 
 
 
