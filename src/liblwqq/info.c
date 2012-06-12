@@ -447,3 +447,152 @@ json_error:
         json_free_value(&json);
     lwqq_http_request_free(req);
 }
+
+/** 
+ * Get detail information of QQ friend(NB: include myself)
+ * QQ server need us to pass param like:
+ * tuin=244569070&verifysession=&code=&vfwebqq=e64da25c140c66
+ * 
+ * @param lc 
+ * @param buddy 
+ * @param err 
+ */
+void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
+                                      LwqqErrorCode *err)
+{
+    lwqq_log(LOG_DEBUG, "in function.");
+
+    char msg[256];
+    char url[512];
+    char *buf;
+    LwqqHttpRequest *req = NULL;  
+    int ret;
+    json_t *json = NULL, *json_tmp;
+    char *value = NULL;
+    char *cookies;
+
+    if (!lc || ! buddy || !err) {
+        return ;
+    }
+
+    buf = url_encode(msg);
+    snprintf(msg, sizeof(msg), "r=%s", buf);
+    s_free(buf);
+
+    /* Create a GET request */
+    snprintf(url, sizeof(url),
+             "%s/api/get_friend_info2?tuin=%s&verifysession=&code=&vfwebqq=%s",
+             "http://s.web2.qq.com", lc->username, lc->vfwebqq);
+    req = lwqq_http_create_default_request(url, err);
+    if (!req) {
+        goto done;
+    }
+    req->set_header(req, "Referer", "http://s.web2.qq.com/proxy.html?v=20101025002");
+    req->set_header(req, "Content-Transfer-Encoding", "binary");
+    req->set_header(req, "Content-type", "utf-8");
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
+    ret = req->do_request(req, 0, msg);
+    if (ret) {
+        if (err)
+            *err = LWQQ_EC_NETWORK_ERROR;
+        goto done;
+    }
+    if (req->http_code != 200) {
+        if (err)
+            *err = LWQQ_EC_HTTP_ERROR;
+        goto done;
+    }
+
+    /**
+     * Here, we got a json object like this:
+     * {"retcode":0,"result":{"face":519,"birthday":
+     * {"month":9,"year":1988,"day":26},"occupation":"学生",
+     * "phone":"82888909","allow":1,"college":"西北工业大学","reg_time":0,
+     * "uin":1421032531,"constel":8,"blood":2,
+     * "homepage":"http://www.ifeng.com","stat":10,"vip_info":0,
+     * "country":"中国","city":"西安","personal":"给力啊~~","nick":"阿凡达",
+     * "shengxiao":5,"email":"avata@126.com","client_type":41,
+     * "province":"陕西","gender":"male","mobile":"139********"}}
+     * 
+     */
+    ret = json_parse_document(&json, req->response);
+    if (ret != JSON_OK) {
+        lwqq_log(LOG_ERROR, "Parse json object of groups error: %s\n", req->response);
+        *err = LWQQ_EC_ERROR;
+        goto done;
+    }
+    
+    /**
+     * Frist, we parse retcode that indicate whether we get
+     * correct response from server
+     */
+    value = json_parse_simple_value(json, "retcode");
+    if (!value || strcmp(value, "0")) {
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
+        goto json_error;
+    }
+
+    /**
+     * Second, Check whether there is a "result" key in json object
+     */
+    json_tmp = json_find_first_label_all(json, "result");
+    if (!json_tmp) {
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
+        goto json_error;
+    }
+
+    /** Third, it seems everything is ok, we start parsing information
+     * now
+     */
+    if (json_tmp && json_tmp->child) {
+        json_tmp = json_tmp->child;
+#define  SET_BUDDY_INFO(key, name) {                            \
+            if (buddy->key) {                                   \
+                s_free(buddy->key);                              \
+            }                                                   \
+            buddy->key = json_parse_simple_value(json, name);   \
+        }
+        SET_BUDDY_INFO(uin, "uin");
+        SET_BUDDY_INFO(face, "face");
+        /* SET_BUDDY_INFO(birthday, "birthday"); */
+        SET_BUDDY_INFO(occupation, "occupation");
+        SET_BUDDY_INFO(phone, "phone");
+        SET_BUDDY_INFO(allow, "allow");
+        SET_BUDDY_INFO(college, "college");
+        SET_BUDDY_INFO(reg_time, "reg_time");
+        SET_BUDDY_INFO(constel, "constel");
+        SET_BUDDY_INFO(blood, "blood");
+        SET_BUDDY_INFO(homepage, "homepage");
+        SET_BUDDY_INFO(stat, "stat");
+        SET_BUDDY_INFO(vip_info, "vip_info");
+        SET_BUDDY_INFO(country, "country");
+        SET_BUDDY_INFO(city, "city");
+        SET_BUDDY_INFO(personal, "personal");
+        SET_BUDDY_INFO(nick, "nick");
+        SET_BUDDY_INFO(shengxiao, "shengxiao");
+        SET_BUDDY_INFO(email, "email");
+        SET_BUDDY_INFO(client_type, "client_type");
+        SET_BUDDY_INFO(province, "province");
+        SET_BUDDY_INFO(gender, "gender");
+        SET_BUDDY_INFO(mobile, "mobile");
+#undef SET_BUDDY_INFO
+    }
+
+    
+done:
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+    return ;
+
+json_error:
+    *err = LWQQ_EC_ERROR;
+    /* Free temporary string */
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+}

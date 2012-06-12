@@ -27,11 +27,28 @@ typedef struct LwqqFriendCategory {
 typedef struct LwqqBuddy {
     char *uin;                  /**< Uin. Change every login */
     char *qqnumber;             /**< QQ number */
-    int vip_info;
+    char *face;
+    char *occupation;
+    char *phone;
+    char *allow;
+    char *college;
+    char *reg_time;
+    char *constel;
+    char *blood;
+    char *homepage;
+    char *stat;
+    char *country;
+    char *city;
+    char *personal;
     char *nick;
+    char *shengxiao;
+    char *email;
+    char *province;
+    char *gender;
+    char *mobile;
+    char *vip_info;
     char *markname;
 
-    char *face;
     char *flag;
 
     int cate_index;             /**< Index of the category */
@@ -41,7 +58,7 @@ typedef struct LwqqBuddy {
      * 21: Mobile client
      * 41: Web QQ Client
      */
-    int client_type;
+    char *client_type;
     LIST_ENTRY(LwqqBuddy) entries;
 } LwqqBuddy;
 

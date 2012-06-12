@@ -79,6 +79,9 @@ static void test_login()
                 lwqq_log(LOG_DEBUG, "Group name: %s\n", group->name);
         }
     }
+
+    lwqq_info_get_friend_detail_info(lc, lc->myself, &err);
+    
     /* Logout test */
     sleep(1);
     lwqq_logout(lc, &err);

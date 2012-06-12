@@ -30,4 +30,16 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err);
  */
 void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err);
 
+/** 
+ * Get detail information of QQ friend(NB: include myself)
+ * QQ server need us to pass param like:
+ * tuin=244569070&verifysession=&code=&vfwebqq=e64da25c140c66
+ * 
+ * @param lc 
+ * @param buddy 
+ * @param err 
+ */
+void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
+                                      LwqqErrorCode *err);
+
 #endif  /* LWQQ_INFO_H */
