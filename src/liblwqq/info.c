@@ -201,8 +201,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     char *cookies;
 
     if (!err) {
-        *err = LWQQ_EC_ERROR;
-        goto done ;
+        return ;
     }
 
     snprintf(msg, sizeof(msg), "{\"h\":\"hello\",\"vfwebqq\":\"%s\"}",
@@ -359,8 +358,7 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
     char *cookies;
 
     if (!err) {
-        *err = LWQQ_EC_ERROR;
-        goto done ;
+        return ;
     }
 
     snprintf(msg, sizeof(msg), "{\"h\":\"hello\",\"vfwebqq\":\"%s\"}",

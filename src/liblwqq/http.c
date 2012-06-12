@@ -341,7 +341,8 @@ LwqqHttpRequest *lwqq_http_create_default_request(const char *url,
     req = lwqq_http_request_new(url);
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request object for url: %s failed\n", url);
-        *err = LWQQ_EC_ERROR;
+        if (err)
+            *err = LWQQ_EC_ERROR;
         return NULL;
     }
 
