@@ -48,9 +48,9 @@ typedef struct LwqqBuddy {
 /* QQ group */
 typedef struct LwqqGroup {
     char *flag;                  
-  	char *name;                  /**< QQ Group name */
+    char *name;                  /**< QQ Group name */
     char *gid;
-  	char *code;
+    char *code;
     
     LIST_ENTRY(LwqqGroup) entries;
 } LwqqGroup;

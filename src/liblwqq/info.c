@@ -312,7 +312,7 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
     LwqqGroup *group;
     json_t *cur;
     
-    /* Make json point "info" reference */
+    /* Make json point "gnamelist" reference */
     while (json) {
         if (json->text && !strcmp(json->text, "gnamelist")) {
             break;
@@ -349,7 +349,8 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
 
   	lwqq_log(LOG_DEBUG, "in function.");
 
-    char msg[256] = {0};
+    char msg[256];
+    char url[512];
     char *buf;
     LwqqHttpRequest *req = NULL;  
     int ret;
@@ -369,7 +370,6 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
     s_free(buf);
 
     /* Create a POST request */
-    char url[512];
     snprintf(url, sizeof(url), "%s/api/get_group_name_list_mask2", "http://s.web2.qq.com");
     req = lwqq_http_create_default_request(url, err);
     if (!req) {
@@ -393,13 +393,11 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
         goto done;
     }
 
-
     /**
      * Here, we got a json object like this:
      * {"retcode":0,"result":{"gmasklist":[],"gnamelist":[{"flag":17825793,"name":"EGEC/C++","gid":1253810024,"code":1604013092}],"gmarklist":[]}}
      * 
      */
-    
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
         lwqq_log(LOG_ERROR, "Parse json object of groups error: %s\n", req->response);
@@ -429,7 +427,6 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
     /** Third, it seems everything is ok, we start parsing information
      * now
      */
-
     if (json_tmp && json_tmp->child && json_tmp->child->child ) {
         json_tmp = json_tmp->child->child;
 

@@ -104,6 +104,10 @@ static void lwqq_categories_free(LwqqFriendCategory *cate)
  */
 void lwqq_client_free(LwqqClient *client)
 {
+    LwqqBuddy *b_entry, *b_next;
+    LwqqFriendCategory *c_entry, *c_next;
+    LwqqGroup *g_entry, *g_next;
+
     if (!client)
         return ;
 
@@ -124,14 +128,12 @@ void lwqq_client_free(LwqqClient *client)
     lwqq_buddy_free(client->myself);
         
     /* Free friends list */
-    LwqqBuddy *b_entry, *b_next;
     LIST_FOREACH_SAFE(b_entry, &client->friends, entries, b_next) {
         LIST_REMOVE(b_entry, entries);
         lwqq_buddy_free(b_entry);
     }
 
     /* Free categories list */
-    LwqqFriendCategory *c_entry, *c_next;
     LIST_FOREACH_SAFE(c_entry, &client->categories, entries, c_next) {
         LIST_REMOVE(c_entry, entries);
         lwqq_categories_free(c_entry);
@@ -139,7 +141,6 @@ void lwqq_client_free(LwqqClient *client)
 
     
     /* Free groups list */
-    LwqqGroup *g_entry, *g_next;
     LIST_FOREACH_SAFE(g_entry, &client->groups, entries, g_next) {
         LIST_REMOVE(g_entry, entries);
         lwqq_group_free(g_entry);
