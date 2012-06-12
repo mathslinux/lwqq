@@ -17,6 +17,62 @@
 #include "smemory.h"
 #include "json.h"
 
+static json_t *get_result_json_object(json_t *json);
+static void create_post_data(LwqqClient *lc, char *buf, int buflen);
+
+/** 
+ * Get the result object in a json object.
+ * 
+ * @param str
+ * 
+ * @return result object pointer on success, else NULL on failure.
+ */
+static json_t *get_result_json_object(json_t *json)
+{
+    json_t *json_tmp;
+    char *value;
+
+    /**
+     * Frist, we parse retcode that indicate whether we get
+     * correct response from server
+     */
+    value = json_parse_simple_value(json, "retcode");
+    if (!value || strcmp(value, "0")) {
+        goto failed ;
+    }
+
+    /**
+     * Second, Check whether there is a "result" key in json object
+     */
+    json_tmp = json_find_first_label_all(json, "result");
+    if (!json_tmp) {
+        goto failed;
+    }
+    
+    return json_tmp;
+
+failed:
+    return NULL;
+}
+
+/** 
+ * Just a utility function
+ * 
+ * @param lc 
+ * @param buf 
+ * @param buflen 
+ */
+static void create_post_data(LwqqClient *lc, char *buf, int buflen)
+{
+    char *s;
+    char m[256];
+    snprintf(m, sizeof(m), "{\"h\":\"hello\",\"vfwebqq\":\"%s\"}",
+             lc->vfwebqq);
+    s = url_encode(m);
+    snprintf(buf, buflen, "r=%s", s);
+    s_free(s);
+}
+
 /** 
  * Parse friend category information
  * 
@@ -193,22 +249,17 @@ static void parse_friends_child(LwqqClient *lc, json_t *json)
 void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
 {
     char msg[256] ={0};
-    char *buf;
     LwqqHttpRequest *req = NULL;  
     int ret;
     json_t *json = NULL, *json_tmp;
-    char *value = NULL;
     char *cookies;
 
     if (!err) {
         return ;
     }
-
-    snprintf(msg, sizeof(msg), "{\"h\":\"hello\",\"vfwebqq\":\"%s\"}",
-             lc->vfwebqq);
-    buf = url_encode(msg);
-    snprintf(msg, sizeof(msg), "r=%s", buf);
-    s_free(buf);
+    
+    /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
+    create_post_data(lc, msg, sizeof(msg));
 
     /* Create a POST request */
     char url[512];
@@ -226,11 +277,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
         s_free(cookies);
     }
     ret = req->do_request(req, 1, msg);
-    if (ret) {
-        *err = LWQQ_EC_NETWORK_ERROR;
-        goto done;
-    }
-    if (req->http_code != 200) {
+    if (ret || req->http_code != 200) {
         *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
@@ -246,30 +293,16 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
         *err = LWQQ_EC_ERROR;
         goto done;
     }
-    
-    /**
-     * Frist, we parse retcode that indicate whether we get
-     * correct response from server
-     */
-    value = json_parse_simple_value(json, "retcode");
-    if (!value || strcmp(value, "0")) {
-        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
-        goto json_error;
-    }
 
-    /**
-     * Second, Check whether there is a "result" key in json object
-     */
-    json_tmp = json_find_first_label_all(json, "result");
+    json_tmp = get_result_json_object(json);
     if (!json_tmp) {
         lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
         goto json_error;
     }
-
-    /** Third, it seems everything is ok, we start parsing information
+    /** It seems everything is ok, we start parsing information
      * now
      */
-    if (json_tmp && json_tmp->child && json_tmp->child->child ) {
+    if (json_tmp->child && json_tmp->child->child ) {
         json_tmp = json_tmp->child->child;
 
         /* Parse friend category information */
@@ -350,22 +383,17 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
 
     char msg[256];
     char url[512];
-    char *buf;
     LwqqHttpRequest *req = NULL;  
     int ret;
     json_t *json = NULL, *json_tmp;
-    char *value = NULL;
     char *cookies;
 
     if (!err) {
         return ;
     }
-
-    snprintf(msg, sizeof(msg), "{\"h\":\"hello\",\"vfwebqq\":\"%s\"}",
-             lc->vfwebqq);
-    buf = url_encode(msg);
-    snprintf(msg, sizeof(msg), "r=%s", buf);
-    s_free(buf);
+    
+    /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
+    create_post_data(lc, msg, sizeof(msg));
 
     /* Create a POST request */
     snprintf(url, sizeof(url), "%s/api/get_group_name_list_mask2", "http://s.web2.qq.com");
@@ -382,11 +410,7 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
         s_free(cookies);
     }
     ret = req->do_request(req, 1, msg);
-    if (ret) {
-        *err = LWQQ_EC_NETWORK_ERROR;
-        goto done;
-    }
-    if (req->http_code != 200) {
+    if (ret || req->http_code != 200) {
         *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
@@ -402,37 +426,23 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
         *err = LWQQ_EC_ERROR;
         goto done;
     }
-    
-    /**
-     * Frist, we parse retcode that indicate whether we get
-     * correct response from server
-     */
-    value = json_parse_simple_value(json, "retcode");
-    if (!value || strcmp(value, "0")) {
-        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
-        goto json_error;
-    }
 
-    /**
-     * Second, Check whether there is a "result" key in json object
-     */
-    json_tmp = json_find_first_label_all(json, "result");
+    json_tmp = get_result_json_object(json);
     if (!json_tmp) {
         lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
         goto json_error;
     }
-
-    /** Third, it seems everything is ok, we start parsing information
+    
+    /** It seems everything is ok, we start parsing information
      * now
      */
-    if (json_tmp && json_tmp->child && json_tmp->child->child ) {
+    if (json_tmp->child && json_tmp->child->child ) {
         json_tmp = json_tmp->child->child;
 
         /* Parse friend category information */
         parse_groups_gnamelist_child(lc, json_tmp);
                
     }
-
         
 done:
     if (json)
@@ -462,9 +472,7 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
 {
     lwqq_log(LOG_DEBUG, "in function.");
 
-    char msg[256];
     char url[512];
-    char *buf;
     LwqqHttpRequest *req = NULL;  
     int ret;
     json_t *json = NULL, *json_tmp;
@@ -474,10 +482,6 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
     if (!lc || ! buddy || !err) {
         return ;
     }
-
-    buf = url_encode(msg);
-    snprintf(msg, sizeof(msg), "r=%s", buf);
-    s_free(buf);
 
     /* Create a GET request */
     snprintf(url, sizeof(url),
@@ -495,15 +499,9 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
         req->set_header(req, "Cookie", cookies);
         s_free(cookies);
     }
-    ret = req->do_request(req, 0, msg);
-    if (ret) {
-        if (err)
-            *err = LWQQ_EC_NETWORK_ERROR;
-        goto done;
-    }
-    if (req->http_code != 200) {
-        if (err)
-            *err = LWQQ_EC_HTTP_ERROR;
+    ret = req->do_request(req, 0, NULL);
+    if (ret || req->http_code != 200) {
+        *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
@@ -548,7 +546,7 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
     /** Third, it seems everything is ok, we start parsing information
      * now
      */
-    if (json_tmp && json_tmp->child) {
+    if (json_tmp->child) {
         json_tmp = json_tmp->child;
 #define  SET_BUDDY_INFO(key, name) {                            \
             if (buddy->key) {                                   \
