@@ -267,7 +267,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
         goto json_error;
     }
 
-    /** Third, it seems everyone is right now, we start parsing information
+    /** Third, it seems everything is ok, we start parsing information
      * now
      */
     if (json_tmp && json_tmp->child && json_tmp->child->child ) {
@@ -349,7 +349,7 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
 
   	lwqq_log(LOG_DEBUG, "in function.");
 
-    char msg[256] ={0};
+    char msg[256] = {0};
     char *buf;
     LwqqHttpRequest *req = NULL;  
     int ret;
@@ -361,8 +361,6 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
         *err = LWQQ_EC_ERROR;
         goto done ;
     }
-    
-    
 
     snprintf(msg, sizeof(msg), "{\"h\":\"hello\",\"vfwebqq\":\"%s\"}",
              lc->vfwebqq);
@@ -428,7 +426,7 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
         goto json_error;
     }
 
-    /** Third, it seems everyone is right now, we start parsing information
+    /** Third, it seems everything is ok, we start parsing information
      * now
      */
 
