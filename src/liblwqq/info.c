@@ -548,11 +548,11 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
      */
     if (json_tmp->child) {
         json_tmp = json_tmp->child;
-#define  SET_BUDDY_INFO(key, name) {                            \
-            if (buddy->key) {                                   \
-                s_free(buddy->key);                              \
-            }                                                   \
-            buddy->key = json_parse_simple_value(json, name);   \
+#define  SET_BUDDY_INFO(key, name) {                                    \
+            if (buddy->key) {                                           \
+                s_free(buddy->key);                                     \
+            }                                                           \
+            buddy->key = s_strdup(json_parse_simple_value(json, name)); \
         }
         SET_BUDDY_INFO(uin, "uin");
         SET_BUDDY_INFO(face, "face");
