@@ -15,6 +15,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <sqlite3.h>
 #include <unistd.h>
 #include "smemory.h"
@@ -55,12 +56,30 @@ static const char *create_global_db_sql =
 static const char *create_user_db_sql =
     "create table if not exists buddies("
     "    qqnumber primary key,"
-    "    category default '',"
-    "    vip_info default '',"
-    "    nick default '',"
-    "    markname default '',"
     "    face default '',"
-    "    flag default '');"
+    "    occupation default '',"
+    "    phone default '',"
+    "    allow default '',"
+    "    college default '',"
+    "    reg_time default '',"
+    "    constel default '',"
+    "    blood default '',"
+    "    homepage default '',"
+    "    stat default '',"
+    "    country default '',"
+    "    city default '',"
+    "    personal default '',"
+    "    nick default '',"
+    "    shengxiao default '',"
+    "    email default '',"
+    "    province default '',"
+    "    gender default '',"
+    "    mobile default '',"
+    "    vip_info default '',"
+    "    markname default '',"
+    "    flag default '',"
+    "    cate_index default '');"
+    
     "create table if not exists categories("
     "    name primary key,"
     "    cg_index default '',"
@@ -413,6 +432,65 @@ void lwdb_userdb_free(LwdbUserDB *db)
 static LwqqBuddy *lwdb_userdb_query_buddy_info(
     struct LwdbUserDB *db, const char *qqnumber)
 {
+    int ret;
+    char sql[256];
+    LwqqBuddy *buddy = NULL;
+    SwsStmt *stmt = NULL;
+
+    if (!qqnumber) {
+        return NULL;
+    }
+
+    snprintf(sql, sizeof(sql),
+             "SELECT face,occupation,phone,allow,college,reg_time,constel,"
+             "blood,homepage,stat,country,city,personal,nick,shengxiao,"
+             "email,province,gender,mobile,vip_info,markname,flag,"
+             "cate_index FROM buddies WHERE qqnumber='%s';", qqnumber);
+    ret = sws_query_start(db->db, sql, &stmt, NULL);
+    if (ret) {
+        goto failed;
+    }
+
+    if (!sws_query_next(stmt, NULL)) {
+        buddy = s_malloc0(sizeof(*buddy));
+        char buf[256] = {0};
+#define GET_BUDDY_MEMBER_VALUE(i, member) {                     \
+            sws_query_column(stmt, i, buf, sizeof(buf), NULL);      \
+            buddy->member = s_strdup(buf);                          \
+        }
+        buddy->qqnumber = s_strdup(qqnumber);
+        GET_BUDDY_MEMBER_VALUE(0, face);
+        GET_BUDDY_MEMBER_VALUE(1, occupation);
+        GET_BUDDY_MEMBER_VALUE(2, phone);
+        GET_BUDDY_MEMBER_VALUE(3, allow);
+        GET_BUDDY_MEMBER_VALUE(4, college);
+        GET_BUDDY_MEMBER_VALUE(5, reg_time);
+        GET_BUDDY_MEMBER_VALUE(6, constel);
+        GET_BUDDY_MEMBER_VALUE(7, blood);
+        GET_BUDDY_MEMBER_VALUE(8, homepage);
+        GET_BUDDY_MEMBER_VALUE(9, stat);
+        GET_BUDDY_MEMBER_VALUE(10, country);
+        GET_BUDDY_MEMBER_VALUE(11, city);
+        GET_BUDDY_MEMBER_VALUE(12, personal);
+        GET_BUDDY_MEMBER_VALUE(13, nick);
+        GET_BUDDY_MEMBER_VALUE(14, shengxiao);
+        GET_BUDDY_MEMBER_VALUE(15, email);
+        GET_BUDDY_MEMBER_VALUE(16, province); 
+        GET_BUDDY_MEMBER_VALUE(17, gender);
+        GET_BUDDY_MEMBER_VALUE(18, mobile);
+        GET_BUDDY_MEMBER_VALUE(19, vip_info);
+        GET_BUDDY_MEMBER_VALUE(20, markname);
+        GET_BUDDY_MEMBER_VALUE(21, flag);
+        GET_BUDDY_MEMBER_VALUE(22, cate_index);
+#undef GET_BUDDY_MEMBER_VALUE
+    }
+    sws_query_end(stmt, NULL);
+
+    return buddy;
+
+failed:
+    lwqq_buddy_free(buddy);
+    sws_query_end(stmt, NULL);
     return NULL;
 }
 
@@ -427,5 +505,53 @@ static LwqqBuddy *lwdb_userdb_query_buddy_info(
 static LwqqErrorCode lwdb_userdb_update_buddy_info(
     struct LwdbUserDB *db, LwqqBuddy *buddy)
 {
+    char sql[4096] = {0};
+    int sqllen = 0;
+    
+    if (!buddy || !buddy->qqnumber) {
+        return LWQQ_EC_NULL_POINTER;
+    }
+
+    snprintf(sql, sizeof(sql), "UPDATE buddies SET qqnumber='%s'", buddy->qqnumber);
+    sqllen = strlen(sql);
+
+#define UBI_CONSTRUCT_SQL(member) {                                     \
+        if (buddy->member) {                                            \
+            snprintf(sql + sqllen, sizeof(sql) - sqllen, ",%s='%s'", #member, buddy->member); \
+            sqllen = strlen(sql);                                       \
+            if (sqllen > (sizeof(sql) - 128)) {                         \
+                return LWQQ_EC_ERROR;                                   \
+            }                                                           \
+        }                                                               \
+    }
+    UBI_CONSTRUCT_SQL(face);
+    UBI_CONSTRUCT_SQL(phone);
+    UBI_CONSTRUCT_SQL(allow);
+    UBI_CONSTRUCT_SQL(college);
+    UBI_CONSTRUCT_SQL(reg_time);
+    UBI_CONSTRUCT_SQL(constel);
+    UBI_CONSTRUCT_SQL(blood);
+    UBI_CONSTRUCT_SQL(homepage);
+    UBI_CONSTRUCT_SQL(stat);
+    UBI_CONSTRUCT_SQL(country);
+    UBI_CONSTRUCT_SQL(city);
+    UBI_CONSTRUCT_SQL(personal);
+    UBI_CONSTRUCT_SQL(nick);
+    UBI_CONSTRUCT_SQL(shengxiao);
+    UBI_CONSTRUCT_SQL(email);
+    UBI_CONSTRUCT_SQL(province);
+    UBI_CONSTRUCT_SQL(gender);
+    UBI_CONSTRUCT_SQL(mobile);
+    UBI_CONSTRUCT_SQL(vip_info);
+    UBI_CONSTRUCT_SQL(markname);
+    UBI_CONSTRUCT_SQL(flag);
+    UBI_CONSTRUCT_SQL(cate_index);
+    UBI_CONSTRUCT_SQL(client_type);
+#undef UBI_CONSTRUCT_SQL
+    snprintf(sql + sqllen, sizeof(sql) - sqllen, " WHERE qqnumber='%s';", buddy->qqnumber);
+    if (!sws_exec_sql(db->db, sql, NULL)) {
+        return LWQQ_EC_DB_EXEC_FAIELD;
+    }
+
     return LWQQ_EC_OK;
 }

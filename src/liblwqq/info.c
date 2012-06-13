@@ -235,7 +235,7 @@ static void parse_friends_child(LwqqClient *lc, json_t *json)
         if (!buddy)
             continue;
 
-        buddy->cate_index = atoi(cate_index);
+        buddy->cate_index = s_strdup(cate_index);
     }
 }
 

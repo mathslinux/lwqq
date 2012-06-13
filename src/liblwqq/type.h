@@ -51,7 +51,7 @@ typedef struct LwqqBuddy {
 
     char *flag;
 
-    int cate_index;             /**< Index of the category */
+    char *cate_index;           /**< Index of the category */
 
     /*
      * 1 : Desktop client
