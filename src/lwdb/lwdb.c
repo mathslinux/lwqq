@@ -23,9 +23,9 @@
 #include "lwdb.h"
 
 static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
-                                                const char *number);
+                                                const char *qqnumber);
 static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
-                                                        const char *number);
+                                                        const char *qqnumber);
 static LwqqErrorCode lwdb_globaldb_update_user_info(
     struct LwdbGlobalDB *db, const char *key, const char *value);
 
@@ -37,11 +37,11 @@ static char *global_database_name;
 static const char *create_global_db_sql =
     "create table if not exists configs("
     "    id integer primary key asc autoincrement,"
-    "    family define '',"
+    "    family default '',"
     "    key default '',"
     "    value default '');"
     "create table if not exists users("
-    "    number primary key,"
+    "    qqnumber primary key,"
     "    db_name default '',"
     "    password default '',"
     "    status default 'offline',"
@@ -49,7 +49,7 @@ static const char *create_global_db_sql =
 
 static const char *create_user_db_sql =
     "create table if not exists buddies("
-    "    number primary key,"
+    "    qqnumber primary key,"
     "    category default '',"
     "    vip_info default '',"
     "    nick default '',"
@@ -239,7 +239,7 @@ void lwdb_globaldb_free(LwdbGlobalDB *db)
 void lwdb_globaldb_free_user_entry(LwdbGlobalUserEntry *e)
 {
     if (e) {
-        s_free(e->number);
+        s_free(e->qqnumber);
         s_free(e->db_name);
         s_free(e->password);
         s_free(e->status);
@@ -252,22 +252,22 @@ void lwdb_globaldb_free_user_entry(LwdbGlobalUserEntry *e)
  * 
  * 
  * @param db 
- * @param number 
+ * @param qqnumber 
  * 
  * @return LWQQ_EC_OK on success, else return LWQQ_EC_DB_EXEC_FAIELD on failure
  */
 static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
-                                                const char *number)
+                                                const char *qqnumber)
 {
     char *errmsg = NULL;
     char sql[256];
 
-    if (!number){
+    if (!qqnumber){
         return LWQQ_EC_NULL_POINTER;
     }
     
-    snprintf(sql, sizeof(sql), "INSERT INTO users (number,db_name) "
-             "VALUES('%s','%s/%s.db');", number, database_path, number);
+    snprintf(sql, sizeof(sql), "INSERT INTO users (qqnumber,db_name) "
+             "VALUES('%s','%s/%s.db');", qqnumber, database_path, qqnumber);
     sws_exec_sql(db->db, sql, &errmsg);
     if (errmsg) {
         lwqq_log(LOG_ERROR, "Add new user error: %s\n", errmsg);
@@ -279,19 +279,19 @@ static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
 }
 
 static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
-                                                const char *number)
+                                                const char *qqnumber)
 {
     int ret;
     char sql[256];
     LwdbGlobalUserEntry *e = NULL;
     SwsStmt *stmt = NULL;
 
-    if (!number) {
+    if (!qqnumber) {
         return NULL;
     }
 
     snprintf(sql, sizeof(sql), "SELECT db_name,password,status,rempwd "
-             "FROM users WHERE number='%s';", number);
+             "FROM users WHERE qqnumber='%s';", qqnumber);
     ret = sws_query_start(db->db, sql, &stmt, NULL);
     if (ret) {
         goto failed;
@@ -304,7 +304,7 @@ static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
             sws_query_column(stmt, i, buf, sizeof(buf), NULL);  \
             e->member = s_strdup(buf);                          \
         }
-        e->number = s_strdup(number);
+        e->qqnumber = s_strdup(qqnumber);
         GET_MEMBER_VALUE(0, db_name);
         GET_MEMBER_VALUE(1, password);
         GET_MEMBER_VALUE(2, status);
@@ -338,7 +338,7 @@ static LwqqErrorCode lwdb_globaldb_update_user_info(
     return LWQQ_EC_OK;
 }
 
-LwdbUserDB *lwdb_userdb_new(const char *number)
+LwdbUserDB *lwdb_userdb_new(const char *qqnumber)
 {
     LwdbUserDB *udb = NULL;
     LwdbGlobalDB *gdb = NULL;
@@ -346,7 +346,7 @@ LwdbUserDB *lwdb_userdb_new(const char *number)
     int ret;
     char *db_name;
     
-    if (!number) {
+    if (!qqnumber) {
         return NULL;
     }
 
@@ -355,7 +355,7 @@ LwdbUserDB *lwdb_userdb_new(const char *number)
     if (!gdb) {
         goto failed;
     }
-    e = gdb->get_user_info(gdb, number);
+    e = gdb->get_user_info(gdb, qqnumber);
     if (!e) {
         goto failed;
     }

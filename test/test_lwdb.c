@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     }
     
     lwqq_log(LOG_NOTICE, "%s,%s,%s,%s,%s\n",
-             e->number, e->db_name, e->password, e->status, e->rempwd);
+             e->qqnumber, e->db_name, e->password, e->status, e->rempwd);
 done:
     lwdb_globaldb_free_user_entry(e);
     lwdb_globaldb_free(gdb);

@@ -34,7 +34,7 @@ void lwdb_final();
 /************************************************************************/
 /* LwdbGlobalDB API */
 typedef struct LwdbGlobalUserEntry {
-    char *number;
+    char *qqnumber;
     char *db_name;
     char *password;
     char *status;
@@ -43,9 +43,9 @@ typedef struct LwdbGlobalUserEntry {
 
 typedef struct LwdbGlobalDB {
     SwsDB *db;                  /**< Pointer sqlite3 db */
-    LwqqErrorCode (*add_new_user)(struct LwdbGlobalDB *db, const char *number);
+    LwqqErrorCode (*add_new_user)(struct LwdbGlobalDB *db, const char *qqnumber);
     LwdbGlobalUserEntry * (*get_user_info)(struct LwdbGlobalDB *db,
-                                          const char *number);
+                                          const char *qqnumber);
     LwqqErrorCode (*update_user_info)(struct LwdbGlobalDB *db,
                                       const char *key, const char *value);
 } LwdbGlobalDB;
@@ -83,12 +83,12 @@ typedef struct LwdbUserDB {
 /** 
  * Create a user DB object
  * 
- * @param number The qq number
+ * @param qqnumber The qq number
  * 
  * @return A new user DB object, or NULL if somethins wrong, and store
  * error code in err
  */
-LwdbUserDB *lwdb_userdb_new(const char *number);
+LwdbUserDB *lwdb_userdb_new(const char *qqnumber);
 
 /** 
  * Free a LwdbUserDB object
