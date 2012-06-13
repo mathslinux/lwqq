@@ -22,16 +22,17 @@
 #include "swsqlite.h"
 #include "lwdb.h"
 
-static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
-                                                const char *qqnumber);
-static LwdbGlobalUserEntry *lwdb_globaldb_query_user_info(struct LwdbGlobalDB *db,
-                                                        const char *qqnumber);
+static LwqqErrorCode lwdb_globaldb_add_new_user(
+    struct LwdbGlobalDB *db, const char *qqnumber);
+static LwdbGlobalUserEntry *lwdb_globaldb_query_user_info(
+    struct LwdbGlobalDB *db, const char *qqnumber);
 static LwqqErrorCode lwdb_globaldb_update_user_info(
     struct LwdbGlobalDB *db, const char *key, const char *value);
 
-static LwqqBuddy *lwdb_userdb_query_buddy_info(struct LwdbUserDB *db, const char *qqnumber);
-static LwqqErrorCode lwdb_userdb_update_buddy_info(struct LwdbUserDB *db,
-                                                   LwqqBuddy *buddy);
+static LwqqBuddy *lwdb_userdb_query_buddy_info(
+    struct LwdbUserDB *db, const char *qqnumber);
+static LwqqErrorCode lwdb_userdb_update_buddy_info(
+    struct LwdbUserDB *db, LwqqBuddy *buddy);
 
 static char *database_path;
 static char *global_database_name;
@@ -260,8 +261,8 @@ void lwdb_globaldb_free_user_entry(LwdbGlobalUserEntry *e)
  * 
  * @return LWQQ_EC_OK on success, else return LWQQ_EC_DB_EXEC_FAIELD on failure
  */
-static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
-                                                const char *qqnumber)
+static LwqqErrorCode lwdb_globaldb_add_new_user(
+    struct LwdbGlobalDB *db, const char *qqnumber)
 {
     char *errmsg = NULL;
     char sql[256];
@@ -282,8 +283,8 @@ static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
     return LWQQ_EC_OK;
 }
 
-static LwdbGlobalUserEntry *lwdb_globaldb_query_user_info(struct LwdbGlobalDB *db,
-                                                const char *qqnumber)
+static LwdbGlobalUserEntry *lwdb_globaldb_query_user_info(
+    struct LwdbGlobalDB *db, const char *qqnumber)
 {
     int ret;
     char sql[256];
@@ -409,7 +410,8 @@ void lwdb_userdb_free(LwdbUserDB *db)
  * 
  * @return A LwqqBuddy object on success, or NULL on failure
  */
-static LwqqBuddy *lwdb_userdb_query_buddy_info(struct LwdbUserDB *db, const char *qqnumber)
+static LwqqBuddy *lwdb_userdb_query_buddy_info(
+    struct LwdbUserDB *db, const char *qqnumber)
 {
     return NULL;
 }
@@ -422,8 +424,8 @@ static LwqqBuddy *lwdb_userdb_query_buddy_info(struct LwdbUserDB *db, const char
  * 
  * @return LWQQ_EC_OK on success, or a LwqqErrorCode member
  */
-static LwqqErrorCode lwdb_userdb_update_buddy_info(struct LwdbUserDB *db,
-                                                   LwqqBuddy *buddy)
+static LwqqErrorCode lwdb_userdb_update_buddy_info(
+    struct LwdbUserDB *db, LwqqBuddy *buddy)
 {
     return LWQQ_EC_OK;
 }
