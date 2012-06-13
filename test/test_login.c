@@ -65,8 +65,23 @@ static void test_login()
     if (err == LWQQ_EC_OK) {
         LwqqBuddy *buddy;
         LIST_FOREACH(buddy, &lc->friends, entries) {
-            if (buddy->nick)
-                lwqq_log(LOG_DEBUG, "Nick: %s\n", buddy->nick);
+            char buf[128] = {0};
+            if (buddy->qqnumber) {
+                strcat(buf, "qqnumber:");
+                strcat(buf, buddy->qqnumber);
+                strcat(buf, ", ");
+            }
+            if (buddy->nick) {
+                strcat(buf, "nick:");
+                strcat(buf, buddy->nick);
+                strcat(buf, ", ");
+            }
+            if (buddy->uin) {
+                strcat(buf, "uin:");
+                strcat(buf, buddy->uin);
+                strcat(buf, ", ");
+            }
+            lwqq_log(LOG_DEBUG, "Buddy info: %s\n", buf);
         }
     }
 
