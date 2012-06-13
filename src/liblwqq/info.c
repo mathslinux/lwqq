@@ -483,10 +483,16 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
         return ;
     }
 
+    /* Make sure we know uin. */
+    if (!buddy->uin) {
+        *err = LWQQ_EC_NULL_POINTER;
+        return ;
+    }
+    
     /* Create a GET request */
     snprintf(url, sizeof(url),
              "%s/api/get_friend_info2?tuin=%s&verifysession=&code=&vfwebqq=%s",
-             "http://s.web2.qq.com", lc->username, lc->vfwebqq);
+             "http://s.web2.qq.com", buddy->uin, lc->vfwebqq);
     req = lwqq_http_create_default_request(url, err);
     if (!req) {
         goto done;

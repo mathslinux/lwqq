@@ -35,6 +35,8 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     if (!lc->myself) {
         goto failed;
     }
+    lc->myself->qqnumber = s_strdup(username);
+    lc->myself->uin = s_strdup(username);
 
     lc->cookies = s_malloc0(sizeof(*(lc->cookies)));
     return lc;
