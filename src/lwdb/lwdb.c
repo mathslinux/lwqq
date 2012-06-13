@@ -24,10 +24,14 @@
 
 static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
                                                 const char *qqnumber);
-static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
+static LwdbGlobalUserEntry *lwdb_globaldb_query_user_info(struct LwdbGlobalDB *db,
                                                         const char *qqnumber);
 static LwqqErrorCode lwdb_globaldb_update_user_info(
     struct LwdbGlobalDB *db, const char *key, const char *value);
+
+static LwqqBuddy *lwdb_userdb_query_buddy_info(struct LwdbUserDB *db, const char *qqnumber);
+static LwqqErrorCode lwdb_userdb_update_buddy_info(struct LwdbUserDB *db,
+                                                   LwqqBuddy *buddy);
 
 static char *database_path;
 static char *global_database_name;
@@ -207,7 +211,7 @@ LwdbGlobalDB *lwdb_globaldb_new()
         goto failed;
     }
     db->add_new_user = lwdb_globaldb_add_new_user;
-    db->get_user_info = lwdb_globaldb_get_user_info;
+    db->query_user_info = lwdb_globaldb_query_user_info;
     db->update_user_info = lwdb_globaldb_update_user_info;
     
     
@@ -278,7 +282,7 @@ static LwqqErrorCode lwdb_globaldb_add_new_user(struct LwdbGlobalDB *db,
     return LWQQ_EC_OK;
 }
 
-static LwdbGlobalUserEntry *lwdb_globaldb_get_user_info(struct LwdbGlobalDB *db,
+static LwdbGlobalUserEntry *lwdb_globaldb_query_user_info(struct LwdbGlobalDB *db,
                                                 const char *qqnumber)
 {
     int ret;
@@ -355,7 +359,7 @@ LwdbUserDB *lwdb_userdb_new(const char *qqnumber)
     if (!gdb) {
         goto failed;
     }
-    e = gdb->get_user_info(gdb, qqnumber);
+    e = gdb->query_user_info(gdb, qqnumber);
     if (!e) {
         goto failed;
     }
@@ -375,6 +379,8 @@ LwdbUserDB *lwdb_userdb_new(const char *qqnumber)
     if (!udb->db) {
         goto failed;
     }
+    udb->query_buddy_info = lwdb_userdb_query_buddy_info;
+    udb->update_buddy_info = lwdb_userdb_update_buddy_info;
 
     lwdb_globaldb_free(gdb);
     lwdb_globaldb_free_user_entry(e);
@@ -393,4 +399,31 @@ void lwdb_userdb_free(LwdbUserDB *db)
         sws_close_db(db->db, NULL);
         s_free(db);
     }
+}
+
+/** 
+ * Query buddy's information
+ * 
+ * @param db 
+ * @param qqnumber The key we used to query info from DB
+ * 
+ * @return A LwqqBuddy object on success, or NULL on failure
+ */
+static LwqqBuddy *lwdb_userdb_query_buddy_info(struct LwdbUserDB *db, const char *qqnumber)
+{
+    return NULL;
+}
+
+/** 
+ * Update buddy's information
+ * 
+ * @param db 
+ * @param buddy 
+ * 
+ * @return LWQQ_EC_OK on success, or a LwqqErrorCode member
+ */
+static LwqqErrorCode lwdb_userdb_update_buddy_info(struct LwdbUserDB *db,
+                                                   LwqqBuddy *buddy)
+{
+    return LWQQ_EC_OK;
 }

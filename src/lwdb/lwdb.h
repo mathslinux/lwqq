@@ -44,7 +44,7 @@ typedef struct LwdbGlobalUserEntry {
 typedef struct LwdbGlobalDB {
     SwsDB *db;                  /**< Pointer sqlite3 db */
     LwqqErrorCode (*add_new_user)(struct LwdbGlobalDB *db, const char *qqnumber);
-    LwdbGlobalUserEntry * (*get_user_info)(struct LwdbGlobalDB *db,
+    LwdbGlobalUserEntry * (*query_user_info)(struct LwdbGlobalDB *db,
                                           const char *qqnumber);
     LwqqErrorCode (*update_user_info)(struct LwdbGlobalDB *db,
                                       const char *key, const char *value);
@@ -79,6 +79,8 @@ void lwdb_globaldb_free_user_entry(LwdbGlobalUserEntry *e);
 
 typedef struct LwdbUserDB {
     SwsDB *db;
+    LwqqBuddy * (*query_buddy_info)(struct LwdbUserDB *db, const char *qqnumber);
+    LwqqErrorCode (*update_buddy_info)(struct LwdbUserDB *db, LwqqBuddy *buddy);
 } LwdbUserDB;
 /** 
  * Create a user DB object

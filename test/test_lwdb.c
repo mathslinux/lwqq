@@ -26,10 +26,10 @@ int main(int argc, char *argv[])
         lwqq_log(LOG_ERROR, "error\n");
         goto done;
     }
-    e = gdb->get_user_info(gdb, "3456345");
+    e = gdb->query_user_info(gdb, "3456345");
     if (!e) {
         gdb->add_new_user(gdb, "3456345");
-        e = gdb->get_user_info(gdb, "3456345");
+        e = gdb->query_user_info(gdb, "3456345");
         if (!e) {
             goto done;
         }
