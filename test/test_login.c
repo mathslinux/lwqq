@@ -34,9 +34,9 @@ static char *get_vc()
     return s_strdup(buf);
 }
 
-static void test_login()
+static void test_login(const char *qqnumber, const char *password)
 {
-    LwqqClient *lc = lwqq_client_new("1421032531", "1234567890");
+    LwqqClient *lc = lwqq_client_new(qqnumber, password);
     if (!lc)
         return ;
 
@@ -112,7 +112,10 @@ done:
 
 int main(int argc, char *argv[])
 {
-    test_login();
+    if (argc != 3) {
+        return -1;
+    }
+    test_login(argv[1], argv[2]);
     return 0;
 }
 
