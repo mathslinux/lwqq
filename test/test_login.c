@@ -15,6 +15,7 @@
 #include "logger.h"
 #include "info.h"
 #include "smemory.h"
+#include "msg.h"
 
 static char *get_vc()
 {
@@ -43,6 +44,7 @@ static void test_login(const char *qqnumber, const char *password)
     LwqqErrorCode err;
     lwqq_login(lc, &err);
     if (err == LWQQ_EC_LOGIN_NEED_VC) {
+        unlink("/tmp/test.txt");
         while (1) {
             if (!access("/tmp/test.txt", F_OK)) {
                 sleep(1);
@@ -59,7 +61,8 @@ static void test_login(const char *qqnumber, const char *password)
         goto done;
     }
     lwqq_log(LOG_NOTICE, "Login successfully\n");
-    
+
+#if 0
     lwqq_info_get_friends_info(lc, &err);
 
     if (err == LWQQ_EC_OK) {
@@ -169,9 +172,27 @@ static void test_login(const char *qqnumber, const char *password)
     }
 
     lwqq_info_get_friend_detail_info(lc, lc->myself, &err);
+#endif 
+
+    lc->msg_list->poll_msg(lc->msg_list);
+
+    while (1) {
+        usleep(100);
+        LwqqRecvMsg *msg;
+        pthread_mutex_lock(&lc->msg_list->mutex);
+        if (!SIMPLEQ_EMPTY(&lc->msg_list->head)) {
+            msg = SIMPLEQ_FIRST(&lc->msg_list->head);
+            if (msg->msg->content) {
+                printf ("########################content: %s\n", msg->msg->content);
+            }
+            SIMPLEQ_REMOVE_HEAD(&lc->msg_list->head, entries);
+        }
+        pthread_mutex_unlock(&lc->msg_list->mutex);
+    }
+//    lwqq_msg_poll(lc);
     
     /* Logout test */
-    sleep(1);
+    sleep(2);
     lwqq_logout(lc, &err);
     if (err != LWQQ_EC_OK) {
         lwqq_log(LOG_DEBUG, "Logout failed\n");        

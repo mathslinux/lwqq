@@ -12,6 +12,7 @@
 #include "type.h"
 #include "smemory.h"
 #include "logger.h"
+#include "msg.h"
 
 /** 
  * Create a new lwqq client
@@ -39,6 +40,8 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     lc->myself->uin = s_strdup(username);
 
     lc->cookies = s_malloc0(sizeof(*(lc->cookies)));
+
+    lc->msg_list = lwqq_recvmsg_new(lc);
     return lc;
     
 failed:
@@ -147,7 +150,9 @@ void lwqq_client_free(LwqqClient *client)
         LIST_REMOVE(g_entry, entries);
         lwqq_group_free(g_entry);
     }
-        
+
+    /* Free msg_list */
+    lwqq_recvmsg_free(client->msg_list);
     s_free(client);
 }
 

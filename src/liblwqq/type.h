@@ -12,6 +12,7 @@
 #define LWQQ_TYPE_H
 
 #include "queue.h"
+#include "msg.h"
 
 /************************************************************************/
 /* Struct defination */
@@ -124,6 +125,7 @@ typedef struct LwqqClient {
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
     LIST_HEAD(, LwqqGroup) groups; /**< QQ groups */
+    LwqqRecvMsgList *msg_list;
 } LwqqClient;
 
 /* Lwqq Error Code */
