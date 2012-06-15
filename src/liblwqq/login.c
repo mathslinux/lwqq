@@ -789,15 +789,15 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     char *cookies;
     long int re;
 
-    if (!client || !err) {
-        *err = LWQQ_EC_ERROR;
+    if (!client) {
         lwqq_log(LOG_ERROR, "Invalid pointer\n");
         return ;
     }
 
     /* Get the milliseconds of now */
     if (gettimeofday(&tv, NULL)) {
-        *err = LWQQ_EC_ERROR;
+        if (err)
+            *err = LWQQ_EC_ERROR;
         return ;
     }
     re = tv.tv_usec / 1000;
@@ -825,34 +825,40 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     ret = req->do_request(req, 0, NULL);
     if (ret) {
         lwqq_log(LOG_ERROR, "Send logout request failed\n");
-        *err = LWQQ_EC_NETWORK_ERROR;
+        if (err)
+            *err = LWQQ_EC_NETWORK_ERROR;
         goto done;
     }
     if (req->http_code != 200) {
-        *err = LWQQ_EC_HTTP_ERROR;
+        if (err)
+            *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
-        *err = LWQQ_EC_ERROR;
+        if (err)
+            *err = LWQQ_EC_ERROR;
         goto done;
     }
 
     /* Check whether logout correctly */
     value = json_parse_simple_value(json, "retcode");
     if (!value || strcmp(value, "0")) {
-        *err = LWQQ_EC_ERROR;
+        if (err)
+            *err = LWQQ_EC_ERROR;
         goto done;
     }
     value = json_parse_simple_value(json, "result");
     if (!value || strcmp(value, "ok")) {
-        *err = LWQQ_EC_ERROR;
+        if (err)
+            *err = LWQQ_EC_ERROR;
         goto done;
     }
 
     /* Ok, seems like all thing is ok */
-    *err = LWQQ_EC_OK;
+    if (err)
+        *err = LWQQ_EC_OK;
     
 done:
     if (json)
