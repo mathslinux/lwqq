@@ -19,6 +19,8 @@
 
 static json_t *get_result_json_object(json_t *json);
 static void create_post_data(LwqqClient *lc, char *buf, int buflen);
+static char *get_friend_number(LwqqClient *lc, const char *uin);
+char *get_group_number(LwqqClient *lc, const char *code);
 
 /** 
  * Get the result object in a json object.
@@ -536,6 +538,20 @@ done:
     lwqq_http_request_free(req);
     return qqnumber;
 }
+
+/** 
+ * Get QQ group number
+ * 
+ * @param lc 
+ * @param code is group‘s code
+ *
+ * @return 
+ */
+char *get_group_number(LwqqClient *lc, const char *code)
+{
+    return get_friend_number(lc, code);
+}
+
 /** 
  * Get detail information of QQ friend(NB: include myself)
  * QQ server need us to pass param like:
