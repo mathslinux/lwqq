@@ -243,12 +243,26 @@ LwqqGroup *lwqq_group_new()
 }
 
 /** 
+ * 
+ * Create a new group member
+ * 
+ * @return A LwqqGroupMember instance
+ */
+LwqqGroup *lwqq_group_member_new()
+{
+    LwqqGroup *m = s_malloc0(sizeof(*m));
+    return m;
+}
+
+/** 
  * Free a LwqqGroup instance
  * 
  * @param group
  */
 void lwqq_group_free(LwqqGroup *group)
 {
+    LwqqGroupMember *m_entry, *m_next;
+
     if (!group)
         return ;
 
@@ -266,10 +280,38 @@ void lwqq_group_free(LwqqGroup *group)
     s_free(group->owner);
     s_free(group->flag);
     s_free(group->option);
-        
+
+    /* Free LwGroupMember list */
+    LIST_FOREACH_SAFE(m_entry, &group->members, entries, m_next) {
+        LIST_REMOVE(m_entry, entries);
+        lwqq_group_member_free(m_entry);
+    }	
+
     s_free(group);
 }
 
+/** 
+ * Free a LwqqGroupMember instance
+ * 
+ * @param member
+ */
+void lwqq_group_member_free(LwqqGroupMember *member)
+{
+    if (!member)
+        return ;
+
+    s_free(member->uin);
+    s_free(member->client_type);
+    s_free(member->stat);
+    s_free(member->nick);
+    s_free(member->country);
+    s_free(member->province);
+    s_free(member->city);
+    s_free(member->gender);
+    s_free(member->vip_level);
+       
+    s_free(member);
+}
 
 /** 
  * Find group object by group's gid member

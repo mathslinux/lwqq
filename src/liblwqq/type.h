@@ -62,6 +62,27 @@ typedef struct LwqqBuddy {
     LIST_ENTRY(LwqqBuddy) entries;
 } LwqqBuddy;
 
+/* QQ group member */
+typedef struct LwqqGroupMember {
+    
+    /* stats */
+    char *uin;
+    char *client_type;
+    char *stat;
+
+    /* minfo */
+    char *nick;
+    char *country;
+    char *province;
+    char *city;
+    char *gender;
+
+    /* vipinfo */
+    char *vip_level;
+
+    LIST_ENTRY(LwqqGroupMember) entries;
+} LwqqGroupMember;
+
 /* QQ group */
 typedef struct LwqqGroup {
     char *name;                  /**< QQ Group name */
@@ -82,7 +103,7 @@ typedef struct LwqqGroup {
     char *option;
 
     LIST_ENTRY(LwqqGroup) entries;
-
+    LIST_HEAD(, LwqqGroupMember) members; /**< QQ group members */
 } LwqqGroup;
 
 typedef struct LwqqVerifyCode {
