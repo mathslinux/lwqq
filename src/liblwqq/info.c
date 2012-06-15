@@ -384,6 +384,45 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
     }
 }
 
+/** 
+ * Parse group info like this
+ *
+ * "gmarklist":[{"uin":2698833507,"markname":".................."}]
+ * 
+ * @param lc 
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_gmarklist_child(LwqqClient *lc, json_t *json)
+{
+    LwqqGroup *group;
+    json_t *cur;
+    char *uin;
+    char *markname;
+    
+    /* Make json point "gmarklist" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "gmarklist")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        uin = json_parse_simple_value(cur, "uin");
+        markname = json_parse_simple_value(cur, "markname");
+
+        if (!uin || !markname)
+            continue;
+      	group = lwqq_group_find_group_by_gid(lc, uin);
+        if (!group)
+            continue;
+        group->markname = s_strdup(markname);
+    }
+}
 
 /** 
  * Get QQ groups' name information. Get only 'name', 'gid' , 'code' .
@@ -462,6 +501,7 @@ void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
 
         /* Parse friend category information */
         parse_groups_gnamelist_child(lc, json_tmp);
+        parse_groups_gmarklist_child(lc, json_tmp);
                
     }
         
