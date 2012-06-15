@@ -175,6 +175,23 @@ int main(int argc, char *argv[])
 
     lwqq_log(LOG_NOTICE, "Login successfully\n");
 
+    /* Poll to receive message */
+    lc->msg_list->poll_msg(lc->msg_list);
+
+    /* Need to wrap those code so look like more nice */
+    while (1) {
+        sleep(1);
+        LwqqRecvMsg *msg;
+        pthread_mutex_lock(&lc->msg_list->mutex);
+        if (!SIMPLEQ_EMPTY(&lc->msg_list->head)) {
+            msg = SIMPLEQ_FIRST(&lc->msg_list->head);
+            if (msg->msg->content) {
+                printf("Receive message: %s\n", msg->msg->content);
+            }
+            SIMPLEQ_REMOVE_HEAD(&lc->msg_list->head, entries);
+        }
+        pthread_mutex_unlock(&lc->msg_list->mutex);
+    }
     /* Logout */
     sleep(3);
     cli_logout(lc);
