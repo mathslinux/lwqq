@@ -64,12 +64,25 @@ typedef struct LwqqBuddy {
 
 /* QQ group */
 typedef struct LwqqGroup {
-    char *flag;                  
     char *name;                  /**< QQ Group name */
     char *gid;
-    char *code;
-    
+    char *code;    
+    char *account;               /** < QQ Group number */
+    char *markname;              /** < QQ Group mark name */
+
+    /* ginfo */
+    char *face;
+    char *memo;
+    char *class;
+    char *fingermemo;
+    char *createtime;
+    char *level;
+    char *owner;                 /** < owner's QQ number  */
+    char *flag;
+    char *option;
+
     LIST_ENTRY(LwqqGroup) entries;
+
 } LwqqGroup;
 
 typedef struct LwqqVerifyCode {
