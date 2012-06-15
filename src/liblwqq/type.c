@@ -335,3 +335,27 @@ LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid)
 
     return NULL;
 }
+
+
+/** 
+ * Find LwqqGroupMember object by LwqqGroupMember's  uin member
+ * 
+ * @param group Our LwqqGroup object
+ * @param uin The uin of LwqqGroupMember which we want to find
+ * 
+ * @return A LwqqGroupMember instance 
+ */
+LwqqGroupMember *lwqq_group_find_group_member_by_uin(LwqqGroup *group, const char *uin)
+{
+    LwqqGroupMember *member;
+    
+    if (!group || !uin)
+        return NULL;
+
+    LIST_FOREACH(member, &group->members, entries) {
+        if (member->uin && (strcmp(member->uin, uin) == 0))
+            return member;
+    }
+
+    return NULL;
+}
