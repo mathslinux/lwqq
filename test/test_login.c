@@ -85,13 +85,86 @@ static void test_login(const char *qqnumber, const char *password)
         }
     }
 
-    lwqq_info_get_groups_info(lc, &err);
+    lwqq_info_get_group_name_list(lc, &err);
        
     if (err == LWQQ_EC_OK) {
         LwqqGroup *group;
         LIST_FOREACH(group, &lc->groups, entries) {
-            if (group->name)
-                lwqq_log(LOG_DEBUG, "Group name: %s\n", group->name);
+            char buf[256] = {0};
+
+            if (group->name) {
+                strcat(buf, "name:");
+                strcat(buf, group->name);
+                strcat(buf, ", ");
+            }
+            
+            if (group->gid) {
+                strcat(buf, "gid:");
+                strcat(buf, group->gid);
+                strcat(buf, ", ");
+            }
+
+            if (group->code) {
+                strcat(buf, "code:");
+                strcat(buf, group->code);
+                strcat(buf, ", ");
+            }
+
+            if (group->markname) {
+                strcat(buf, "markname:");
+                strcat(buf, group->markname);
+                strcat(buf, ", ");
+            }
+
+            if (group->account) {
+                strcat(buf, "account:");
+                strcat(buf, group->account);
+                strcat(buf, ", ");
+            }
+
+            if (group->owner) {
+                strcat(buf, "owner:");
+                strcat(buf, group->owner);
+                strcat(buf, ", ");
+            }
+            
+            if (group->memo) {
+                strcat(buf, "memo:");
+                strcat(buf, group->memo);
+                strcat(buf, ", ");
+            }
+
+            if (group->fingermemo) {
+                strcat(buf, "fingermemo:");
+                strcat(buf, group->fingermemo);
+                strcat(buf, ", ");
+            }
+
+            if (group->level) {
+                strcat(buf, "level:");
+                strcat(buf, group->level);
+                strcat(buf, ", ");
+            }
+
+            if (group->createtime) {
+                strcat(buf, "createtime:");
+                strcat(buf, group->createtime);
+                strcat(buf, ", ");
+            }
+
+            if (group->face) {
+                strcat(buf, "face:");
+                strcat(buf, group->face);
+                strcat(buf, ", ");
+            }
+
+            if (group->flag) {
+                strcat(buf, "flag:");
+                strcat(buf, group->flag);
+                strcat(buf, ", ");
+            }
+            
+         lwqq_log(LOG_DEBUG, "Group info: %s\n", buf);
         }
     }
 

@@ -64,12 +64,25 @@ typedef struct LwqqBuddy {
 
 /* QQ group */
 typedef struct LwqqGroup {
-    char *flag;                  
     char *name;                  /**< QQ Group name */
     char *gid;
-    char *code;
-    
+    char *code;    
+    char *account;               /** < QQ Group number */
+    char *markname;              /** < QQ Group mark name */
+
+    /* ginfo */
+    char *face;
+    char *memo;
+    char *class;
+    char *fingermemo;
+    char *createtime;
+    char *level;
+    char *owner;                 /** < owner's QQ number  */
+    char *flag;
+    char *option;
+
     LIST_ENTRY(LwqqGroup) entries;
+
 } LwqqGroup;
 
 typedef struct LwqqVerifyCode {
@@ -203,7 +216,15 @@ void lwqq_group_free(LwqqGroup *group);
  */
 LwqqGroup *lwqq_group_new();
 
-
+/** 
+ * Find group object by group's gid member
+ * 
+ * @param lc Our Lwqq client object
+ * @param uin The gid of group which we want to find
+ * 
+ * @return A LwqqGroup instance
+ */
+LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid);
 
 /************************************************************************/
 

@@ -19,6 +19,8 @@
 
 static json_t *get_result_json_object(json_t *json);
 static void create_post_data(LwqqClient *lc, char *buf, int buflen);
+static char *get_friend_number(LwqqClient *lc, const char *uin);
+char *get_group_number(LwqqClient *lc, const char *code);
 
 /** 
  * Get the result object in a json object.
@@ -339,8 +341,13 @@ json_error:
     lwqq_http_request_free(req);
 }
 
-/** 
- * Parse info group
+/**
+ * Parsing group info like this.
+ *
+ * "gnamelist":[
+ *  {"flag":17825793,"name":"EGE...C/C++............","gid":3772225519,"code":1713443374},
+ *  {"flag":1,"name":"............","gid":2698833507,"code":3968641865}
+ * ]
  * 
  * @param lc 
  * @param json Point to the first child of "result"'s value
@@ -369,20 +376,61 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
         group->gid = s_strdup(json_parse_simple_value(cur, "gid"));
         group->code = s_strdup(json_parse_simple_value(cur, "code"));
 
-        /* Add to categories list */
+        /* we got the 'code', so we can get the qq group number now */
+        group->account = get_group_number(lc, group->code);
+
+        /* Add to groups list */
         LIST_INSERT_HEAD(&lc->groups, group, entries);
     }
 }
 
+/** 
+ * Parse group info like this
+ *
+ * "gmarklist":[{"uin":2698833507,"markname":".................."}]
+ * 
+ * @param lc 
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_gmarklist_child(LwqqClient *lc, json_t *json)
+{
+    LwqqGroup *group;
+    json_t *cur;
+    char *uin;
+    char *markname;
+    
+    /* Make json point "gmarklist" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "gmarklist")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        uin = json_parse_simple_value(cur, "uin");
+        markname = json_parse_simple_value(cur, "markname");
+
+        if (!uin || !markname)
+            continue;
+      	group = lwqq_group_find_group_by_gid(lc, uin);
+        if (!group)
+            continue;
+        group->markname = s_strdup(markname);
+    }
+}
 
 /** 
- * Get QQ groups information. These information include basic group
- * information
+ * Get QQ groups' name information. Get only 'name', 'gid' , 'code' .
  * 
  * @param lc 
  * @param err 
  */
-void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
+void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
 {
 
   	lwqq_log(LOG_DEBUG, "in function.");
@@ -423,7 +471,13 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
 
     /**
      * Here, we got a json object like this:
-     * {"retcode":0,"result":{"gmasklist":[],"gnamelist":[{"flag":17825793,"name":"EGEC/C++","gid":1253810024,"code":1604013092}],"gmarklist":[]}}
+     * {"retcode":0,"result":{
+     * "gmasklist":[],
+     * "gnamelist":[
+     *  {"flag":17825793,"name":"EGE...C/C++............","gid":3772225519,"code":1713443374},
+     *  {"flag":1,"name":"............","gid":2698833507,"code":3968641865}
+     * ],
+     * "gmarklist":[{"uin":2698833507,"markname":".................."}]}}
      * 
      */
     ret = json_parse_document(&json, req->response);
@@ -447,6 +501,7 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
 
         /* Parse friend category information */
         parse_groups_gnamelist_child(lc, json_tmp);
+        parse_groups_gmarklist_child(lc, json_tmp);
                
     }
         
@@ -532,6 +587,20 @@ done:
     lwqq_http_request_free(req);
     return qqnumber;
 }
+
+/** 
+ * Get QQ group number
+ * 
+ * @param lc 
+ * @param code is group‘s code
+ *
+ * @return 
+ */
+char *get_group_number(LwqqClient *lc, const char *code)
+{
+    return get_friend_number(lc, code);
+}
+
 /** 
  * Get detail information of QQ friend(NB: include myself)
  * QQ server need us to pass param like:
