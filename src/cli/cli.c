@@ -17,36 +17,41 @@
 #include "smemory.h"
 #include "msg.h"
 
+static char vc_image[128];
+static char vc_file[128];
+
 static char *get_vc()
 {
-    char buf[1024] = {0};
-    
-    FILE *f = fopen("/tmp/test.txt", "r");
-    if (!f)
-        return NULL;
+    char vc[128] = {0};
+    int vc_len;
+    FILE *f;
 
-    char *i = fgets(buf, sizeof(buf), f);
-    if (!i)
+    if ((f = fopen(vc_file, "r")) == NULL) {
         return NULL;
-    fclose(f);
-    int len = strlen(buf);
-    buf[len - 1] = '\0';
-    printf ("%s\n", i);
-    return s_strdup(buf);
+    }
+
+    if (!fgets(vc, sizeof(vc), f)) {
+        fclose(f);
+        return NULL;
+    }
+    
+    vc_len = strlen(vc);
+    if (vc[vc_len - 1] == '\n') {
+        vc[vc_len - 1] = '\0';
+    }
+    return s_strdup(vc);
 }
 
 static LwqqErrorCode cli_login(LwqqClient *lc)
 {
-    LwqqErrorCode err = LWQQ_EC_ERROR;
+    LwqqErrorCode err;
 
     lwqq_login(lc, &err);
     if (err == LWQQ_EC_LOGIN_NEED_VC) {
-        char vc_image[128];
-        char vc_file[128];
         snprintf(vc_image, sizeof(vc_image), "/tmp/lwqq_%s.jpeg", lc->username);
-        snprintf(vc_file, sizeof(vc_file), "/tmp/lwqq_%s.txt", lc->password);
+        snprintf(vc_file, sizeof(vc_file), "/tmp/lwqq_%s.txt", lc->username);
         /* Delete old verify image */
-        unlink(vc_image);
+        unlink(vc_file);
 
         lwqq_log(LOG_NOTICE, "Need verify code to login, please check "
                  "image file %s, and input what you see to file %s\n",
@@ -59,12 +64,15 @@ static LwqqErrorCode cli_login(LwqqClient *lc)
             sleep(1);
         }
         lc->vc->str = get_vc();
+        if (!lc->vc->str) {
+            goto failed;
+        }
         lwqq_log(LOG_NOTICE, "Get verify code: %s\n", lc->vc->str);
         lwqq_login(lc, &err);
     } else if (err != LWQQ_EC_OK) {
         goto failed;
     }
-    
+
     return err;
 
 failed:
@@ -85,7 +93,7 @@ static void cli_logout(LwqqClient *lc)
 
 int main(int argc, char *argv[])
 {
-    char *qqnumber = NULL, *password = NULL;
+    char *qqnumber = "75396018", *password = "111119907riega";
     LwqqClient *lc;
     LwqqErrorCode err;
 
@@ -97,7 +105,7 @@ int main(int argc, char *argv[])
 
     /* Login to server */
     err = cli_login(lc);
-    if (err != LWQQ_EC_ERROR) {
+    if (err != LWQQ_EC_OK) {
         lwqq_log(LOG_ERROR, "Login error, exit\n");
         return -1;
     }
@@ -105,6 +113,7 @@ int main(int argc, char *argv[])
     lwqq_log(LOG_NOTICE, "Login successfully\n");
 
     /* Logout */
+    sleep(3);
     cli_logout(lc);
     lwqq_client_free(lc);
     return 0;
