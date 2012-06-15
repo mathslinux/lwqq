@@ -203,7 +203,15 @@ void lwqq_group_free(LwqqGroup *group);
  */
 LwqqGroup *lwqq_group_new();
 
-
+/** 
+ * Find group object by group's gid member
+ * 
+ * @param lc Our Lwqq client object
+ * @param uin The gid of group which we want to find
+ * 
+ * @return A LwqqGroup instance
+ */
+LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid);
 
 /************************************************************************/
 
