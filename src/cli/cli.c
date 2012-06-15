@@ -10,12 +10,16 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <getopt.h>
 
 #include "login.h"
 #include "logger.h"
 #include "info.h"
 #include "smemory.h"
 #include "msg.h"
+
+#define LWQQ_CLI_VERSION "0.0.1"
 
 static char vc_image[128];
 static char vc_file[128];
@@ -91,12 +95,70 @@ static void cli_logout(LwqqClient *lc)
     }
 }
 
+static void usage()
+{
+    fprintf(stdout, "Usage: lwqq-cli [options]...\n"
+            "lwqq-cli: A qq client based on gtk+ uses webqq protocol\n"
+            "  -v, --version\n"
+            "      Show version of program\n"
+            "  -u, --user\n"
+            "      Set username(qqnumer)\n"
+            "  -p, --pwd\n"
+            "      Set password\n"
+            "  -h, --help\n"
+            "      Print help and exit\n"
+        );
+}
+
 int main(int argc, char *argv[])
 {
-    char *qqnumber = "75396018", *password = "111119907riega";
+    char *qqnumber = NULL, *password = NULL;
     LwqqClient *lc;
     LwqqErrorCode err;
+    int c, e = 0;
 
+    if (argc == 1) {
+        usage();
+        exit(1);
+    }
+    static const struct option long_options[] = {
+        { "version", 0, 0, 'v' },
+        { "help", 0, 0, 'h' },
+        { "user", 0, 0, 'u' },
+        { "pwd", 0, 0, 'p' },
+        { 0, 0, 0, 0 }
+    };
+
+    while ((c = getopt_long(argc, argv, "vhu:p:",
+                            long_options, NULL)) != EOF) {
+        switch (c) {
+        case 'v':
+            printf("lwqq-cli version %s, Copyright (c) 2012 "
+                   "mathslinux\n", LWQQ_CLI_VERSION);
+            exit(0);
+            
+        case 'h':
+            usage();
+            exit(0);
+            
+        case 'u':
+            qqnumber = optarg;
+            break;
+            
+        case 'p':
+            password = optarg;
+            break;
+            
+        default:
+            e++;
+            break;
+        }
+    }
+    if (e || argc > optind) {
+        usage();
+        exit(1);
+    }
+    
     lc = lwqq_client_new(qqnumber, password);
     if (!lc) {
         lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
@@ -107,6 +169,7 @@ int main(int argc, char *argv[])
     err = cli_login(lc);
     if (err != LWQQ_EC_OK) {
         lwqq_log(LOG_ERROR, "Login error, exit\n");
+        lwqq_client_free(lc);
         return -1;
     }
 
