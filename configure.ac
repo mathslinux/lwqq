@@ -91,6 +91,7 @@ AC_CONFIG_FILES([Makefile
         src/liblwqq/libghttp/Makefile
         src/lwdb/Makefile
         src/gui/Makefile
+        src/cli/Makefile
         test/Makefile
         ])
 AC_OUTPUT
