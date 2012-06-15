@@ -85,7 +85,7 @@ static void test_login()
         }
     }
 
-    lwqq_info_get_groups_info(lc, &err);
+    lwqq_info_get_group_name_list(lc, &err);
        
     if (err == LWQQ_EC_OK) {
         LwqqGroup *group;

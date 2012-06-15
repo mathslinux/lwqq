@@ -381,13 +381,12 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
 
 
 /** 
- * Get QQ groups information. These information include basic group
- * information
+ * Get QQ groups' name information. Get only 'name', 'gid' , 'code' .
  * 
  * @param lc 
  * @param err 
  */
-void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
+void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
 {
 
   	lwqq_log(LOG_DEBUG, "in function.");
