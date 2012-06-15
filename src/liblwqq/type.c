@@ -167,18 +167,6 @@ LwqqBuddy *lwqq_buddy_new()
 }
 
 /** 
- * 
- * Create a new group
- * 
- * @return A LwqqGroup instance
- */
-LwqqGroup *lwqq_group_new()
-{
-    LwqqGroup *g = s_malloc0(sizeof(*g));
-    return g;
-}
-
-/** 
  * Free a LwqqBuddy instance
  * 
  * @param buddy 
@@ -218,24 +206,6 @@ void lwqq_buddy_free(LwqqBuddy *buddy)
 }
 
 /** 
- * Free a LwqqGroup instance
- * 
- * @param group
- */
-void lwqq_group_free(LwqqGroup *group)
-{
-    if (!group)
-        return ;
-
-    s_free(group->flag);
-    s_free(group->name);
-    s_free(group->gid);
-    s_free(group->code);
-        
-    s_free(group);
-}
-
-/** 
  * Find buddy object by buddy's uin member
  * 
  * @param lc Our Lwqq client object
@@ -260,6 +230,46 @@ LwqqBuddy *lwqq_buddy_find_buddy_by_uin(LwqqClient *lc, const char *uin)
 
 /* LwqqBuddy API END*/
 /************************************************************************/
+
+/** 
+ * Create a new group
+ * 
+ * @return A LwqqGroup instance
+ */
+LwqqGroup *lwqq_group_new()
+{
+    LwqqGroup *g = s_malloc0(sizeof(*g));
+    return g;
+}
+
+/** 
+ * Free a LwqqGroup instance
+ * 
+ * @param group
+ */
+void lwqq_group_free(LwqqGroup *group)
+{
+    if (!group)
+        return ;
+
+    s_free(group->name);
+    s_free(group->gid);
+    s_free(group->code);
+    s_free(group->account);
+    s_free(group->markname);
+    s_free(group->face);
+    s_free(group->memo);
+    s_free(group->class);
+    s_free(group->fingermemo);
+    s_free(group->createtime);
+    s_free(group->level);
+    s_free(group->owner);
+    s_free(group->flag);
+    s_free(group->option);
+        
+    s_free(group);
+}
+
 
 /** 
  * Find group object by group's gid member
