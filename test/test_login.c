@@ -36,7 +36,8 @@ static char *get_vc()
 
 static void test_login()
 {
-    LwqqClient *lc = lwqq_client_new("1421032531", "1234567890");
+    LwqqClient *lc = lwqq_client_new("", "");
+    //LwqqClient *lc = lwqq_client_new("qq number", "passwd");
     if (!lc)
         return ;
 
