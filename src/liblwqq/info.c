@@ -339,8 +339,13 @@ json_error:
     lwqq_http_request_free(req);
 }
 
-/** 
- * Parse info group
+/**
+ * Parsing group info like this.
+ *
+ * "gnamelist":[
+ *  {"flag":17825793,"name":"EGE...C/C++............","gid":3772225519,"code":1713443374},
+ *  {"flag":1,"name":"............","gid":2698833507,"code":3968641865}
+ * ]
  * 
  * @param lc 
  * @param json Point to the first child of "result"'s value
@@ -369,7 +374,7 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
         group->gid = s_strdup(json_parse_simple_value(cur, "gid"));
         group->code = s_strdup(json_parse_simple_value(cur, "code"));
 
-        /* Add to categories list */
+        /* Add to groups list */
         LIST_INSERT_HEAD(&lc->groups, group, entries);
     }
 }
