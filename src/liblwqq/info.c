@@ -376,6 +376,9 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
         group->gid = s_strdup(json_parse_simple_value(cur, "gid"));
         group->code = s_strdup(json_parse_simple_value(cur, "code"));
 
+        /* we got the 'code', so we can get the qq group number now */
+        group->account = get_group_number(lc, group->code);
+
         /* Add to groups list */
         LIST_INSERT_HEAD(&lc->groups, group, entries);
     }
