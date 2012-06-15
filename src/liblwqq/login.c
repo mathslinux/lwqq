@@ -597,7 +597,6 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     char *value;
 
     if (!status || !err) {
-        *err = LWQQ_EC_ERROR;
         goto done ;
     }
 
@@ -720,7 +719,6 @@ done:
 void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
 {
     if (!client || !err) {
-        *err = LWQQ_EC_ERROR;
         lwqq_log(LOG_ERROR, "Invalid pointer\n");
         return ;
     }
