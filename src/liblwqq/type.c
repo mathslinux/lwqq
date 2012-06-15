@@ -167,18 +167,6 @@ LwqqBuddy *lwqq_buddy_new()
 }
 
 /** 
- * 
- * Create a new group
- * 
- * @return A LwqqGroup instance
- */
-LwqqGroup *lwqq_group_new()
-{
-    LwqqGroup *g = s_malloc0(sizeof(*g));
-    return g;
-}
-
-/** 
  * Free a LwqqBuddy instance
  * 
  * @param buddy 
@@ -218,24 +206,6 @@ void lwqq_buddy_free(LwqqBuddy *buddy)
 }
 
 /** 
- * Free a LwqqGroup instance
- * 
- * @param group
- */
-void lwqq_group_free(LwqqGroup *group)
-{
-    if (!group)
-        return ;
-
-    s_free(group->flag);
-    s_free(group->name);
-    s_free(group->gid);
-    s_free(group->code);
-        
-    s_free(group);
-}
-
-/** 
  * Find buddy object by buddy's uin member
  * 
  * @param lc Our Lwqq client object
@@ -260,3 +230,132 @@ LwqqBuddy *lwqq_buddy_find_buddy_by_uin(LwqqClient *lc, const char *uin)
 
 /* LwqqBuddy API END*/
 /************************************************************************/
+
+/** 
+ * Create a new group
+ * 
+ * @return A LwqqGroup instance
+ */
+LwqqGroup *lwqq_group_new()
+{
+    LwqqGroup *g = s_malloc0(sizeof(*g));
+    return g;
+}
+
+/** 
+ * 
+ * Create a new group member
+ * 
+ * @return A LwqqGroupMember instance
+ */
+LwqqGroup *lwqq_group_member_new()
+{
+    LwqqGroup *m = s_malloc0(sizeof(*m));
+    return m;
+}
+
+/** 
+ * Free a LwqqGroup instance
+ * 
+ * @param group
+ */
+void lwqq_group_free(LwqqGroup *group)
+{
+    LwqqGroupMember *m_entry, *m_next;
+
+    if (!group)
+        return ;
+
+    s_free(group->name);
+    s_free(group->gid);
+    s_free(group->code);
+    s_free(group->account);
+    s_free(group->markname);
+    s_free(group->face);
+    s_free(group->memo);
+    s_free(group->class);
+    s_free(group->fingermemo);
+    s_free(group->createtime);
+    s_free(group->level);
+    s_free(group->owner);
+    s_free(group->flag);
+    s_free(group->option);
+
+    /* Free LwGroupMember list */
+    LIST_FOREACH_SAFE(m_entry, &group->members, entries, m_next) {
+        LIST_REMOVE(m_entry, entries);
+        lwqq_group_member_free(m_entry);
+    }	
+
+    s_free(group);
+}
+
+/** 
+ * Free a LwqqGroupMember instance
+ * 
+ * @param member
+ */
+void lwqq_group_member_free(LwqqGroupMember *member)
+{
+    if (!member)
+        return ;
+
+    s_free(member->uin);
+    s_free(member->client_type);
+    s_free(member->stat);
+    s_free(member->nick);
+    s_free(member->country);
+    s_free(member->province);
+    s_free(member->city);
+    s_free(member->gender);
+    s_free(member->vip_level);
+       
+    s_free(member);
+}
+
+/** 
+ * Find group object by group's gid member
+ * 
+ * @param lc Our Lwqq client object
+ * @param uin The gid of group which we want to find
+ * 
+ * @return A LwqqGroup instance 
+ */
+LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid)
+{
+    LwqqGroup *group;
+    
+    if (!lc || !gid)
+        return NULL;
+
+    LIST_FOREACH(group, &lc->groups, entries) {
+        if (group->gid && (strcmp(group->gid, gid) == 0))
+            return group;
+    }
+
+    return NULL;
+}
+
+
+/** 
+ * Find LwqqGroupMember object by LwqqGroupMember's  uin member
+ * 
+ * @param group Our LwqqGroup object
+ * @param uin The uin of LwqqGroupMember which we want to find
+ * 
+ * @return A LwqqGroupMember instance 
+ */
+LwqqGroupMember *lwqq_group_find_group_member_by_uin(LwqqGroup *group, const char *uin)
+{
+    LwqqGroupMember *member;
+    
+    if (!group || !uin)
+        return NULL;
+
+    LIST_FOREACH(member, &group->members, entries) {
+        if (member->uin && (strcmp(member->uin, uin) == 0))
+            return member;
+    }
+
+    return NULL;
+}

@@ -23,12 +23,13 @@
 void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err);
 
 /** 
- *  Get QQ groups information
+ * Get QQ groups' name information. Get only 'name', 'gid' , 'code' and 'markname'.
+ * and get the qq group number in function 'parse_groups_gnamelist_child'.
  * 
  * @param lc 
  * @param err 
  */
-void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err);
+void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err);
 
 /** 
  * Get detail information of QQ friend(NB: include myself)
@@ -41,5 +42,15 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err);
  */
 void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
                                       LwqqErrorCode *err);
+
+/** 
+ * Get QQ groups detail information. Including *online* group members.
+ * 
+ * @param lc 
+ * @param group
+ * @param err 
+ */
+void lwqq_info_get_group_detail_info(LwqqClient *lc, LwqqGroup *group,
+                                     LwqqErrorCode *err);
 
 #endif  /* LWQQ_INFO_H */

@@ -19,6 +19,8 @@
 
 static json_t *get_result_json_object(json_t *json);
 static void create_post_data(LwqqClient *lc, char *buf, int buflen);
+static char *get_friend_number(LwqqClient *lc, const char *uin);
+char *get_group_number(LwqqClient *lc, const char *code);
 
 /** 
  * Get the result object in a json object.
@@ -339,8 +341,13 @@ json_error:
     lwqq_http_request_free(req);
 }
 
-/** 
- * Parse info group
+/**
+ * Parsing group info like this.
+ *
+ * "gnamelist":[
+ *  {"flag":17825793,"name":"EGE...C/C++............","gid":3772225519,"code":1713443374},
+ *  {"flag":1,"name":"............","gid":2698833507,"code":3968641865}
+ * ]
  * 
  * @param lc 
  * @param json Point to the first child of "result"'s value
@@ -369,20 +376,274 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
         group->gid = s_strdup(json_parse_simple_value(cur, "gid"));
         group->code = s_strdup(json_parse_simple_value(cur, "code"));
 
-        /* Add to categories list */
+        /* we got the 'code', so we can get the qq group number now */
+        group->account = get_group_number(lc, group->code);
+
+        /* Add to groups list */
         LIST_INSERT_HEAD(&lc->groups, group, entries);
+    }
+}
+
+/** 
+ * Parse group info like this
+ *
+ * "gmarklist":[{"uin":2698833507,"markname":".................."}]
+ * 
+ * @param lc 
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_gmarklist_child(LwqqClient *lc, json_t *json)
+{
+    LwqqGroup *group;
+    json_t *cur;
+    char *uin;
+    char *markname;
+    
+    /* Make json point "gmarklist" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "gmarklist")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        uin = json_parse_simple_value(cur, "uin");
+        markname = json_parse_simple_value(cur, "markname");
+
+        if (!uin || !markname)
+            continue;
+      	group = lwqq_group_find_group_by_gid(lc, uin);
+        if (!group)
+            continue;
+        group->markname = s_strdup(markname);
     }
 }
 
 
 /** 
- * Get QQ groups information. These information include basic group
- * information
+ * Parse group info like this
+ * this function must be used before "parse_gourps_minfo_child" ,
+ * "parse_groups_vipinfo_child"
+ *
+ * "stats":[{"client_type":1,"uin":56360327,"stat":10},{"client_type":41,"uin":909998471,"stat":10}],
+ *
+ * @param lc 
+ * @param group
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_stats_child(LwqqClient *lc, LwqqGroup *group,  json_t *json)
+{
+    LwqqGroupMember *member;
+    json_t *cur;
+    char *client_type;
+    char *uin;
+    char *stat;
+    
+    /* Make json point "stats" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "stats")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        client_type = json_parse_simple_value(cur, "client_type");
+        uin = json_parse_simple_value(cur, "uin");
+        stat = json_parse_simple_value(cur, "stat");
+
+        member = s_malloc0(sizeof(*member));
+        member->client_type = s_strdup(client_type);
+        member->uin = s_strdup(uin);
+        member->stat = s_strdup(stat);
+
+        /* Add to members list */
+        LIST_INSERT_HEAD(&group->members, member, entries);
+    }
+}
+
+/** 
+ * Parse group info like this
+ *
+ * "minfo":[
+ *   {"nick":"evildoer","province":"......","gender":"male","uin":56360327,"country":"......","city":"......"},
+ *   {"nick":"evil...doer","province":"......","gender":"male","uin":909998471,"country":"......","city":"......"}],
+ *
+ * @param lc 
+ * @param group
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_minfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *json)
+{
+    LwqqGroupMember *member;
+    json_t *cur;
+    char *uin;
+    char *nick;
+    char *province;
+    char *gender;
+    char *country;
+    char *city;
+    
+    /* Make json point "minfo" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "minfo")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        uin = json_parse_simple_value(cur, "uin");
+        nick = json_parse_simple_value(cur, "nick");
+        province = json_parse_simple_value(cur, "province");
+        gender = json_parse_simple_value(cur, "gender");
+        country = json_parse_simple_value(cur, "country");
+        city = json_parse_simple_value(cur, "city");
+
+        if (!uin)
+            continue;
+        member = lwqq_group_find_group_member_by_uin(group, uin);
+        if (!member)
+            continue;
+
+        member->nick = s_strdup(nick);
+        member->province = s_strdup(province);
+        member->gender = s_strdup(gender);
+        member->country = s_strdup(country);
+        member->city = s_strdup(city);
+    }
+}
+
+/** 
+ * Parse group info like this
+ *
+ * "vipinfo":[{"vip_level":0,"u":56360327,"is_vip":0},{"vip_level":0,"u":909998471,"is_vip":0}]
+ * 
+ * @param lc 
+ * @param group
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_vipinfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *json)
+{
+    LwqqGroupMember *member;
+    json_t *cur;
+    char *vip_level;
+    char *u;
+    //char *is_vip;
+    
+    /* Make json point "vipinfo" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "vipinfo")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        vip_level = json_parse_simple_value(cur, "vip_level");
+        u = json_parse_simple_value(cur, "u");
+        /* I think the 'is_vip' is useless... */
+        //is_vip = json_parse_simple_value(cur, "is_vip");
+
+        if (!u)
+            continue;
+        member = lwqq_group_find_group_member_by_uin(group, u);
+        if (!member)
+            continue;
+        member->vip_level = s_strdup(vip_level);
+        
+    }
+}
+
+/** 
+ * Parse group info like this
+ *
+ * "result":{
+ * "ginfo":
+ *   {"face":0,"memo":"","class":10026,"fingermemo":"","code":3968641865,"createtime":1339647698,"flag":1,
+ *    "level":0,"name":"............","gid":2698833507,"owner":909998471,
+ *    "members":[{"muin":56360327,"mflag":0},{"muin":909998471,"mflag":0}],
+ *    "option":2},
+ * 
+ * @param lc 
+ * @param group
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_ginfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *json)
+{
+    char *gid;
+
+    /* 
+     * maybe we do not need the "mflag" for GroupMember, here skip parsing
+     * it. buf I'm not sure about it.
+     */
+    
+    /* Make json point "ginfo" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "ginfo")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+
+    //json = json->child;    // there's no array here , comment it.
+    gid = json_parse_simple_value(json,"gid");
+    if (strcmp(group->gid, gid) != 0) {
+        lwqq_log(LOG_ERROR, "Parse json object error.");
+    }
+    
+#define  SET_GINFO(key, name) {                                    \
+        if (group->key) {                                               \
+            s_free(group->key);                                         \
+        }                                                               \
+        group->key = s_strdup(json_parse_simple_value(json, name));     \
+    }
+
+    /* we have got the 'code','name' and 'gid', so we comment it here. */
+    SET_GINFO(face, "face");
+    SET_GINFO(memo, "memo");
+    SET_GINFO(class, "class");
+    SET_GINFO(fingermemo,"fingermemo");
+    //SET_GINFO(code, "code");
+    SET_GINFO(createtime, "createtime");
+    SET_GINFO(flag, "flag");
+    SET_GINFO(level, "level");
+    //SET_GINFO(name, "name");
+    //SET_GINFO(gid, "gid");
+    SET_GINFO(owner, "owner");
+    
+#undef SET_BUDDY_INFO
+    
+}
+
+/** 
+ * Get QQ groups' name information. Get only 'name', 'gid' , 'code' and 'markname'.
+ * and get the qq group number in function 'parse_groups_gnamelist_child'.
  * 
  * @param lc 
  * @param err 
  */
-void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
+void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
 {
 
   	lwqq_log(LOG_DEBUG, "in function.");
@@ -423,7 +684,13 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
 
     /**
      * Here, we got a json object like this:
-     * {"retcode":0,"result":{"gmasklist":[],"gnamelist":[{"flag":17825793,"name":"EGEC/C++","gid":1253810024,"code":1604013092}],"gmarklist":[]}}
+     * {"retcode":0,"result":{
+     * "gmasklist":[],
+     * "gnamelist":[
+     *  {"flag":17825793,"name":"EGE...C/C++............","gid":3772225519,"code":1713443374},
+     *  {"flag":1,"name":"............","gid":2698833507,"code":3968641865}
+     * ],
+     * "gmarklist":[{"uin":2698833507,"markname":".................."}]}}
      * 
      */
     ret = json_parse_document(&json, req->response);
@@ -445,8 +712,121 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
     if (json_tmp->child && json_tmp->child->child ) {
         json_tmp = json_tmp->child->child;
 
-        /* Parse friend category information */
+        /* Parse groups information */
         parse_groups_gnamelist_child(lc, json_tmp);
+        parse_groups_gmarklist_child(lc, json_tmp);
+               
+    }
+        
+done:
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+    return ;
+
+json_error:
+    *err = LWQQ_EC_ERROR;
+    /* Free temporary string */
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+}
+
+
+/** 
+ * Get QQ groups detail information. Including *online* group members.
+ * 
+ * @param lc 
+ * @param group
+ * @param err 
+ */
+void lwqq_info_get_group_detail_info(LwqqClient *lc, LwqqGroup *group,
+                                      LwqqErrorCode *err)
+{
+    lwqq_log(LOG_DEBUG, "in function.");
+
+    char url[512];
+    LwqqHttpRequest *req = NULL;  
+    int ret;
+    json_t *json = NULL, *json_tmp;
+    char *cookies;
+
+    if (!lc || ! group) {
+        return ;
+    }
+
+    /* Make sure we know code. */
+    if (!group->code) {
+        if (err)
+            *err = LWQQ_EC_NULL_POINTER;
+        return ;
+    }
+    
+    /* Create a GET request */
+    snprintf(url, sizeof(url),
+             "%s/api/get_group_info_ext2?gcode=%s&vfwebqq=%s",
+             "http://s.web2.qq.com", group->code, lc->vfwebqq);
+    req = lwqq_http_create_default_request(url, err);
+    if (!req) {
+        goto done;
+    }
+    req->set_header(req, "Referer", "http://s.web2.qq.com/proxy.html?v=20101025002");
+    req->set_header(req, "Content-Transfer-Encoding", "binary");
+    req->set_header(req, "Content-type", "utf-8");
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
+    ret = req->do_request(req, 0, NULL);
+    if (ret || req->http_code != 200) {
+        if (err)
+            *err = LWQQ_EC_HTTP_ERROR;
+        goto done;
+    }
+
+    /**
+     * Here, we got a json object like this:
+     *
+     * {"retcode":0,
+     * "result":{
+     * "stats":[{"client_type":1,"uin":56360327,"stat":10},{"client_type":41,"uin":909998471,"stat":10}],
+     * "minfo":[
+     *   {"nick":"evildoer","province":"......","gender":"male","uin":56360327,"country":"......","city":"......"},
+     *   {"nick":"evil...doer","province":"......","gender":"male","uin":909998471,"country":"......","city":"......"}],
+     * "ginfo":
+     *   {"face":0,"memo":"","class":10026,"fingermemo":"","code":3968641865,"createtime":1339647698,"flag":1,
+     *    "level":0,"name":"............","gid":2698833507,"owner":909998471,
+     *    "members":[{"muin":56360327,"mflag":0},{"muin":909998471,"mflag":0}],
+     *    "option":2},
+     * "vipinfo":[{"vip_level":0,"u":56360327,"is_vip":0},{"vip_level":0,"u":909998471,"is_vip":0}]}}
+     * 
+     */
+    ret = json_parse_document(&json, req->response);
+    if (ret != JSON_OK) {
+        lwqq_log(LOG_ERROR, "Parse json object of groups error: %s\n", req->response);
+        if (err)
+            *err = LWQQ_EC_ERROR;
+        goto done;
+    }
+
+    json_tmp = get_result_json_object(json);
+    if (!json_tmp) {
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
+        goto json_error;
+    }
+
+    /** It seems everything is ok, we start parsing information
+     * now
+     */
+    if (json_tmp->child && json_tmp->child->child ) {
+        json_tmp = json_tmp->child->child;
+
+        /* Parse group information */
+        parse_groups_stats_child(lc, group, json_tmp);
+        parse_groups_vipinfo_child(lc, group, json_tmp);
+        parse_groups_minfo_child(lc, group, json_tmp);
+        parse_groups_ginfo_child(lc, group, json_tmp);
                
     }
         
@@ -532,6 +912,20 @@ done:
     lwqq_http_request_free(req);
     return qqnumber;
 }
+
+/** 
+ * Get QQ group number
+ * 
+ * @param lc 
+ * @param code is group‘s code
+ *
+ * @return 
+ */
+char *get_group_number(LwqqClient *lc, const char *code)
+{
+    return get_friend_number(lc, code);
+}
+
 /** 
  * Get detail information of QQ friend(NB: include myself)
  * QQ server need us to pass param like:

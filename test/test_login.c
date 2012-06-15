@@ -36,7 +36,8 @@ static char *get_vc()
 
 static void test_login()
 {
-    LwqqClient *lc = lwqq_client_new("1421032531", "1234567890");
+    LwqqClient *lc = lwqq_client_new("", "");
+    //LwqqClient *lc = lwqq_client_new("qq number", "passwd");
     if (!lc)
         return ;
 
@@ -85,13 +86,151 @@ static void test_login()
         }
     }
 
-    lwqq_info_get_groups_info(lc, &err);
+    lwqq_info_get_group_name_list(lc, &err);
        
     if (err == LWQQ_EC_OK) {
         LwqqGroup *group;
+        LwqqGroupMember *member;
         LIST_FOREACH(group, &lc->groups, entries) {
-            if (group->name)
-                lwqq_log(LOG_DEBUG, "Group name: %s\n", group->name);
+            char buf[256] = {0};
+            
+            /* we get the group detail info. including the group members' info. */
+            lwqq_info_get_group_detail_info(lc, group, &err);
+
+            if (group->name) {
+                strcat(buf, "name:");
+                strcat(buf, group->name);
+                strcat(buf, ", ");
+            }
+            
+            if (group->gid) {
+                strcat(buf, "gid:");
+                strcat(buf, group->gid);
+                strcat(buf, ", ");
+            }
+
+            if (group->code) {
+                strcat(buf, "code:");
+                strcat(buf, group->code);
+                strcat(buf, ", ");
+            }
+
+            if (group->markname) {
+                strcat(buf, "markname:");
+                strcat(buf, group->markname);
+                strcat(buf, ", ");
+            }
+
+            if (group->account) {
+                strcat(buf, "account:");
+                strcat(buf, group->account);
+                strcat(buf, ", ");
+            }
+
+            if (group->owner) {
+                strcat(buf, "owner:");
+                strcat(buf, group->owner);
+                strcat(buf, ", ");
+            }
+            
+            if (group->memo) {
+                strcat(buf, "memo:");
+                strcat(buf, group->memo);
+                strcat(buf, ", ");
+            }
+
+            if (group->fingermemo) {
+                strcat(buf, "fingermemo:");
+                strcat(buf, group->fingermemo);
+                strcat(buf, ", ");
+            }
+
+            if (group->level) {
+                strcat(buf, "level:");
+                strcat(buf, group->level);
+                strcat(buf, ", ");
+            }
+
+            if (group->createtime) {
+                strcat(buf, "createtime:");
+                strcat(buf, group->createtime);
+                strcat(buf, ", ");
+            }
+
+            if (group->face) {
+                strcat(buf, "face:");
+                strcat(buf, group->face);
+                strcat(buf, ", ");
+            }
+
+            if (group->flag) {
+                strcat(buf, "flag:");
+                strcat(buf, group->flag);
+                strcat(buf, ", ");
+            }
+            
+            lwqq_log(LOG_DEBUG, "Group info: %s\n", buf);
+            
+            LIST_FOREACH(member, &group->members, entries) {
+                char buff[256] = {0};
+                if (member->nick) {
+                    strcat(buff, "nick:");
+                    strcat(buff, member->nick);
+                    strcat(buff, ", ");
+                }
+            
+                if (member->uin) {
+                    strcat(buff, "uin:");
+                    strcat(buff, member->uin);
+                    strcat(buff, ", ");
+                }
+
+                if (member->gender) {
+                    strcat(buff, "gender:");
+                    strcat(buff, member->gender);
+                    strcat(buff, ", ");
+                }
+
+                if (member->country) {
+                    strcat(buff, "country:");
+                    strcat(buff, member->country);
+                    strcat(buff, ", ");
+                }
+
+                if (member->province) {
+                    strcat(buff, "province:");
+                    strcat(buff, member->province);
+                    strcat(buff, ", ");
+                }
+
+                if (member->city) {
+                    strcat(buff, "city:");
+                    strcat(buff, member->city);
+                    strcat(buff, ", ");
+                }
+
+                if (member->stat) {
+                    strcat(buff, "stat:");
+                    strcat(buff, member->stat);
+                    strcat(buff, ", ");
+                }
+
+                if (member->client_type) {
+                    strcat(buff, "client_type:");
+                    strcat(buff, member->client_type);
+                    strcat(buff, ", ");
+                }
+
+                if (member->vip_level) {
+                    strcat(buff, "vip_levle:");
+                    strcat(buff, member->vip_level);
+                    strcat(buff, ", ");
+                }
+            
+                lwqq_log(LOG_DEBUG, "Group Member info: %s\n", buff);
+            
+            }
+            
         }
     }
 

@@ -62,14 +62,48 @@ typedef struct LwqqBuddy {
     LIST_ENTRY(LwqqBuddy) entries;
 } LwqqBuddy;
 
+/* QQ group member */
+typedef struct LwqqGroupMember {
+    
+    /* stats */
+    char *uin;
+    char *client_type;
+    char *stat;
+
+    /* minfo */
+    char *nick;
+    char *country;
+    char *province;
+    char *city;
+    char *gender;
+
+    /* vipinfo */
+    char *vip_level;
+
+    LIST_ENTRY(LwqqGroupMember) entries;
+} LwqqGroupMember;
+
 /* QQ group */
 typedef struct LwqqGroup {
-    char *flag;                  
     char *name;                  /**< QQ Group name */
     char *gid;
-    char *code;
-    
+    char *code;    
+    char *account;               /** < QQ Group number */
+    char *markname;              /** < QQ Group mark name */
+
+    /* ginfo */
+    char *face;
+    char *memo;
+    char *class;
+    char *fingermemo;
+    char *createtime;
+    char *level;
+    char *owner;                 /** < owner's QQ number  */
+    char *flag;
+    char *option;
+
     LIST_ENTRY(LwqqGroup) entries;
+    LIST_HEAD(, LwqqGroupMember) members; /**< QQ group members */
 } LwqqGroup;
 
 typedef struct LwqqVerifyCode {
@@ -203,7 +237,25 @@ void lwqq_group_free(LwqqGroup *group);
  */
 LwqqGroup *lwqq_group_new();
 
+/** 
+ * Find group object by group's gid member
+ * 
+ * @param lc Our Lwqq client object
+ * @param uin The gid of group which we want to find
+ * 
+ * @return A LwqqGroup instance
+ */
+LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid);
 
+/** 
+ * Find LwqqGroupMember object by LwqqGroupMember's  uin member
+ * 
+ * @param group Our LwqqGroup object
+ * @param uin The uin of LwqqGroupMember which we want to find
+ * 
+ * @return A LwqqGroupMember instance
+ */
+LwqqGroupMember *lwqq_group_find_group_member_by_uin(LwqqGroup *group, const char *uin);
 
 /************************************************************************/
 
