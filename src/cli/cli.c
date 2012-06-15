@@ -125,6 +125,7 @@ void signal_handler(int signum)
 int main(int argc, char *argv[])
 {
     char *qqnumber = NULL, *password = NULL;
+    LwqqClient *lc;
     LwqqErrorCode err;
     int c, e = 0;
 
@@ -132,8 +133,7 @@ int main(int argc, char *argv[])
         usage();
         exit(1);
     }
-    
-    const struct option long_options[] = {
+    static const struct option long_options[] = {
         { "version", 0, 0, 'v' },
         { "help", 0, 0, 'h' },
         { "user", 0, 0, 'u' },
