@@ -429,7 +429,13 @@ void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
 
     /**
      * Here, we got a json object like this:
-     * {"retcode":0,"result":{"gmasklist":[],"gnamelist":[{"flag":17825793,"name":"EGEC/C++","gid":1253810024,"code":1604013092}],"gmarklist":[]}}
+     * {"retcode":0,"result":{
+     * "gmasklist":[],
+     * "gnamelist":[
+     *  {"flag":17825793,"name":"EGE...C/C++............","gid":3772225519,"code":1713443374},
+     *  {"flag":1,"name":"............","gid":2698833507,"code":3968641865}
+     * ],
+     * "gmarklist":[{"uin":2698833507,"markname":".................."}]}}
      * 
      */
     ret = json_parse_document(&json, req->response);
