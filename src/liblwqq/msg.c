@@ -25,6 +25,8 @@ static void lwqq_recvmsg_poll_msg(struct LwqqRecvMsgList *list);
 static json_t *get_result_json_object(json_t *json);
 static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str);
 
+static int send_msg(struct LwqqSendMsg *sendmsg);
+
 /** 
  * Create a new LwqqRecvMsgList object
  * 
@@ -83,7 +85,7 @@ LwqqMsg *lwqq_msg_new(const char *from, const char *to,
                       const char *msg_type, const char *content)
 {
     LwqqMsg *msg;
-
+    
     msg = s_malloc(sizeof(*msg));
     msg->from = s_strdup(from);
     msg->to = s_strdup(to);
@@ -270,4 +272,116 @@ static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list)
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     pthread_create(&tid, &attr, start_poll_msg, list);
+}
+
+/** 
+ * Create a new LwqqSendMsg object
+ * 
+ * @param client 
+ * @param to
+ * @param msg_type 
+ * @param content 
+ * 
+ * @return 
+ */
+LwqqSendMsg *lwqq_sendmsg_new(void *client, const char *to,
+                              const char *msg_type, const char *content)
+{
+    LwqqSendMsg *sendmsg;
+    LwqqClient *lc = client;
+
+    if (!client || !to || !msg_type || !content) {
+        return NULL;
+    }
+    
+    sendmsg = s_malloc0(sizeof(*sendmsg));
+    sendmsg->lc = client;
+    sendmsg->msg = lwqq_msg_new(lc->username, to, msg_type, content);
+    sendmsg->send = send_msg; 
+
+    return sendmsg;
+}
+
+/** 
+ * Free a LwqqSendMsg object
+ * 
+ * @param msg 
+ */
+void lwqq_sendmsg_free(LwqqSendMsg *msg)
+{
+    if (!msg)
+        return;
+
+    lwqq_msg_free(msg->msg);
+    s_free(msg);
+}
+
+/* FIXME: So much hard code */
+char *create_default_content(const char *content)
+{
+    char s[2048];
+
+    snprintf(s, sizeof(s), "[[\"face\",110],\", %s\\n\","
+             "[\"font\",{\"name\":\"宋体\",\"size\":\"10\","
+             "\"style\":[0,0,0],\"color\":\"000000\"}]]", content);
+    return strdup(s);
+}
+
+/** 
+ * 
+ * 
+ * @param msg 
+ * @param lc 
+ * 
+ * @return 
+ */
+static int send_msg(struct LwqqSendMsg *sendmsg)
+{
+    int ret;
+    LwqqClient *lc;
+    LwqqMsg *msg;
+    LwqqHttpRequest *req = NULL;  
+    char *cookies;
+    char *s;
+    char *content = NULL;
+    char data[1024];
+
+    lc = (LwqqClient *)(sendmsg->lc);
+    if (!lc) {
+        goto failed;
+    }
+    msg = sendmsg->msg;
+    content = create_default_content(msg->content);
+    snprintf(data, sizeof(data), "{\"to\":%s,\"face\":81,\"content\":%s,"
+             "\"msg_id\":%ld,\"clientid\":%s,\"psessionid\":%s}",
+             msg->to, content, lc->msg_id, lc->clientid, lc->psessionid);
+    s_free(content);
+    s = url_encode(data);
+    snprintf(data, sizeof(data), "r=%s", s);
+    s_free(s);
+
+    /* Create a POST request */
+    char url[512];
+    snprintf(url, sizeof(url), "%s/channel/send_buddy_msg2", "http://d.web2.qq.com");
+    req = lwqq_http_create_default_request(url, NULL);
+    if (!req) {
+        goto failed;
+    }
+    req->set_header(req, "Referer", "http://d.web2.qq.com/proxy.html?v=20101025002");
+    req->set_header(req, "Content-Transfer-Encoding", "binary");
+    req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
+    
+    ret = req->do_request(req, 1, data);
+    if (ret || req->http_code != 200) {
+        goto failed;
+    }
+    return 0;
+
+failed:
+    return -1;
 }

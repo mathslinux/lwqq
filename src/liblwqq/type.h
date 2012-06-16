@@ -126,6 +126,7 @@ typedef struct LwqqClient {
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
     LIST_HEAD(, LwqqGroup) groups; /**< QQ groups */
     LwqqRecvMsgList *msg_list;
+    long msg_id;            /**< Used to send message */
 } LwqqClient;
 
 /* Lwqq Error Code */
