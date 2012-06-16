@@ -179,7 +179,7 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str)
     /* make json_tmp point to first child of "result" */
     json_tmp = json_tmp->child->child;
     for (cur = json_tmp; cur != NULL; cur = cur->next) {
-        char *msg_type, *from, *to, *content;
+        char *msg_type, *from, *to, *content=NULL;
         json_t *tmp, *ctent;
         
         msg_type = json_parse_simple_value(cur, "poll_type");

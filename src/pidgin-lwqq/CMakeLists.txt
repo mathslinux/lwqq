@@ -1,0 +1,2 @@
+SET(TARNAME pidgin-ofetion)
+
