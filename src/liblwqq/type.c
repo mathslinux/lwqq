@@ -9,6 +9,7 @@
  */
 
 #include <string.h>
+#include <sys/time.h>
 #include "type.h"
 #include "smemory.h"
 #include "logger.h"
@@ -24,6 +25,9 @@
  */
 LwqqClient *lwqq_client_new(const char *username, const char *password)
 {
+    struct timeval tv;
+    long v;
+
     if (!username || !password) {
         lwqq_log(LOG_ERROR, "Username or password is null\n");
         return NULL;
@@ -42,6 +46,14 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     lc->cookies = s_malloc0(sizeof(*(lc->cookies)));
 
     lc->msg_list = lwqq_recvmsg_new(lc);
+
+    /* Set msg_id */
+    gettimeofday(&tv, NULL);
+    v = tv.tv_usec;
+    v = (v - v % 1000) / 1000;
+    v = v % 10000 * 10000;
+    lc->msg_id = v;
+    
     return lc;
     
 failed:

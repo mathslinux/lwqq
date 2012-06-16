@@ -46,6 +46,8 @@ LwqqMsg *lwqq_msg_new(const char *from, const char *to,
  */
 void lwqq_msg_free(LwqqMsg *msg);
 
+/************************************************************************/
+/* LwqqRecvMsg API */
 /**
  * Lwqq Receive Message object, used by receiving message
  * 
@@ -78,5 +80,37 @@ LwqqRecvMsgList *lwqq_recvmsg_new(void *client);
  * @param list 
  */
 void lwqq_recvmsg_free(LwqqRecvMsgList *list);
+
+/* LwqqRecvMsg API end */
+
+/************************************************************************/
+/*  LwqqSendMsg API */
+typedef struct LwqqSendMsg {
+    void *lc;                   /**< Suck Code now */
+    LwqqMsg *msg;
+    int (*send)(struct LwqqSendMsg *msg);
+} LwqqSendMsg;
+
+/** 
+ * Create a new LwqqSendMsg object
+ * 
+ * @param client 
+ * @param to
+ * @param msg_type 
+ * @param content 
+ * 
+ * @return 
+ */
+LwqqSendMsg *lwqq_sendmsg_new(void *client, const char *to,
+                              const char *msg_type, const char *content);
+
+/** 
+ * Free a LwqqSendMsg object
+ * 
+ * @param msg 
+ */
+void lwqq_sendmsg_free(LwqqSendMsg *msg);
+
+/*  LwqqSendMsg API End */
 
 #endif  /* LWQQ_MSG_H */
