@@ -12,6 +12,7 @@
 #define LWQQ_TYPE_H
 
 #include "queue.h"
+#include "msg.h"
 
 /************************************************************************/
 /* Struct defination */
@@ -51,7 +52,7 @@ typedef struct LwqqBuddy {
 
     char *flag;
 
-    int cate_index;             /**< Index of the category */
+    char *cate_index;           /**< Index of the category */
 
     /*
      * 1 : Desktop client
@@ -64,12 +65,25 @@ typedef struct LwqqBuddy {
 
 /* QQ group */
 typedef struct LwqqGroup {
-    char *flag;                  
     char *name;                  /**< QQ Group name */
     char *gid;
-    char *code;
-    
+    char *code;    
+    char *account;               /** < QQ Group number */
+    char *markname;              /** < QQ Group mark name */
+
+    /* ginfo */
+    char *face;
+    char *memo;
+    char *class;
+    char *fingermemo;
+    char *createtime;
+    char *level;
+    char *owner;                 /** < owner's QQ number  */
+    char *flag;
+    char *option;
+
     LIST_ENTRY(LwqqGroup) entries;
+
 } LwqqGroup;
 
 typedef struct LwqqVerifyCode {
@@ -111,6 +125,7 @@ typedef struct LwqqClient {
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
     LIST_HEAD(, LwqqGroup) groups; /**< QQ groups */
+    LwqqRecvMsgList *msg_list;
 } LwqqClient;
 
 /* Lwqq Error Code */
@@ -203,7 +218,15 @@ void lwqq_group_free(LwqqGroup *group);
  */
 LwqqGroup *lwqq_group_new();
 
-
+/** 
+ * Find group object by group's gid member
+ * 
+ * @param lc Our Lwqq client object
+ * @param uin The gid of group which we want to find
+ * 
+ * @return A LwqqGroup instance
+ */
+LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid);
 
 /************************************************************************/
 

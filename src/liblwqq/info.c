@@ -19,6 +19,8 @@
 
 static json_t *get_result_json_object(json_t *json);
 static void create_post_data(LwqqClient *lc, char *buf, int buflen);
+static char *get_friend_number(LwqqClient *lc, const char *uin);
+char *get_group_number(LwqqClient *lc, const char *code);
 
 /** 
  * Get the result object in a json object.
@@ -235,7 +237,7 @@ static void parse_friends_child(LwqqClient *lc, json_t *json)
         if (!buddy)
             continue;
 
-        buddy->cate_index = atoi(cate_index);
+        buddy->cate_index = s_strdup(cate_index);
     }
 }
 
@@ -253,6 +255,7 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     int ret;
     json_t *json = NULL, *json_tmp;
     char *cookies;
+    LwqqBuddy *buddy = NULL;
 
     if (!err) {
         return ;
@@ -318,6 +321,11 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
         parse_marknames_child(lc, json_tmp);
         parse_friends_child(lc, json_tmp);
     }
+
+    /* Update detail information */
+    LIST_FOREACH(buddy, &lc->friends, entries) {
+        lwqq_info_get_friend_detail_info(lc, buddy, NULL);
+    }
         
 done:
     if (json)
@@ -333,8 +341,13 @@ json_error:
     lwqq_http_request_free(req);
 }
 
-/** 
- * Parse info group
+/**
+ * Parsing group info like this.
+ *
+ * "gnamelist":[
+ *  {"flag":17825793,"name":"EGE...C/C++............","gid":3772225519,"code":1713443374},
+ *  {"flag":1,"name":"............","gid":2698833507,"code":3968641865}
+ * ]
  * 
  * @param lc 
  * @param json Point to the first child of "result"'s value
@@ -363,20 +376,61 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
         group->gid = s_strdup(json_parse_simple_value(cur, "gid"));
         group->code = s_strdup(json_parse_simple_value(cur, "code"));
 
-        /* Add to categories list */
+        /* we got the 'code', so we can get the qq group number now */
+        group->account = get_group_number(lc, group->code);
+
+        /* Add to groups list */
         LIST_INSERT_HEAD(&lc->groups, group, entries);
     }
 }
 
+/** 
+ * Parse group info like this
+ *
+ * "gmarklist":[{"uin":2698833507,"markname":".................."}]
+ * 
+ * @param lc 
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_gmarklist_child(LwqqClient *lc, json_t *json)
+{
+    LwqqGroup *group;
+    json_t *cur;
+    char *uin;
+    char *markname;
+    
+    /* Make json point "gmarklist" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "gmarklist")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        uin = json_parse_simple_value(cur, "uin");
+        markname = json_parse_simple_value(cur, "markname");
+
+        if (!uin || !markname)
+            continue;
+      	group = lwqq_group_find_group_by_gid(lc, uin);
+        if (!group)
+            continue;
+        group->markname = s_strdup(markname);
+    }
+}
 
 /** 
- * Get QQ groups information. These information include basic group
- * information
+ * Get QQ groups' name information. Get only 'name', 'gid' , 'code' .
  * 
  * @param lc 
  * @param err 
  */
-void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
+void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
 {
 
   	lwqq_log(LOG_DEBUG, "in function.");
@@ -417,7 +471,13 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
 
     /**
      * Here, we got a json object like this:
-     * {"retcode":0,"result":{"gmasklist":[],"gnamelist":[{"flag":17825793,"name":"EGEC/C++","gid":1253810024,"code":1604013092}],"gmarklist":[]}}
+     * {"retcode":0,"result":{
+     * "gmasklist":[],
+     * "gnamelist":[
+     *  {"flag":17825793,"name":"EGE...C/C++............","gid":3772225519,"code":1713443374},
+     *  {"flag":1,"name":"............","gid":2698833507,"code":3968641865}
+     * ],
+     * "gmarklist":[{"uin":2698833507,"markname":".................."}]}}
      * 
      */
     ret = json_parse_document(&json, req->response);
@@ -441,6 +501,7 @@ void lwqq_info_get_groups_info(LwqqClient *lc, LwqqErrorCode *err)
 
         /* Parse friend category information */
         parse_groups_gnamelist_child(lc, json_tmp);
+        parse_groups_gmarklist_child(lc, json_tmp);
                
     }
         
@@ -456,6 +517,88 @@ json_error:
     if (json)
         json_free_value(&json);
     lwqq_http_request_free(req);
+}
+
+/** 
+ * Get QQ friend number
+ * 
+ * @param lc 
+ * @param uin Friend's uin
+ *
+ * @return 
+ */
+static char *get_friend_number(LwqqClient *lc, const char *uin)
+{
+    if (!uin) {
+        return NULL;
+    }
+
+    char url[512];
+    LwqqHttpRequest *req = NULL;  
+    int ret;
+    json_t *json = NULL;
+    char *qqnumber = NULL;
+    char *cookies;
+
+    if (!lc || ! uin) {
+        return NULL;
+    }
+
+    /* Create a GET request */
+    /*     g_sprintf(params, GETQQNUM"?tuin=%s&verifysession=&type=1&code="
+           "&vfwebqq=%s&t=%ld", uin */
+    snprintf(url, sizeof(url),
+             "%s/api/get_friend_uin2?tuin=%s&verifysession=&type=1&code=&vfwebqq=%s",
+             "http://s.web2.qq.com", uin, lc->vfwebqq);
+    req = lwqq_http_create_default_request(url, NULL);
+    if (!req) {
+        goto done;
+    }
+    req->set_header(req, "Referer", "http://s.web2.qq.com/proxy.html?v=20101025002");
+    req->set_header(req, "Content-Transfer-Encoding", "binary");
+    req->set_header(req, "Content-type", "utf-8");
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
+    ret = req->do_request(req, 0, NULL);
+    if (ret || req->http_code != 200) {
+        goto done;
+    }
+
+    /**
+     * Here, we got a json object like this:
+     * {"retcode":0,"result":{"uiuin":"","account":615050000,"uin":954663841}}
+     * 
+     */
+    ret = json_parse_document(&json, req->response);
+    if (ret != JSON_OK) {
+        lwqq_log(LOG_ERROR, "Parse json object of groups error: %s\n", req->response);
+        goto done;
+    }
+
+    qqnumber = s_strdup(json_parse_simple_value(json, "account"));
+
+done:
+    /* Free temporary string */
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+    return qqnumber;
+}
+
+/** 
+ * Get QQ group number
+ * 
+ * @param lc 
+ * @param code is group‘s code
+ *
+ * @return 
+ */
+char *get_group_number(LwqqClient *lc, const char *code)
+{
+    return get_friend_number(lc, code);
 }
 
 /** 
@@ -476,17 +619,23 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
     LwqqHttpRequest *req = NULL;  
     int ret;
     json_t *json = NULL, *json_tmp;
-    char *value = NULL;
     char *cookies;
 
-    if (!lc || ! buddy || !err) {
+    if (!lc || ! buddy) {
         return ;
     }
 
+    /* Make sure we know uin. */
+    if (!buddy->uin) {
+        if (err)
+            *err = LWQQ_EC_NULL_POINTER;
+        return ;
+    }
+    
     /* Create a GET request */
     snprintf(url, sizeof(url),
              "%s/api/get_friend_info2?tuin=%s&verifysession=&code=&vfwebqq=%s",
-             "http://s.web2.qq.com", lc->username, lc->vfwebqq);
+             "http://s.web2.qq.com", buddy->uin, lc->vfwebqq);
     req = lwqq_http_create_default_request(url, err);
     if (!req) {
         goto done;
@@ -501,7 +650,8 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
     }
     ret = req->do_request(req, 0, NULL);
     if (ret || req->http_code != 200) {
-        *err = LWQQ_EC_HTTP_ERROR;
+        if (err)
+            *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
@@ -520,30 +670,18 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
         lwqq_log(LOG_ERROR, "Parse json object of groups error: %s\n", req->response);
-        *err = LWQQ_EC_ERROR;
+        if (err)
+            *err = LWQQ_EC_ERROR;
         goto done;
     }
-    
-    /**
-     * Frist, we parse retcode that indicate whether we get
-     * correct response from server
-     */
-    value = json_parse_simple_value(json, "retcode");
-    if (!value || strcmp(value, "0")) {
-        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
-        goto json_error;
-    }
 
-    /**
-     * Second, Check whether there is a "result" key in json object
-     */
-    json_tmp = json_find_first_label_all(json, "result");
+    json_tmp = get_result_json_object(json);
     if (!json_tmp) {
         lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
         goto json_error;
     }
 
-    /** Third, it seems everything is ok, we start parsing information
+    /** It seems everything is ok, we start parsing information
      * now
      */
     if (json_tmp->child) {
@@ -577,6 +715,12 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
         SET_BUDDY_INFO(province, "province");
         SET_BUDDY_INFO(gender, "gender");
         SET_BUDDY_INFO(mobile, "mobile");
+        if (!buddy->qqnumber) {
+            /** If qqnumber hasnt been fetched(NB: lc->myself has qqnumber),
+             * fetch it
+             */
+            buddy->qqnumber = get_friend_number(lc, buddy->uin);
+        }
 #undef SET_BUDDY_INFO
     }
 
@@ -588,7 +732,8 @@ done:
     return ;
 
 json_error:
-    *err = LWQQ_EC_ERROR;
+    if (err)
+        *err = LWQQ_EC_ERROR;
     /* Free temporary string */
     if (json)
         json_free_value(&json);

@@ -1,1 +1,1 @@
-SUBDIRS=liblwqq lwdb gui plugin
+SUBDIRS=liblwqq lwdb gui cli

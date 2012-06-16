@@ -15,6 +15,7 @@
 #include "logger.h"
 #include "info.h"
 #include "smemory.h"
+#include "msg.h"
 
 static char *get_vc()
 {
@@ -34,15 +35,16 @@ static char *get_vc()
     return s_strdup(buf);
 }
 
-static void test_login()
+static void test_login(const char *qqnumber, const char *password)
 {
-    LwqqClient *lc = lwqq_client_new("1421032531", "1234567890");
+    LwqqClient *lc = lwqq_client_new(qqnumber, password);
     if (!lc)
         return ;
 
     LwqqErrorCode err;
     lwqq_login(lc, &err);
     if (err == LWQQ_EC_LOGIN_NEED_VC) {
+        unlink("/tmp/test.txt");
         while (1) {
             if (!access("/tmp/test.txt", F_OK)) {
                 sleep(1);
@@ -59,31 +61,138 @@ static void test_login()
         goto done;
     }
     lwqq_log(LOG_NOTICE, "Login successfully\n");
-    
+
+#if 0
     lwqq_info_get_friends_info(lc, &err);
 
     if (err == LWQQ_EC_OK) {
         LwqqBuddy *buddy;
         LIST_FOREACH(buddy, &lc->friends, entries) {
-            if (buddy->nick)
-                lwqq_log(LOG_DEBUG, "Nick: %s\n", buddy->nick);
+            char buf[128] = {0};
+            if (buddy->qqnumber) {
+                strcat(buf, "qqnumber:");
+                strcat(buf, buddy->qqnumber);
+                strcat(buf, ", ");
+            }
+            if (buddy->nick) {
+                strcat(buf, "nick:");
+                strcat(buf, buddy->nick);
+                strcat(buf, ", ");
+            }
+            if (buddy->uin) {
+                strcat(buf, "uin:");
+                strcat(buf, buddy->uin);
+                strcat(buf, ", ");
+            }
+            lwqq_log(LOG_DEBUG, "Buddy info: %s\n", buf);
         }
     }
 
-    lwqq_info_get_groups_info(lc, &err);
+    lwqq_info_get_group_name_list(lc, &err);
        
     if (err == LWQQ_EC_OK) {
         LwqqGroup *group;
         LIST_FOREACH(group, &lc->groups, entries) {
-            if (group->name)
-                lwqq_log(LOG_DEBUG, "Group name: %s\n", group->name);
+            char buf[256] = {0};
+
+            if (group->name) {
+                strcat(buf, "name:");
+                strcat(buf, group->name);
+                strcat(buf, ", ");
+            }
+            
+            if (group->gid) {
+                strcat(buf, "gid:");
+                strcat(buf, group->gid);
+                strcat(buf, ", ");
+            }
+
+            if (group->code) {
+                strcat(buf, "code:");
+                strcat(buf, group->code);
+                strcat(buf, ", ");
+            }
+
+            if (group->markname) {
+                strcat(buf, "markname:");
+                strcat(buf, group->markname);
+                strcat(buf, ", ");
+            }
+
+            if (group->account) {
+                strcat(buf, "account:");
+                strcat(buf, group->account);
+                strcat(buf, ", ");
+            }
+
+            if (group->owner) {
+                strcat(buf, "owner:");
+                strcat(buf, group->owner);
+                strcat(buf, ", ");
+            }
+            
+            if (group->memo) {
+                strcat(buf, "memo:");
+                strcat(buf, group->memo);
+                strcat(buf, ", ");
+            }
+
+            if (group->fingermemo) {
+                strcat(buf, "fingermemo:");
+                strcat(buf, group->fingermemo);
+                strcat(buf, ", ");
+            }
+
+            if (group->level) {
+                strcat(buf, "level:");
+                strcat(buf, group->level);
+                strcat(buf, ", ");
+            }
+
+            if (group->createtime) {
+                strcat(buf, "createtime:");
+                strcat(buf, group->createtime);
+                strcat(buf, ", ");
+            }
+
+            if (group->face) {
+                strcat(buf, "face:");
+                strcat(buf, group->face);
+                strcat(buf, ", ");
+            }
+
+            if (group->flag) {
+                strcat(buf, "flag:");
+                strcat(buf, group->flag);
+                strcat(buf, ", ");
+            }
+            
+         lwqq_log(LOG_DEBUG, "Group info: %s\n", buf);
         }
     }
 
     lwqq_info_get_friend_detail_info(lc, lc->myself, &err);
+#endif 
+
+    lc->msg_list->poll_msg(lc->msg_list);
+
+    while (1) {
+        usleep(100);
+        LwqqRecvMsg *msg;
+        pthread_mutex_lock(&lc->msg_list->mutex);
+        if (!SIMPLEQ_EMPTY(&lc->msg_list->head)) {
+            msg = SIMPLEQ_FIRST(&lc->msg_list->head);
+            if (msg->msg->content) {
+                printf ("########################content: %s\n", msg->msg->content);
+            }
+            SIMPLEQ_REMOVE_HEAD(&lc->msg_list->head, entries);
+        }
+        pthread_mutex_unlock(&lc->msg_list->mutex);
+    }
+//    lwqq_msg_poll(lc);
     
     /* Logout test */
-    sleep(1);
+    sleep(2);
     lwqq_logout(lc, &err);
     if (err != LWQQ_EC_OK) {
         lwqq_log(LOG_DEBUG, "Logout failed\n");        
@@ -97,7 +206,10 @@ done:
 
 int main(int argc, char *argv[])
 {
-    test_login();
+    if (argc != 3) {
+        return -1;
+    }
+    test_login(argv[1], argv[2]);
     return 0;
 }
 
