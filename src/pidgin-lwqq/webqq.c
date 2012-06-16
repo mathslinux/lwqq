@@ -571,6 +571,27 @@ static void process_notify_cb(fetion_account *ac, const gchar *sipmsg)
 	g_free(xml);
 }
 
+void check_info(LwqqClient* lc){
+    /*LwqqRecvMsg *msg;
+    while(1){
+        usleep(1000);
+        pthread_mutex_lock(&lc->msg_list->mutex);
+        if (!SIMPLEQ_EMPTY(&lc->msg_list->head)) {
+            msg = SIMPLEQ_FIRST(&lc->msg_list->head);
+            if (msg->msg->content) {
+                //\printf ("########################content: %s\n", msg->msg->content);
+                purple_debug_info("account","content:%s\n",msg->msg->content);
+            }
+            SIMPLEQ_REMOVE_HEAD(&lc->msg_list->head, entries);
+        }
+        pthread_mutex_unlock(&lc->msg_list->mutex);
+    }
+*/
+}
+void clean_all_buddies(PurpleAccount *ac)
+{
+    GSList* purple_get_buddies();
+}
 static void fx_login(PurpleAccount *account)
 {
 	PurplePresence *presence;
@@ -619,9 +640,12 @@ static void fx_login(PurpleAccount *account)
     purple_connection_set_state(pc,PURPLE_CONNECTED);
     purple_debug_info("account","connected ok\n");
 
-    purple_group_new("临时");
     fx_blist_init(ac);
-
+    /*ac->qq->msg_list->poll_msg(ac->qq->msg_list);
+    pthread_t th;
+    pthread_init(&th);
+    pthread_create(&th,NULL,check_info,ac->qq);
+*/
     return;
 done:
     lwqq_client_free(ac->qq);
@@ -632,8 +656,13 @@ static void fx_close(PurpleConnection *gc)
 {
 	fetion_account *ses;
 	fetion_account *ac = purple_connection_get_protocol_data(gc);
-
-	purple_input_remove(ac->conn);
+    LwqqClient* qq = ac->qq;
+    LwqqErrorCode err;
+    lwqq_logout(qq,&err);
+    lwqq_client_free(qq);
+    ac->qq=NULL;
+    purple_connection_set_protocol_data(gc,NULL);
+	/*purple_input_remove(ac->conn);
 	close(ac->sk);
 	g_free(ac->data);
 	ac->data = (gchar*)0;
@@ -645,7 +674,7 @@ static void fx_close(PurpleConnection *gc)
 	}
 	fetion_user_free(ac->user);
 	ac->user = NULL;
-	purple_connection_set_protocol_data(gc, NULL);
+	purple_connection_set_protocol_data(gc, NULL);*/
 }
 
 
@@ -980,4 +1009,4 @@ init_plugin(PurplePlugin *UNUSED(plugin))
 	buddy_to_added = NULL;
 }
 
-PURPLE_INIT_PLUGIN(openfetion, init_plugin, info)
+PURPLE_INIT_PLUGIN(webqq, init_plugin, info)

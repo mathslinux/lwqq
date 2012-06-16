@@ -89,6 +89,7 @@ AC_CONFIG_FILES([Makefile
         src/Makefile 
         src/liblwqq/Makefile
         src/liblwqq/libghttp/Makefile
+        src/liblwqq/libev/Makefile
         src/lwdb/Makefile
         src/gui/Makefile
         src/cli/Makefile

@@ -115,9 +115,9 @@ void fx_blist_init(fetion_account *ac)
         LIST_FOREACH(bu, &lc->friends, entries) {
             //lwqq_info_get_friend_detail_info(lc,bu,&err);
 
-            purple_debug_info("account","Nick:%s\n",bu->qqnumber);
-            if(!(buddy = purple_find_buddy(account, bu->uin)))
-                buddy = purple_buddy_new(account,bu->uin,bu->nick);
+            if(!(buddy = purple_find_buddy(account, bu->nick)))
+                buddy = purple_buddy_new(account,bu->nick,bu->nick);
+
             purple_blist_add_buddy(buddy,NULL,group,NULL);
             //        purple_prpl_got_user_status(account, bu->uin, "online", NULL);
             purple_prpl_got_user_status(account, bu->uin, "Online", NULL);

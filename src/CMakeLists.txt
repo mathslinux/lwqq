@@ -3,8 +3,8 @@ AUX_SOURCE_DIRECTORY(liblwqq LWQQ_LIST)
 AUX_SOURCE_DIRECTORY(pidgin-lwqq SRC_LIST)
 
 
-
-ADD_LIBRARY(libwebqq MODULE ${SRC_LIST} 
+ADD_LIBRARY(libwebqq MODULE 
+    ${SRC_LIST} 
     ${LWQQ_LIST} 
     ${GHTTP_LIST}
     )
@@ -19,14 +19,12 @@ INCLUDE_DIRECTORIES(
     liblwqq/libghttp
 	)
 
-LINK_DIRECTORIES(
-    )
-
 TARGET_LINK_LIBRARIES(libwebqq
-   					${LIBXML_LIBRARIES}
+   					${LIBXML2_LIBRARIES}
 					${OPENSSL_LIBRARIES}
 					${PURPLE_LIBRARIES}
                     ${GLIB_LIBRARIES}
+                    pthread
 					)
 
 
