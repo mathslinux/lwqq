@@ -29,6 +29,7 @@
 #include "md5.h"
 #include "url.h"
 #include "json.h"
+#include "async.h"
 
 /* URL for webqq login */
 #define LWQQ_URL_LOGIN_HOST "http://ptlogin2.qq.com"
@@ -398,6 +399,85 @@ static int sava_cookie(LwqqClient *lc, LwqqHttpRequest *req, LwqqErrorCode *err)
     return 0;
 }
 
+static void do_login_async(LwqqClient* lc,LwqqHttpRequest* req,void* data)
+{
+    LwqqErrorCode error;
+    LwqqErrorCode *err =& lc->async->last_err;
+
+    char *response = NULL;
+    if (req->http_code != 200) {
+        *err = LWQQ_EC_HTTP_ERROR;
+        goto done;
+    }
+
+    response = req->response;
+    char *p = strstr(response, "\'");
+    if (!p) {
+        *err = LWQQ_EC_ERROR;
+        goto done;
+    }
+    char buf[4] = {0};
+    int status;
+    strncpy(buf, p + 1, 1);
+    status = atoi(buf);
+
+    switch (status) {
+    case 0:
+        if (sava_cookie(lc, req, err)) {
+            goto done;
+        }
+        break;
+        
+    case 1:
+        lwqq_log(LOG_WARNING, "Server busy! Please try again\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+
+    case 2:
+        lwqq_log(LOG_ERROR, "Out of date QQ number\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+
+    case 3:
+        lwqq_log(LOG_ERROR, "Wrong password\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+
+    case 4:
+        lwqq_log(LOG_ERROR, "Wrong verify code\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+
+    case 5:
+        lwqq_log(LOG_ERROR, "Verify failed\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+
+    case 6:
+        lwqq_log(LOG_WARNING, "You may need to try login again\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+
+    case 7:
+        lwqq_log(LOG_ERROR, "Wrong input\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+
+    case 8:
+        lwqq_log(LOG_ERROR, "Too many logins on this IP. Please try again\n");
+        *err = LWQQ_EC_ERROR;
+        goto done;
+
+    default:
+        *err = LWQQ_EC_ERROR;
+        lwqq_log(LOG_ERROR, "Unknow error");
+        goto done;
+    }
+
+    set_online_status(lc, "online", err);
+done:
+    lwqq_http_request_free(req);
+}
 /** 
  * Do really login
  * 
@@ -426,6 +506,12 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
     }
     /* Setup http header */
     cookies = lwqq_get_cookies(lc);
+    
+    if(lwqq_async_enabled(lc)){
+        lwqq_http_set_async(req);
+        lwqq_async_add_listener(lc,LOGIN_COMPLETE,do_login_async,err);
+    }
+
     if (cookies) {
         req->set_header(req, "Cookie", cookies);
         s_free(cookies);
@@ -437,6 +523,13 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
         *err = LWQQ_EC_NETWORK_ERROR;
         goto done;
     }
+
+    if(lwqq_async_enabled(lc)){ 
+        lwqq_async_watch(lc,req,LOGIN_COMPLETE);
+        *err = LWQQ_EC_OK;
+        return;
+    }
+
     if (req->http_code != 200) {
         *err = LWQQ_EC_HTTP_ERROR;
         goto done;
@@ -587,7 +680,7 @@ static char *generate_clientid()
 static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
 {
     char msg[1024] ={0};
-    char *ptwebqq;
+    //char *ptwebqq=NULL;
     char *buf;
     LwqqHttpRequest *req = NULL;  
     char *response = NULL;
@@ -608,7 +701,7 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
     }
 
     /* Do we really need ptwebqq */
-    ptwebqq = lc->cookies->ptwebqq ? lc->cookies->ptwebqq : "";
+    //ptwebqq = (lc->cookies->ptwebqq!=NULL) ? lc->cookies->ptwebqq : "";
     snprintf(msg, sizeof(msg), "{\"status\":\"%s\",\"ptwebqq\":\"%s\","
              "\"passwd_sig\":""\"\",\"clientid\":\"%s\""
              ", \"psessionid\":null}"

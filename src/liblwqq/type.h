@@ -14,6 +14,18 @@
 #include "queue.h"
 #include "msg.h"
 
+#ifdef USE_KTHRED
+#define thread_t struct task_struct*
+#define thread_init(th) th=NULL
+#define thread_free(th) 
+#define thread_create(th,func,data,name) (th = kthread_create(func,data,name))
+#else
+#define thread_t pthread_t*
+#define thread_init(th) th = malloc(sizeof(pthread_t))
+#define thread_free(th) free(th)
+#define thread_create(th,func,data,name) (pthread_create(th,NULL,func,data))
+#endif
+
 /************************************************************************/
 /* Struct defination */
 
@@ -106,6 +118,7 @@ typedef struct LwqqCookies {
     char *lwcookies;
 } LwqqCookies;
 
+struct LwqqAsyncListener ;
 /* LwqqClient API */
 typedef struct LwqqClient {
     char *username;             /**< Username */
@@ -122,6 +135,7 @@ typedef struct LwqqClient {
     char *vfwebqq;
     char *psessionid;
     LwqqCookies *cookies;
+    struct LwqqAsyncListener *async;
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
     LIST_HEAD(, LwqqGroup) groups; /**< QQ groups */
@@ -171,6 +185,9 @@ char *lwqq_get_cookies(LwqqClient *lc);
  * @param client LwqqClient instance
  */
 void lwqq_client_free(LwqqClient *client);
+
+int lwqq_async_enabled(LwqqClient* client);
+void lwqq_async_set(LwqqClient* client,int enabled);
 
 /* LwqqClient API end */
 
