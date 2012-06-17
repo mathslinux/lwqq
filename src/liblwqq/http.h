@@ -85,4 +85,8 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri);
 LwqqHttpRequest *lwqq_http_create_default_request(const char *url,
                                                   LwqqErrorCode *err);
 
+void lwqq_http_set_async(LwqqHttpRequest* request);
+
+int lwqq_http_do_request_async(LwqqHttpRequest* request);
+
 #endif  /* LWQQ_HTTP_H */

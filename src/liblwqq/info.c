@@ -16,6 +16,7 @@
 #include "http.h"
 #include "smemory.h"
 #include "json.h"
+#include "async.h"
 
 static json_t *get_result_json_object(json_t *json);
 static void create_post_data(LwqqClient *lc, char *buf, int buflen);
@@ -241,6 +242,65 @@ static void parse_friends_child(LwqqClient *lc, json_t *json)
     }
 }
 
+void get_friends_info_async(LwqqClient* lc,LwqqHttpRequest* req,void* data)
+{
+    json_t *json = NULL, *json_tmp;
+    int ret;
+    LwqqErrorCode error;
+    LwqqErrorCode *err=&error;
+    LwqqBuddy *buddy = NULL;
+
+    ret = json_parse_document(&json, req->response);
+    if (ret != JSON_OK) {
+        lwqq_log(LOG_ERROR, "Parse json object of friends error: %s\n", req->response);
+        *err = LWQQ_EC_ERROR;
+        goto done;
+    }
+
+    json_tmp = get_result_json_object(json);
+    if (!json_tmp) {
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
+        goto json_error;
+    }
+    /** It seems everything is ok, we start parsing information
+     * now
+     */
+    if (json_tmp->child && json_tmp->child->child ) {
+        json_tmp = json_tmp->child->child;
+
+        /* Parse friend category information */
+        parse_categories_child(lc, json_tmp);
+
+        /**
+         * Parse friends information.
+         * Firse, we parse object's "info" child
+         * Then, parse object's "marknames" child
+         * Last, parse object's "friends" child
+         */
+        parse_info_child(lc, json_tmp);
+        parse_marknames_child(lc, json_tmp);
+        parse_friends_child(lc, json_tmp);
+    }
+
+    /* Update detail information */
+    LIST_FOREACH(buddy, &lc->friends, entries) {
+        lwqq_info_get_friend_detail_info(lc, buddy, NULL);
+    }
+        
+done:
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+    return ;
+
+json_error:
+    *err = LWQQ_EC_ERROR;
+    /* Free temporary string */
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+}
+
 /** 
  * Get QQ friends information. These information include basic friend
  * information, friends group information, and so on
@@ -279,7 +339,15 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
         req->set_header(req, "Cookie", cookies);
         s_free(cookies);
     }
+    if(lwqq_async_enabled(lc)){
+        lwqq_http_set_async(req);
+        lwqq_async_add_listener(lc,FRIENDS_ALL_COMPLETE,get_friends_info_async,NULL);
+    }
     ret = req->do_request(req, 1, msg);
+    if(lwqq_async_enabled(lc)){
+        lwqq_async_watch(lc,req,FRIENDS_ALL_COMPLETE);
+        return;
+    }
     if (ret || req->http_code != 200) {
         *err = LWQQ_EC_HTTP_ERROR;
         goto done;
