@@ -24,6 +24,7 @@ static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
     ghttp_set_header(request->req, name, value);
 }
 
+
 static void lwqq_http_set_default_header(LwqqHttpRequest *request)
 {
     lwqq_http_set_header(request, "User-Agent", LWQQ_HTTP_USER_AGENT);
@@ -85,6 +86,11 @@ void lwqq_http_request_free(LwqqHttpRequest *request)
         ghttp_request_destroy(request->req);
         s_free(request);
     }
+}
+
+void lwqq_http_set_async(LwqqHttpRequest* request)
+{
+    ghttp_set_sync(request->req,ghttp_async);
 }
 
 /** 
@@ -212,7 +218,64 @@ static char *ungzip(const char *source, int len, int *total)
 {
     return unzlib(source, len, total, 1);
 }
+int lwqq_http_do_request_async(LwqqHttpRequest* request)
+{
+    char *buf;
+    int have_read_bytes = 0;
+    char **resp = &request->response;
+    int len=0;
 
+    buf = ghttp_get_body(request->req);
+    if (buf) {
+        len = ghttp_get_body_len(request->req);
+        *resp = s_realloc(*resp, have_read_bytes + len);
+        memcpy(*resp + have_read_bytes, buf, len);
+        have_read_bytes += len;
+    }
+
+
+    /* NB: *response may null */
+    if (*resp == NULL) {
+        goto failed;
+    }
+
+    /* Uncompress data here if we have a Content-Encoding header */
+    char *enc_type = NULL;
+    enc_type = lwqq_http_get_header(request, "Content-Encoding");
+    if (enc_type && strstr(enc_type, "gzip")) {
+        char *outdata;
+        int total = 0;
+        
+        outdata = ungzip(*resp, have_read_bytes, &total);
+        if (!outdata) {
+            s_free(enc_type);
+            goto failed;
+        }
+
+        s_free(*resp);
+        /* Update response data to uncompress data */
+        *resp = s_strdup(outdata);
+        s_free(outdata);
+        have_read_bytes = total;
+    }
+    s_free(enc_type);
+
+    /* OK, done */
+    if ((*resp)[have_read_bytes -1] != '\0') {
+        /* Realloc a byte, cause *resp hasn't end with char '\0' */
+        *resp = s_realloc(*resp, have_read_bytes + 1);
+        (*resp)[have_read_bytes] = '\0';
+    }
+    request->http_code = ghttp_status_code(request->req);
+    return 0;
+
+failed:
+    if (*resp) {
+        s_free(*resp);
+        *resp = NULL;
+    }
+    return -1;
+}
 static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body)
 {
     if (!request->req)
@@ -256,6 +319,9 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
     for ( ; ; ) {
         int len = 0;
         status = ghttp_process(request->req);
+        if(status == ghttp_not_done){
+            return 0;
+        }
         if(status == ghttp_error) {
             lwqq_log(LOG_ERROR, "Http request failed: %s\n",
                      ghttp_get_error(request->req));

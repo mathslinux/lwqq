@@ -61,6 +61,13 @@ failed:
     return NULL;
 }
 
+int lwqq_async_enabled(LwqqClient* client)
+{
+    return client->async!=NULL;
+}
+
+
+
 /** 
  * Get cookies needby by webqq server
  * 
