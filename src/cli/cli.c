@@ -13,6 +13,9 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <signal.h>
+#include <stdio.h>
+#include <libgen.h>
+#include <pthread.h>
 
 #include "login.h"
 #include "logger.h"
@@ -26,6 +29,17 @@ static LwqqClient *lc = NULL;
 
 static char vc_image[128];
 static char vc_file[128];
+
+static char *progname;
+
+static char *get_prompt(void)
+{
+	static char	prompt[256];
+
+	if (!prompt[0])
+		snprintf(prompt, sizeof(prompt), "%s> ", progname);
+	return prompt;
+}
 
 static char *get_vc()
 {
@@ -122,17 +136,72 @@ void signal_handler(int signum)
 	}
 }
 
+static void *recvmsg_thread(void *list)
+{
+    LwqqRecvMsgList *l = (LwqqRecvMsgList *)list;
+
+    /* Poll to receive message */
+    l->poll_msg(l);
+    
+    /* Need to wrap those code so look like more nice */
+    while (1) {
+        sleep(1);
+        LwqqRecvMsg *msg;
+        pthread_mutex_lock(&l->mutex);
+        if (!SIMPLEQ_EMPTY(&l->head)) {
+            msg = SIMPLEQ_FIRST(&l->head);
+            if (msg->msg->content) {
+                printf("Receive message: %s\n", msg->msg->content);
+            }
+            SIMPLEQ_REMOVE_HEAD(&l->head, entries);
+        }
+        pthread_mutex_unlock(&l->mutex);
+    }
+
+    pthread_exit(NULL);
+}
+
+static char **breakline(char *input, int *count)
+{
+    int c = 0;
+    char **rval = calloc(sizeof(char *), 1);
+    char **tmp;
+    char *token, *save_ptr;
+
+    token = strtok_r(input, " ", &save_ptr);
+	while (token) {
+        c++;
+        tmp = realloc(rval, sizeof(*rval) * (c + 1));
+        rval = tmp;
+        rval[c - 1] = strdup(token);
+        rval[c] = NULL;
+        token = strtok_r(NULL, " ", &save_ptr);
+	}
+    
+    *count = c;
+    return rval;
+}
+
+static void handle_command(const char *command)
+{
+    
+}
+
 int main(int argc, char *argv[])
 {
     char *qqnumber = NULL, *password = NULL;
     LwqqErrorCode err;
     int c, e = 0;
-
+    pthread_t tid;
+    pthread_attr_t attr;
+    
     if (argc == 1) {
         usage();
         exit(1);
     }
-    
+
+    progname = basename(argv[0]);
+
     const struct option long_options[] = {
         { "version", 0, 0, 'v' },
         { "help", 0, 0, 'h' },
@@ -190,23 +259,25 @@ int main(int argc, char *argv[])
 
     lwqq_log(LOG_NOTICE, "Login successfully\n");
 
-    /* Poll to receive message */
-    lc->msg_list->poll_msg(lc->msg_list);
+    /* Create a thread to receive message */
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&tid, &attr, recvmsg_thread, lc->msg_list);
 
-    /* Need to wrap those code so look like more nice */
     while (1) {
-        sleep(1);
-        LwqqRecvMsg *msg;
-        pthread_mutex_lock(&lc->msg_list->mutex);
-        if (!SIMPLEQ_EMPTY(&lc->msg_list->head)) {
-            msg = SIMPLEQ_FIRST(&lc->msg_list->head);
-            if (msg->msg->content) {
-                printf("Receive message: %s\n", msg->msg->content);
-            }
-            SIMPLEQ_REMOVE_HEAD(&lc->msg_list->head, entries);
+        char buf[128];
+        char **v;
+        int c = 0;
+        fprintf(stdout, "%s", get_prompt());
+        fflush(stdout);
+        if (!fgets(buf, sizeof(buf), stdin)) {
+            /* Avoid gcc warning */
+            continue;
         }
-        pthread_mutex_unlock(&lc->msg_list->mutex);
+        v = breakline(buf, &c);
+        handle_command(buf);
     }
+    
     /* Logout */
     sleep(3);
     cli_logout(lc);
