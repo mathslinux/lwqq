@@ -10,12 +10,19 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <signal.h>
 
 #include "login.h"
 #include "logger.h"
 #include "info.h"
 #include "smemory.h"
 #include "msg.h"
+
+#define LWQQ_CLI_VERSION "0.0.1"
+
+static LwqqClient *lc = NULL;
 
 static char vc_image[128];
 static char vc_file[128];
@@ -42,7 +49,7 @@ static char *get_vc()
     return s_strdup(vc);
 }
 
-static LwqqErrorCode cli_login(LwqqClient *lc)
+static LwqqErrorCode cli_login()
 {
     LwqqErrorCode err;
 
@@ -79,7 +86,7 @@ failed:
     return LWQQ_EC_ERROR;
 }
 
-static void cli_logout(LwqqClient *lc)
+static void cli_logout()
 {
     LwqqErrorCode err;
     
@@ -91,12 +98,82 @@ static void cli_logout(LwqqClient *lc)
     }
 }
 
+static void usage()
+{
+    fprintf(stdout, "Usage: lwqq-cli [options]...\n"
+            "lwqq-cli: A qq client based on gtk+ uses webqq protocol\n"
+            "  -v, --version\n"
+            "      Show version of program\n"
+            "  -u, --user\n"
+            "      Set username(qqnumer)\n"
+            "  -p, --pwd\n"
+            "      Set password\n"
+            "  -h, --help\n"
+            "      Print help and exit\n"
+        );
+}
+
+void signal_handler(int signum)
+{
+	if (signum == SIGINT) {
+        cli_logout(lc);
+        lwqq_client_free(lc);
+        exit(0);
+	}
+}
+
 int main(int argc, char *argv[])
 {
-    char *qqnumber = "75396018", *password = "111119907riega";
-    LwqqClient *lc;
+    char *qqnumber = NULL, *password = NULL;
     LwqqErrorCode err;
+    int c, e = 0;
 
+    if (argc == 1) {
+        usage();
+        exit(1);
+    }
+    
+    const struct option long_options[] = {
+        { "version", 0, 0, 'v' },
+        { "help", 0, 0, 'h' },
+        { "user", 0, 0, 'u' },
+        { "pwd", 0, 0, 'p' },
+        { 0, 0, 0, 0 }
+    };
+
+    /* Lanuch signal handler when user press down Ctrl-C in terminal */
+    signal(SIGINT, signal_handler);
+    
+    while ((c = getopt_long(argc, argv, "vhu:p:",
+                            long_options, NULL)) != EOF) {
+        switch (c) {
+        case 'v':
+            printf("lwqq-cli version %s, Copyright (c) 2012 "
+                   "mathslinux\n", LWQQ_CLI_VERSION);
+            exit(0);
+            
+        case 'h':
+            usage();
+            exit(0);
+            
+        case 'u':
+            qqnumber = optarg;
+            break;
+            
+        case 'p':
+            password = optarg;
+            break;
+            
+        default:
+            e++;
+            break;
+        }
+    }
+    if (e || argc > optind) {
+        usage();
+        exit(1);
+    }
+    
     lc = lwqq_client_new(qqnumber, password);
     if (!lc) {
         lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
@@ -104,14 +181,32 @@ int main(int argc, char *argv[])
     }
 
     /* Login to server */
-    err = cli_login(lc);
+    err = cli_login();
     if (err != LWQQ_EC_OK) {
         lwqq_log(LOG_ERROR, "Login error, exit\n");
+        lwqq_client_free(lc);
         return -1;
     }
 
     lwqq_log(LOG_NOTICE, "Login successfully\n");
 
+    /* Poll to receive message */
+    lc->msg_list->poll_msg(lc->msg_list);
+
+    /* Need to wrap those code so look like more nice */
+    while (1) {
+        sleep(1);
+        LwqqRecvMsg *msg;
+        pthread_mutex_lock(&lc->msg_list->mutex);
+        if (!SIMPLEQ_EMPTY(&lc->msg_list->head)) {
+            msg = SIMPLEQ_FIRST(&lc->msg_list->head);
+            if (msg->msg->content) {
+                printf("Receive message: %s\n", msg->msg->content);
+            }
+            SIMPLEQ_REMOVE_HEAD(&lc->msg_list->head, entries);
+        }
+        pthread_mutex_unlock(&lc->msg_list->mutex);
+    }
     /* Logout */
     sleep(3);
     cli_logout(lc);
