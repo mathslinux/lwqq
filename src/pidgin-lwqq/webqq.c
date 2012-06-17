@@ -39,6 +39,8 @@
 #include "version.h"
 #include "accountopt.h"
 
+#include "async.h"
+
 #include "fx_sip.h"
 #include "fx_user.h"
 #include "fx_login.h"
@@ -588,10 +590,6 @@ void check_info(LwqqClient* lc){
     }
 */
 }
-void clean_all_buddies(PurpleAccount *ac)
-{
-    GSList* purple_get_buddies();
-}
 static void fx_login(PurpleAccount *account)
 {
 	PurplePresence *presence;
@@ -616,40 +614,12 @@ static void fx_login(PurpleAccount *account)
 	presence = purple_account_get_presence(account);
 
 	purple_connection_update_progress(pc, "Connecting", 1, 2);
-	/*purple_ssl_connect(ac->account, SSI_SERVER,
-			PURPLE_SSL_DEFAULT_PORT, 
-			(PurpleSslInputFunction)ssi_auth_action,
-			(PurpleSslErrorFunction)0, ac);*/
+    lwqq_async_set(ac->qq,1);
+    lwqq_async_add_listener(ac->qq,LOGIN_COMPLETE,login_complete,ac);
     lwqq_login(ac->qq,&err);
-    if(ac->qq->status="")ac->qq->status="Online";
-
-	status_id = get_status_id(ac->qq->status);
-	//if(ac->user->state == 0) status_id = "Hidden";
-	purple_presence_set_status_active(presence, status_id, TRUE);
-    if (err == LWQQ_EC_LOGIN_NEED_VC) {
-        pic_read(ac);
-        //lc->vc->str = get_vc();
-        //printf ("get vc: %s\n", lc->vc->str);
-
-        //lwqq_login(lc, &err);
-    } else if (err != LWQQ_EC_OK) {
-        //lwqq_log(LOG_ERROR, "Login error, exit\n");
-        goto done;
+    if(err!=LWQQ_EC_OK){
+        purple_connection_error_reason(pc,PURPLE_CONNECTION_ERROR_NETWORK_ERROR,_("网络不可用"));
     }
-    //lwqq_log(LOG_NOTICE, "Login successfully\n");
-    purple_connection_set_state(pc,PURPLE_CONNECTED);
-    purple_debug_info("account","connected ok\n");
-
-    fx_blist_init(ac);
-    /*ac->qq->msg_list->poll_msg(ac->qq->msg_list);
-    pthread_t th;
-    pthread_init(&th);
-    pthread_create(&th,NULL,check_info,ac->qq);
-*/
-    return;
-done:
-    lwqq_client_free(ac->qq);
-
 }
 
 static void fx_close(PurpleConnection *gc)
@@ -658,8 +628,10 @@ static void fx_close(PurpleConnection *gc)
 	fetion_account *ac = purple_connection_get_protocol_data(gc);
     LwqqClient* qq = ac->qq;
     LwqqErrorCode err;
-    lwqq_logout(qq,&err);
-    lwqq_client_free(qq);
+    if(qq!=NULL){
+        lwqq_logout(qq,&err);
+        lwqq_client_free(qq);
+    }
     ac->qq=NULL;
     purple_connection_set_protocol_data(gc,NULL);
 	/*purple_input_remove(ac->conn);

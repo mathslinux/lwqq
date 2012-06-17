@@ -31,8 +31,10 @@
 
 #ifndef FETION_LOGIN_H
 #define FETION_LOGIN_H
-
+#include "type.h"
+#include "http.h"
 gboolean ssi_auth_action(gpointer data, PurpleSslConnection * gsc, gint con);
 gint sipc_aut_action(gint sk, fetion_account *ac, const gchar *response);
 void pic_read(gpointer data);
+void login_complete(LwqqClient* lc,LwqqHttpRequest *req,void* data);
 #endif

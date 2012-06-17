@@ -19,6 +19,7 @@
 #include "logger.h"
 #include "msg.h"
 #include "queue.h"
+#include "async.h"
 
 static void *start_poll_msg(void *msg_list);
 static void lwqq_recvmsg_poll_msg(struct LwqqRecvMsgList *list);
@@ -38,7 +39,7 @@ LwqqRecvMsgList *lwqq_recvmsg_new(void *client)
 
     list = s_malloc0(sizeof(*list));
     list->lc = client;
-    pthread_mutex_init(&list->mutex, NULL);
+    //pthread_mutex_init(&list->mutex, NULL);
     SIMPLEQ_INIT(&list->head);
     list->poll_msg = lwqq_recvmsg_poll_msg;
     
@@ -256,9 +257,13 @@ static void *start_poll_msg(void *msg_list)
             continue;
         }
         parse_recvmsg_from_json(list, req->response);
+        if(lwqq_async_enabled(lc)){
+            lwqq_async_dispatch(lc,MSG_COME);
+        }
     }
 failed:
     pthread_exit(NULL);
+    purple_debug_info("dbg","pthread_exit");
 }
 
 static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list)

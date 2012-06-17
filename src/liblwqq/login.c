@@ -402,7 +402,7 @@ static int sava_cookie(LwqqClient *lc, LwqqHttpRequest *req, LwqqErrorCode *err)
 static void do_login_async(LwqqClient* lc,LwqqHttpRequest* req,void* data)
 {
     LwqqErrorCode error;
-    LwqqErrorCode *err = &error;
+    LwqqErrorCode *err =& lc->async->last_err;
 
     char *response = NULL;
     if (req->http_code != 200) {
@@ -526,6 +526,7 @@ static void do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
 
     if(lwqq_async_enabled(lc)){ 
         lwqq_async_watch(lc,req,LOGIN_COMPLETE);
+        *err = LWQQ_EC_OK;
         return;
     }
 

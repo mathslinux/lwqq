@@ -14,6 +14,18 @@
 #include "queue.h"
 #include "msg.h"
 
+#ifdef USE_KTHRED
+#define thread_t struct task_struct*
+#define thread_init(th) th=NULL
+#define thread_free(th) 
+#define thread_create(th,func,data,name) (th = kthread_create(func,data,name))
+#else
+#define thread_t pthread_t*
+#define thread_init(th) th = malloc(sizeof(pthread_t))
+#define thread_free(th) free(th)
+#define thread_create(th,func,data,name) (pthread_create(th,NULL,func,data))
+#endif
+
 /************************************************************************/
 /* Struct defination */
 

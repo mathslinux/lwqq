@@ -1,12 +1,16 @@
 AUX_SOURCE_DIRECTORY(liblwqq/libghttp GHTTP_LIST)
 AUX_SOURCE_DIRECTORY(liblwqq LWQQ_LIST)
+LIST(REMOVE_ITEM LWQQ_LIST liblwqq/async.c)
 AUX_SOURCE_DIRECTORY(pidgin-lwqq SRC_LIST)
+#LIST(REMOVE_ITEM SRC_LIST pidgin-lwqq/async.c)
+SET(EV_LIST liblwqq/libev/ev.c liblwqq/libev/event.c)
 
 
 ADD_LIBRARY(libwebqq MODULE 
     ${SRC_LIST} 
     ${LWQQ_LIST} 
     ${GHTTP_LIST}
+    ${EV_LIST}
     )
 set_target_properties(libwebqq PROPERTIES PREFIX "")
 
@@ -17,6 +21,7 @@ INCLUDE_DIRECTORIES(
     ${GLIB_INCLUDE_DIRS}
     liblwqq
     liblwqq/libghttp
+    liblwqq/libev
 	)
 
 TARGET_LINK_LIBRARIES(libwebqq
@@ -24,7 +29,6 @@ TARGET_LINK_LIBRARIES(libwebqq
 					${OPENSSL_LIBRARIES}
 					${PURPLE_LIBRARIES}
                     ${GLIB_LIBRARIES}
-                    pthread
 					)
 
 
@@ -48,7 +52,8 @@ if(NLS)
 	find_package(Gettext)
 endif(NLS)
 
-ADD_DEFINITIONS(-Wall -Wextra -g)
+ADD_DEFINITIONS(-Wall -Wextra -g )
+#ADD_DEFINITIONS(-DUSE_KTHREAD=1)
 
 
 EXEC_PROGRAM("whereis libpurple| sed -e 's/[^\\/]*//' -e 's/\\(.*\\)lib\\/libpurple\\.so.*/\\1/'"

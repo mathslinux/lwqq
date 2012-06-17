@@ -109,18 +109,16 @@ void fx_blist_init(fetion_account *ac)
     group = purple_group_new("临时");
 
     //int id=0;
-    lwqq_info_get_friends_info(lc, &err);
     if (err == LWQQ_EC_OK) {
         LwqqBuddy *bu;
         LIST_FOREACH(bu, &lc->friends, entries) {
             //lwqq_info_get_friend_detail_info(lc,bu,&err);
 
-            if(!(buddy = purple_find_buddy(account, bu->nick)))
-                buddy = purple_buddy_new(account,bu->nick,bu->nick);
+            if(!(buddy = purple_find_buddy(account, bu->qqnumber)))
+                buddy = purple_buddy_new(account,bu->qqnumber,bu->nick);
 
             purple_blist_add_buddy(buddy,NULL,group,NULL);
-            //        purple_prpl_got_user_status(account, bu->uin, "online", NULL);
-            purple_prpl_got_user_status(account, bu->uin, "Online", NULL);
+            purple_prpl_got_user_status(account, bu->qqnumber, "Online", NULL);
         }
     }
     //pc = purple_account_get_connection(ac->account);

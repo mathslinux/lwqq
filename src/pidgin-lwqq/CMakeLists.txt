@@ -1,2 +1,1 @@
-SET(TARNAME pidgin-ofetion)
 

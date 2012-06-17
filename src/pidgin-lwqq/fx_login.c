@@ -34,6 +34,7 @@
 #include "fx_contact.h"
 #include "fx_login.h"
 #include "fx_buddy.h"
+#include "async.h"
 #include <eventloop.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
@@ -199,6 +200,64 @@ void pic_read(gpointer data)
     read(fp,pic,pic_len);
     close(fp);
     fetion_code_request(ac,pic,pic_len);
+}
+void msg_come(LwqqClient* lc,LwqqHttpRequest* UNUSED(req),void* data)
+{
+    LwqqRecvMsg *msg;
+    if (!SIMPLEQ_EMPTY(&lc->msg_list->head)) {
+        msg = SIMPLEQ_FIRST(&lc->msg_list->head);
+        if (msg->msg->content) {
+            purple_debug_info("account","%s\n",msg->msg->content);
+        }
+        SIMPLEQ_REMOVE_HEAD(&lc->msg_list->head, entries);
+    }
+}
+void friends_all_complete(LwqqClient* lc,LwqqHttpRequest* req,void* data)
+{
+    purple_debug_info("account","friends_all_complete\n");
+    fetion_account* ac = (fetion_account*)data;
+    fx_blist_init(ac);
+
+    //开始接受消息循环.
+    lwqq_async_add_listener(lc,MSG_COME,msg_come,NULL);
+    lc->msg_list->poll_msg(lc->msg_list);
+}
+
+void login_complete(LwqqClient* lc,LwqqHttpRequest *req,void* data)
+{
+	const gchar *status_id;
+    LwqqErrorCode err=lc->async->last_err;
+    fetion_account* ac = (fetion_account*)data;
+    PurpleAccount* account = ac->account;
+    PurplePresence* presence;
+	PurpleConnection *pc = purple_account_get_connection(account);
+    if(lc->status="")lc->status="Online";
+
+    purple_debug_info("account","login_complete");
+	status_id = get_status_id(lc->status);
+	presence = purple_account_get_presence(account);
+	//if(ac->user->state == 0) status_id = "Hidden";
+	purple_presence_set_status_active(presence, status_id, TRUE);
+    if (err == LWQQ_EC_LOGIN_NEED_VC) {
+        pic_read(ac);
+        //lc->vc->str = get_vc();
+        //printf ("get vc: %s\n", lc->vc->str);
+
+        //lwqq_login(lc, &err);
+    } else if (err != LWQQ_EC_OK) {
+        //lwqq_log(LOG_ERROR, "Login error, exit\n");
+        goto done;
+    }
+    //lwqq_log(LOG_NOTICE, "Login successfully\n");
+    purple_connection_set_state(pc,PURPLE_CONNECTED);
+    purple_debug_info("account","connected ok\n");
+
+    lwqq_async_add_listener(lc,FRIENDS_ALL_COMPLETE,friends_all_complete,data);
+    lwqq_info_get_friends_info(lc,&err);
+
+    return;
+done:
+    lwqq_client_free(ac->qq);
 }
 static gint pic_read_cb(gpointer data, gint source, const gchar *UNUSED(message))
 {
