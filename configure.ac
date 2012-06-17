@@ -36,6 +36,25 @@ PKG_CHECK_MODULES(ZLIB, [zlib >= 1.2], [
             ],
             )
 
+LIBEV_CFLAGS=""
+LIBEV_LIBS=""
+PKG_CHECK_MODULES([LIBEV], [libev], [], [
+	# no pkg-config for libev, searching manually:
+
+		AC_CHECK_HEADERS([ev.h],[
+			AC_CHECK_LIB([ev], [ev_time], [
+					LIBEV_LIBS="-lev"
+				],[
+					AC_MSG_ERROR([libev not found])
+				]
+			)],[
+				AC_MSG_ERROR([libev not found])
+			]
+		)
+])
+
+AC_SUBST([LIBEV_CFLAGS])
+AC_SUBST([LIBEV_LIBS])
 # checks for gtk+3.0
 PKG_CHECK_MODULES(GTK, [gtk+-3.0 >= 3.0], [
             AC_DEFINE(USE_GTK, 1, [Use GTK])
