@@ -589,6 +589,7 @@ static void parse_groups_ginfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *
     gid = json_parse_simple_value(json,"gid");
     if (strcmp(group->gid, gid) != 0) {
         lwqq_log(LOG_ERROR, "Parse json object error.");
+        return;
     }
     
 #define  SET_GINFO(key, name) {                                    \
@@ -612,7 +613,7 @@ static void parse_groups_ginfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *
     SET_GINFO(owner, "owner");
     SET_GINFO(option, "option");
     
-#undef SET_BUDDY_INFO
+#undef SET_GINFO
     
 }
 
@@ -660,7 +661,7 @@ static void parse_groups_minfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *
 
         /* FIX ME: should we get group members qqnumber here ? */
         /* we can get the members' qq number by uin */
-        member->qqnumber = get_friend_number(lc, member->uin);
+        member->qqnumber = get_friend_qqnumber(lc, member->uin);
 
         /* Add to members list */
         LIST_INSERT_HEAD(&group->members, member, entries);
@@ -697,6 +698,8 @@ static void parse_groups_stats_child(LwqqClient *lc, LwqqGroup *group,  json_t *
     for (cur = json->child; cur != NULL; cur = cur->next) {
         uin = json_parse_simple_value(cur, "uin");
 
+        if (!uin)
+            continue;
         member = lwqq_group_find_group_member_by_uin(group, uin);
         if (!member)
             continue;
