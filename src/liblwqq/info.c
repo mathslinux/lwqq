@@ -19,8 +19,8 @@
 
 static json_t *get_result_json_object(json_t *json);
 static void create_post_data(LwqqClient *lc, char *buf, int buflen);
-static char *get_friend_number(LwqqClient *lc, const char *uin);
-char *get_group_number(LwqqClient *lc, const char *code);
+static char *get_friend_qqnumber(LwqqClient *lc, const char *uin);
+char *get_group_qqnumber(LwqqClient *lc, const char *code);
 
 /** 
  * Get the result object in a json object.
@@ -378,7 +378,7 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
         group->code = s_strdup(json_parse_simple_value(cur, "code"));
 
         /* we got the 'code', so we can get the qq group number now */
-        group->account = get_group_number(lc, group->code);
+        group->account = get_group_qqnumber(lc, group->code);
 
         /* Add to groups list */
         LIST_INSERT_HEAD(&lc->groups, group, entries);
@@ -520,6 +520,29 @@ json_error:
     lwqq_http_request_free(req);
 }
 
+void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc)
+{
+    LwqqBuddy *buddy;
+
+    if (!lc)
+        return ;
+    
+    LIST_FOREACH(buddy, &lc->friends, entries) {
+        if (!buddy->qqnumber) {
+            /** If qqnumber hasnt been fetched(NB: lc->myself has qqnumber),
+             * fetch it
+             */
+            buddy->qqnumber = get_friend_qqnumber(lc, buddy->uin);
+            lwqq_log(LOG_DEBUG, "Get buddy qqnumber: %s\n", buddy->qqnumber);
+        }
+    }
+}
+
+void lwqq_info_get_friend_qqnumber(LwqqClient *lc, const char *uin)
+{
+    get_friend_qqnumber(lc, uin);
+}
+
 /** 
  * Get QQ friend number
  * 
@@ -528,9 +551,9 @@ json_error:
  *
  * @return 
  */
-static char *get_friend_number(LwqqClient *lc, const char *uin)
+static char *get_friend_qqnumber(LwqqClient *lc, const char *uin)
 {
-    if (!uin) {
+    if (!lc || !uin) {
         return NULL;
     }
 
@@ -597,9 +620,9 @@ done:
  *
  * @return 
  */
-char *get_group_number(LwqqClient *lc, const char *code)
+char *get_group_qqnumber(LwqqClient *lc, const char *code)
 {
-    return get_friend_number(lc, code);
+    return get_friend_qqnumber(lc, code);
 }
 
 /** 
@@ -716,12 +739,6 @@ void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
         SET_BUDDY_INFO(province, "province");
         SET_BUDDY_INFO(gender, "gender");
         SET_BUDDY_INFO(mobile, "mobile");
-        if (!buddy->qqnumber) {
-            /** If qqnumber hasnt been fetched(NB: lc->myself has qqnumber),
-             * fetch it
-             */
-            buddy->qqnumber = get_friend_number(lc, buddy->uin);
-        }
 #undef SET_BUDDY_INFO
     }
 
