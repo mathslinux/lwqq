@@ -326,7 +326,8 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     LIST_FOREACH(buddy, &lc->friends, entries) {
         lwqq_info_get_friend_detail_info(lc, buddy, NULL);
     }
-        
+    lc->update_friends_done = 1;
+    
 done:
     if (json)
         json_free_value(&json);
