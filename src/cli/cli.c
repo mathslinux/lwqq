@@ -60,6 +60,12 @@ static int help_f(int argc, char **argv)
         " Excute a command\n"
         "\n"
         " help/h, -- Output help\n"
+        " list/l, -- List buddies\n"
+        "            You can use \"list all\" to list all buddies\n"
+        "            or use \"list uin\" to list certain buddy\n"
+        " send/s, -- Send message to buddy\n"
+        "            You can use \"send uin message\" to send message\n"
+        "            to buddy"
         "\n");
     
     return 0;
