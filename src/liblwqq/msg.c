@@ -321,9 +321,7 @@ char *create_default_content(const char *content)
 {
     char s[2048];
 
-    snprintf(s, sizeof(s), "[[\"face\",110],\", %s\\n\","
-             "[\"font\",{\"name\":\"宋体\",\"size\":\"10\","
-             "\"style\":[0,0,0],\"color\":\"000000\"}]]", content);
+    snprintf(s, sizeof(s), "\"[\\\"%s\\\\n\\\",[\\\"font\\\",{\\\"name\\\":\\\"宋体\\\",\\\"size\\\":\\\"10\\\",\\\"style\\\":[0,0,0],\\\"color\\\":\\\"000000\\\"}]]\"", content);
     return strdup(s);
 }
 
@@ -352,8 +350,8 @@ static int send_msg(struct LwqqSendMsg *sendmsg)
     }
     msg = sendmsg->msg;
     content = create_default_content(msg->content);
-    snprintf(data, sizeof(data), "{\"to\":%s,\"face\":81,\"content\":%s,"
-             "\"msg_id\":%ld,\"clientid\":%s,\"psessionid\":%s}",
+    snprintf(data, sizeof(data), "{\"to\":%s,\"face\":0,\"content\":%s,"
+             "\"msg_id\":%ld,\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
              msg->to, content, lc->msg_id, lc->clientid, lc->psessionid);
     s_free(content);
     s = url_encode(data);
