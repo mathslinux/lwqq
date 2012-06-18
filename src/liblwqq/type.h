@@ -83,7 +83,7 @@ typedef struct LwqqGroup {
     char *option;
 
     LIST_ENTRY(LwqqGroup) entries;
-
+    LIST_HEAD(, LwqqBuddy) members; /** < QQ Group members */
 } LwqqGroup;
 
 typedef struct LwqqVerifyCode {
