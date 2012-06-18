@@ -288,6 +288,7 @@ static void get_verify_image(LwqqClient *lc)
     char *content_length = req->get_header(req, "Content-Length");
     if (content_length) {
         image_length = atoi(content_length);
+        s_free(content_length);
     }
     update_cookies(lc->cookies, req, "verifysession", 1);
     snprintf(image_file, sizeof(image_file), "/tmp/%s.jpeg", lc->username);
@@ -553,6 +554,7 @@ static void get_version(LwqqClient *lc, LwqqErrorCode *err)
         v = alloca(t - s + 1);
         memset(v, 0, t - s + 1);
         strncpy(v, s, t - s);
+        s_free(lc->version);
         lc->version = s_strdup(v);
         *err = LWQQ_EC_OK;
     }
