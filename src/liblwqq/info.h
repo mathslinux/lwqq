@@ -42,4 +42,23 @@ void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err);
 void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
                                       LwqqErrorCode *err);
 
+/** 
+ * Get all friends qqnumbers
+ * 
+ * @param lc 
+ * @param err 
+ */
+void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc, LwqqErrorCode *err);
+
+/** 
+ * Get friend qqnumber
+ * 
+ * @param lc 
+ * @param uin 
+ * 
+ * @return qqnumber on sucessful, NB: caller is responsible for freeing
+ * the memory returned by this function
+ */
+char *lwqq_info_get_friend_qqnumber(LwqqClient *lc, const char *uin);
+
 #endif  /* LWQQ_INFO_H */

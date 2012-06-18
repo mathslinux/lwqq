@@ -519,7 +519,13 @@ json_error:
     lwqq_http_request_free(req);
 }
 
-void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc)
+/** 
+ * Get all friends qqnumbers
+ * 
+ * @param lc 
+ * @param err 
+ */
+void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc, LwqqErrorCode *err)
 {
     LwqqBuddy *buddy;
 
@@ -537,11 +543,23 @@ void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc)
     }
 
     lc->update_friends_done = 1;
+    if (err) {
+        *err = LWQQ_EC_OK;
+    }
 }
 
-void lwqq_info_get_friend_qqnumber(LwqqClient *lc, const char *uin)
+/** 
+ * Get friend qqnumber
+ * 
+ * @param lc 
+ * @param uin 
+ * 
+ * @return qqnumber on sucessful, NB: caller is responsible for freeing
+ * the memory returned by this function
+ */
+char *lwqq_info_get_friend_qqnumber(LwqqClient *lc, const char *uin)
 {
-    get_friend_qqnumber(lc, uin);
+    return get_friend_qqnumber(lc, uin);
 }
 
 /** 
