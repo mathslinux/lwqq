@@ -267,6 +267,7 @@ LwqqGroup *lwqq_group_new()
  */
 void lwqq_group_free(LwqqGroup *group)
 {
+    LwqqBuddy *m_entry, *m_next;
     if (!group)
         return ;
 
@@ -284,7 +285,13 @@ void lwqq_group_free(LwqqGroup *group)
     s_free(group->owner);
     s_free(group->flag);
     s_free(group->option);
-        
+
+    /* Free Group members list */
+    LIST_FOREACH_SAFE(m_entry, &group->members, entries, m_next) {
+        LIST_REMOVE(m_entry, entries);
+        lwqq_buddy_free(m_entry);
+    }
+	
     s_free(group);
 }
 
