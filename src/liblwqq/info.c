@@ -668,6 +668,45 @@ static void parse_groups_minfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *
 }
 
 /** 
+ * mark qq group's online members 
+ *
+ * "stats":[{"client_type":1,"uin":56360327,"stat":10},{"client_type":41,"uin":909998471,"stat":10}],
+ *
+ * @param lc 
+ * @param group
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_stats_child(LwqqClient *lc, LwqqGroup *group,  json_t *json)
+{
+    LwqqBuddy *member;
+    json_t *cur;
+    char *uin;
+    
+    /* Make json point "stats" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "stats")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        uin = json_parse_simple_value(cur, "uin");
+
+        member = lwqq_group_find_group_member_by_uin(group, uin);
+        if (!member)
+            continue;
+        member->client_type = s_strdup(json_parse_simple_value(cur, "client_type"));
+        member->stat = s_strdup(json_parse_simple_value(cur, "stat"));
+
+    }
+}
+
+/** 
  * Get QQ groups detail information. 
  * 
  * @param lc 
@@ -762,6 +801,8 @@ void lwqq_info_get_group_detail_info(LwqqClient *lc, LwqqGroup *group,
         parse_groups_ginfo_child(lc, group, json_tmp);
         /* second , get group members */
         parse_groups_minfo_child(lc, group, json_tmp);
+        /* third , mark group's online members */
+        parse_groups_stats_child(lc, group, json_tmp);
                
     }
         
