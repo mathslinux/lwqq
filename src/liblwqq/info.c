@@ -617,6 +617,57 @@ static void parse_groups_ginfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *
 }
 
 /** 
+ * Parse group members info
+ * we only get the "nick" and the "uin", and get the members' qq number.
+ *
+ * "minfo":[
+ *   {"nick":"evildoer","province":"......","gender":"male","uin":56360327,"country":"......","city":"......"},
+ *   {"nick":"evil...doer","province":"......","gender":"male","uin":909998471,"country":"......","city":"......"}],
+ *
+ * @param lc 
+ * @param group
+ * @param json Point to the first child of "result"'s value
+ */
+static void parse_groups_minfo_child(LwqqClient *lc, LwqqGroup *group,  json_t *json)
+{
+    LwqqBuddy *member;
+    json_t *cur;
+    char *uin;
+    char *nick;
+    
+    /* Make json point "minfo" reference */
+    while (json) {
+        if (json->text && !strcmp(json->text, "minfo")) {
+            break;
+        }
+        json = json->next;
+    }
+    if (!json) {
+        return ;
+    }
+    
+    json = json->child;    //point to the array.[]
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        uin = json_parse_simple_value(cur, "uin");
+        nick = json_parse_simple_value(cur, "nick");
+
+        if (!uin || !nick)
+            continue;
+        member = lwqq_buddy_new();
+
+        member->uin = s_strdup(uin);
+        member->nick = s_strdup(nick);
+
+        /* FIX ME: should we get group members qqnumber here ? */
+        /* we can get the members' qq number by uin */
+        member->qqnumber = get_friend_number(lc, member->uin);
+
+        /* Add to members list */
+        LIST_INSERT_HEAD(&group->members, member, entries);
+    }
+}
+
+/** 
  * Get QQ groups detail information. 
  * 
  * @param lc 
@@ -708,7 +759,10 @@ void lwqq_info_get_group_detail_info(LwqqClient *lc, LwqqGroup *group,
         json_tmp = json_tmp->child->child;
 
         /* first , get group information */
-        parse_groups_ginfo_child(lc, group, json_tmp);               
+        parse_groups_ginfo_child(lc, group, json_tmp);
+        /* second , get group members */
+        parse_groups_minfo_child(lc, group, json_tmp);
+               
     }
         
 done:
