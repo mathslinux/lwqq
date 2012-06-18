@@ -25,12 +25,46 @@
 
 #define LWQQ_CLI_VERSION "0.0.1"
 
+static int help_f(int argc, char **argv);
+static int quit_f(int argc, char **argv);
+
+typedef int (*cfunc_t)(int argc, char **argv);
+
+typedef struct CmdInfo {
+	const char	*name;
+	const char	*altname;
+	cfunc_t		cfunc;
+} CmdInfo;
+
 static LwqqClient *lc = NULL;
 
 static char vc_image[128];
 static char vc_file[128];
 
 static char *progname;
+
+static CmdInfo cmdtab[] = {
+    {"help", "h", help_f},
+    {"quit", "q", quit_f},
+    {NULL, NULL, NULL},
+};
+
+static int help_f(int argc, char **argv)
+{
+    printf(
+        "\n"
+        " Excute a command\n"
+        "\n"
+        " help/h, -- Output help\n"
+        "\n");
+    
+    return 0;
+}
+
+static int quit_f(int argc, char **argv)
+{
+    return 1;
+}
 
 static char *get_prompt(void)
 {
@@ -173,18 +207,66 @@ static char **breakline(char *input, int *count)
         c++;
         tmp = realloc(rval, sizeof(*rval) * (c + 1));
         rval = tmp;
-        rval[c - 1] = strdup(token);
+        rval[c - 1] = token;
         rval[c] = NULL;
         token = strtok_r(NULL, " ", &save_ptr);
 	}
     
     *count = c;
+
+    if (c == 0) {
+        free(rval);
+        return NULL;
+    }
+    
     return rval;
 }
 
-static void handle_command(const char *command)
+const CmdInfo *find_command(const char *cmd)
 {
-    
+	CmdInfo	*ct;
+
+	for (ct = cmdtab; ct->name; ct++) {
+		if (!strcmp(ct->name, cmd) || !strcmp(ct->altname, cmd)) {
+			return (const CmdInfo *)ct;
+        }
+	}
+	return NULL;
+}
+
+static void command_loop()
+{
+    static char command[1024];
+    int done = 0;
+
+    while (!done) {
+        char **v;
+        char *p;
+        int c = 0;
+        const CmdInfo *ct;
+        fprintf(stdout, "%s", get_prompt());
+        fflush(stdout);
+        memset(&command, 0, sizeof(command));
+        if (!fgets(command, sizeof(command), stdin)) {
+            /* Avoid gcc warning */
+            continue;
+        }
+        p = command + strlen(command);
+        if (p != command && p[-1] == '\n') {
+            p[-1] = '\0';
+        }
+        
+        v = breakline(command, &c);
+        if (v) {
+            ct = find_command(v[0]);
+            if (ct) {
+                done = ct->cfunc(c, v);
+            } else {
+                fprintf(stderr, "command \"%s\" not found\n", v[0]);
+            }
+            free(v);
+        }
+    }
 }
 
 int main(int argc, char *argv[])
@@ -264,22 +346,10 @@ int main(int argc, char *argv[])
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_create(&tid, &attr, recvmsg_thread, lc->msg_list);
 
-    while (1) {
-        char buf[128];
-        char **v;
-        int c = 0;
-        fprintf(stdout, "%s", get_prompt());
-        fflush(stdout);
-        if (!fgets(buf, sizeof(buf), stdin)) {
-            /* Avoid gcc warning */
-            continue;
-        }
-        v = breakline(buf, &c);
-        handle_command(buf);
-    }
+    /* Enter command loop  */
+    command_loop();
     
     /* Logout */
-    sleep(3);
     cli_logout(lc);
     lwqq_client_free(lc);
     return 0;
