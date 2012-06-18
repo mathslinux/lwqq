@@ -92,9 +92,13 @@ static void test_login(const char *qqnumber, const char *password)
        
     if (err == LWQQ_EC_OK) {
         LwqqGroup *group;
+        LwqqBuddy *member;
         LIST_FOREACH(group, &lc->groups, entries) {
             char buf[256] = {0};
-
+            
+            /*  we get the group detail info. including the group members' info. */
+            lwqq_info_get_group_detail_info(lc, group, &err);
+            
             if (group->name) {
                 strcat(buf, "name:");
                 strcat(buf, group->name);
@@ -166,8 +170,43 @@ static void test_login(const char *qqnumber, const char *password)
                 strcat(buf, group->flag);
                 strcat(buf, ", ");
             }
-            
+
+            if (group->flag) {
+                strcat(buf, "option:");
+                strcat(buf, group->option);
+                strcat(buf, ", ");
+            }           
          lwqq_log(LOG_DEBUG, "Group info: %s\n", buf);
+
+         LIST_FOREACH(member, &group->members, entries) {
+                char buff[256] = {0};
+                if (member->nick) {
+                    strcat(buff, "nick:");
+                    strcat(buff, member->nick);
+                    strcat(buff, ", ");
+                }
+                if (member->uin) {
+                    strcat(buff, "uin:");
+                    strcat(buff, member->uin);
+                    strcat(buff, ", ");
+                }
+                if (member->qqnumber) {
+                    strcat(buff, "qqnumber:");
+                    strcat(buff, member->qqnumber);
+                    strcat(buff, ", ");
+                }
+                if (member->client_type) {
+                    strcat(buff, "client_type:");
+                    strcat(buff, member->client_type);
+                    strcat(buff, ", ");
+                }
+                if (member->stat) {
+                    strcat(buff, "stat:");
+                    strcat(buff, member->stat);
+                    strcat(buff, ", ");
+                }
+                lwqq_log(LOG_DEBUG, "Group Member info: %s\n", buff);
+            }
         }
     }
 
