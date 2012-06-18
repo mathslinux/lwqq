@@ -255,7 +255,6 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     int ret;
     json_t *json = NULL, *json_tmp;
     char *cookies;
-    LwqqBuddy *buddy = NULL;
 
     if (!err) {
         return ;
@@ -322,11 +321,6 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
         parse_friends_child(lc, json_tmp);
     }
 
-    /* Update detail information */
-    LIST_FOREACH(buddy, &lc->friends, entries) {
-        lwqq_info_get_friend_detail_info(lc, buddy, NULL);
-    }
-    
 done:
     if (json)
         json_free_value(&json);
@@ -542,7 +536,6 @@ void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc, LwqqErrorCode *err)
         }
     }
 
-    lc->update_friends_done = 1;
     if (err) {
         *err = LWQQ_EC_OK;
     }

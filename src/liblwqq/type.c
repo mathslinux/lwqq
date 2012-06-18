@@ -217,6 +217,7 @@ void lwqq_buddy_free(LwqqBuddy *buddy)
     s_free(buddy->vip_info);
     s_free(buddy->markname);
     s_free(buddy->flag);
+    s_free(buddy->cate_index);
     s_free(buddy->client_type);
     
     s_free(buddy);
