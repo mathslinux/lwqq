@@ -42,4 +42,14 @@ void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err);
 void lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *buddy,
                                       LwqqErrorCode *err);
 
+/** 
+ * Get QQ groups detail information. 
+ * 
+ * @param lc 
+ * @param group
+ * @param err 
+ */
+void lwqq_info_get_group_detail_info(LwqqClient *lc, LwqqGroup *group,
+                                     LwqqErrorCode *err);
+
 #endif  /* LWQQ_INFO_H */
