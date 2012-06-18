@@ -364,7 +364,7 @@ static void parse_groups_gnamelist_child(LwqqClient *lc, json_t *json)
     
     json = json->child;    //point to the array.[]
     for (cur = json->child; cur != NULL; cur = cur->next) {
-      	group = s_malloc0(sizeof(*group));
+      	group = lwqq_group_new();
         group->flag = s_strdup(json_parse_simple_value(cur, "flag"));
         group->name = s_strdup(json_parse_simple_value(cur, "name"));
         group->gid = s_strdup(json_parse_simple_value(cur, "gid"));
