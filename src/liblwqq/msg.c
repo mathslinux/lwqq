@@ -19,6 +19,7 @@
 #include "logger.h"
 #include "msg.h"
 #include "queue.h"
+#include "unicode.h"
 
 static void *start_poll_msg(void *msg_list);
 static void lwqq_recvmsg_poll_msg(struct LwqqRecvMsgList *list);
@@ -192,7 +193,8 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str)
             for (ctent = tmp->child->child; ctent != NULL; ctent = ctent->next) {
                 if (ctent->type != JSON_STRING)
                     continue;
-                content = ctent->text;
+                /* Convert to utf-8 */
+                content = ucs4toutf8(ctent->text);
             }
         } else {
             content = NULL;
@@ -200,6 +202,7 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str)
         
         LwqqRecvMsg *msg = s_malloc0(sizeof(*msg));
         msg->msg = lwqq_msg_new(from, to, msg_type, content);
+        s_free(content);
         pthread_mutex_lock(&list->mutex);
         SIMPLEQ_INSERT_TAIL(&list->head, msg, entries);
         pthread_mutex_unlock(&list->mutex);
