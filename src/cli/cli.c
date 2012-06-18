@@ -27,6 +27,7 @@
 
 static int help_f(int argc, char **argv);
 static int quit_f(int argc, char **argv);
+static int show_f(int argc, char **argv);
 
 typedef int (*cfunc_t)(int argc, char **argv);
 
@@ -46,6 +47,7 @@ static char *progname;
 static CmdInfo cmdtab[] = {
     {"help", "h", help_f},
     {"quit", "q", quit_f},
+    {"show", "s", show_f},
     {NULL, NULL, NULL},
 };
 
@@ -64,6 +66,58 @@ static int help_f(int argc, char **argv)
 static int quit_f(int argc, char **argv)
 {
     return 1;
+}
+
+static int show_f(int argc, char **argv)
+{
+    char buf[1024] = {0};
+
+    /** argv may like:
+     * 1. {"show", "all"}
+     * 2. {"show", "244569070"}
+     */
+    if (argc != 2) {
+        return 0;
+    }
+
+    if (!strcmp(argv[1], "all")) {
+        /* Show all buddies */
+        LwqqBuddy *buddy;
+        LIST_FOREACH(buddy, &lc->friends, entries) {
+            if (!buddy->uin) {
+                /* BUG */
+                return 0;
+            }
+            snprintf(buf, sizeof(buf), "uin:%s, ", buddy->uin);
+            if (buddy->nick) {
+                strcat(buf, "nick:");
+                strcat(buf, buddy->nick);
+                strcat(buf, ", ");
+            }
+            printf("Buddy info: %s\n", buf);
+        }
+    } else {
+        /* Show buddies whose uin is argv[1] */
+        LwqqBuddy *buddy;
+        LIST_FOREACH(buddy, &lc->friends, entries) {
+            if (buddy->uin && !strcmp(buddy->uin, argv[1])) {
+                snprintf(buf, sizeof(buf), "uin:%s, ", argv[1]);
+                if (buddy->nick) {
+                    strcat(buf, "nick:");
+                    strcat(buf, buddy->nick);
+                    strcat(buf, ", ");
+                }
+                if (buddy->markname) {
+                    strcat(buf, "markname:");
+                    strcat(buf, buddy->markname);
+                }
+                printf("Buddy info: %s\n", buf);
+                break;
+            }
+        }
+    }
+
+    return 0;
 }
 
 static char *get_prompt(void)
@@ -153,7 +207,7 @@ static void usage()
             "  -v, --version\n"
             "      Show version of program\n"
             "  -u, --user\n"
-            "      Set username(qqnumer)\n"
+            "      Set username(qqnumber)\n"
             "  -p, --pwd\n"
             "      Set password\n"
             "  -h, --help\n"
@@ -191,6 +245,15 @@ static void *recvmsg_thread(void *list)
         }
         pthread_mutex_unlock(&l->mutex);
     }
+
+    pthread_exit(NULL);
+}
+
+static void *info_thread(void *lc)
+{
+    LwqqErrorCode err;
+    lwqq_info_get_friends_info(lc, &err);
+//    lwqq_info_get_all_friend_qqnumbers(lc, &err);
 
     pthread_exit(NULL);
 }
@@ -273,9 +336,9 @@ int main(int argc, char *argv[])
 {
     char *qqnumber = NULL, *password = NULL;
     LwqqErrorCode err;
-    int c, e = 0;
-    pthread_t tid;
-    pthread_attr_t attr;
+    int i, c, e = 0;
+    pthread_t tid[2];
+    pthread_attr_t attr[2];
     
     if (argc == 1) {
         usage();
@@ -302,19 +365,15 @@ int main(int argc, char *argv[])
             printf("lwqq-cli version %s, Copyright (c) 2012 "
                    "mathslinux\n", LWQQ_CLI_VERSION);
             exit(0);
-            
         case 'h':
             usage();
             exit(0);
-            
         case 'u':
             qqnumber = optarg;
             break;
-            
         case 'p':
             password = optarg;
             break;
-            
         default:
             e++;
             break;
@@ -341,10 +400,17 @@ int main(int argc, char *argv[])
 
     lwqq_log(LOG_NOTICE, "Login successfully\n");
 
+    /* Initialize thread */
+    for (i = 1; i < 2; ++i) {
+        pthread_attr_init(&attr[i]);
+        pthread_attr_setdetachstate(&attr[0], PTHREAD_CREATE_DETACHED);
+    }
+    
     /* Create a thread to receive message */
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&tid, &attr, recvmsg_thread, lc->msg_list);
+    pthread_create(&tid[0], &attr[0], recvmsg_thread, lc->msg_list);
+
+    /* Create a thread to update friend info */
+    pthread_create(&tid[1], &attr[1], info_thread, lc);
 
     /* Enter command loop  */
     command_loop();
