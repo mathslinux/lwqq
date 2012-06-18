@@ -28,6 +28,7 @@
 static int help_f(int argc, char **argv);
 static int quit_f(int argc, char **argv);
 static int list_f(int argc, char **argv);
+static int send_f(int argc, char **argv);
 
 typedef int (*cfunc_t)(int argc, char **argv);
 
@@ -48,6 +49,7 @@ static CmdInfo cmdtab[] = {
     {"help", "h", help_f},
     {"quit", "q", quit_f},
     {"list", "l", list_f},
+    {"send", "s", send_f},
     {NULL, NULL, NULL},
 };
 
@@ -116,6 +118,25 @@ static int list_f(int argc, char **argv)
             }
         }
     }
+
+    return 0;
+}
+
+static int send_f(int argc, char **argv)
+{
+    LwqqSendMsg *msg;
+
+    /* argv look like: {"send", "74357485" "hello"} */
+    if (argc != 3) {
+        return 0;
+    }
+    
+    msg = lwqq_sendmsg_new(lc, argv[1], "message", argv[2]);
+    if (!msg) {
+        return 0;
+    }
+    
+    msg->send(msg);
 
     return 0;
 }
@@ -230,7 +251,7 @@ static void *recvmsg_thread(void *list)
 
     /* Poll to receive message */
     l->poll_msg(l);
-    
+
     /* Need to wrap those code so look like more nice */
     while (1) {
         sleep(1);
@@ -401,11 +422,11 @@ int main(int argc, char *argv[])
     lwqq_log(LOG_NOTICE, "Login successfully\n");
 
     /* Initialize thread */
-    for (i = 1; i < 2; ++i) {
+    for (i = 0; i < 2; ++i) {
         pthread_attr_init(&attr[i]);
-        pthread_attr_setdetachstate(&attr[0], PTHREAD_CREATE_DETACHED);
+        pthread_attr_setdetachstate(&attr[i], PTHREAD_CREATE_DETACHED);
     }
-    
+
     /* Create a thread to receive message */
     pthread_create(&tid[0], &attr[0], recvmsg_thread, lc->msg_list);
 
