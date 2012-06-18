@@ -27,7 +27,7 @@
 
 static int help_f(int argc, char **argv);
 static int quit_f(int argc, char **argv);
-static int show_f(int argc, char **argv);
+static int list_f(int argc, char **argv);
 
 typedef int (*cfunc_t)(int argc, char **argv);
 
@@ -47,7 +47,7 @@ static char *progname;
 static CmdInfo cmdtab[] = {
     {"help", "h", help_f},
     {"quit", "q", quit_f},
-    {"show", "s", show_f},
+    {"list", "l", list_f},
     {NULL, NULL, NULL},
 };
 
@@ -68,20 +68,20 @@ static int quit_f(int argc, char **argv)
     return 1;
 }
 
-static int show_f(int argc, char **argv)
+static int list_f(int argc, char **argv)
 {
     char buf[1024] = {0};
 
     /** argv may like:
-     * 1. {"show", "all"}
-     * 2. {"show", "244569070"}
+     * 1. {"list", "all"}
+     * 2. {"list", "244569070"}
      */
     if (argc != 2) {
         return 0;
     }
 
     if (!strcmp(argv[1], "all")) {
-        /* Show all buddies */
+        /* List all buddies */
         LwqqBuddy *buddy;
         LIST_FOREACH(buddy, &lc->friends, entries) {
             if (!buddy->uin) {
