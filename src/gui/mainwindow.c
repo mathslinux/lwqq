@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include "mainwindow.h"
+#include "loginpanel.h"
 
 static void qq_mainwindow_init(QQMainWindow *win);
 static void qq_mainwindowclass_init(QQMainWindowClass *wc);
@@ -101,6 +102,7 @@ GtkWidget *qq_mainwindow_new()
 static void qq_mainwindow_init(QQMainWindow *win)
 {
     GtkWidget *w = GTK_WIDGET(win);
+    
     /* FIXME: the type of window should be configed by some config file */
     gtk_widget_set_size_request(w, 200, 500);
     gtk_window_resize(GTK_WINDOW(w), 250, 550);
@@ -109,11 +111,25 @@ static void qq_mainwindow_init(QQMainWindow *win)
 					 G_CALLBACK(qq_mainwindow_close), NULL);
 	win->showed = FALSE;
 
+    win->login_panel = qq_loginpanel_new(w);
+        
     win->notebook = gtk_notebook_new();
+
+#if 0                           /* FIXME */
     gtk_notebook_set_show_tabs(GTK_NOTEBOOK(win->notebook), FALSE);
     gtk_notebook_set_show_border(GTK_NOTEBOOK(win->notebook), FALSE);
+#endif
 
-    gtk_window_set_title(GTK_WINDOW(win), "GtkQQ");
+    gtk_notebook_set_show_tabs(GTK_NOTEBOOK(win->notebook), TRUE);
+    gtk_notebook_set_show_border(GTK_NOTEBOOK(win->notebook), TRUE);
+
+    gtk_widget_show_all(win->login_panel);
+
+    gtk_notebook_append_page(GTK_NOTEBOOK(win->notebook),
+                             win->login_panel, NULL);
+    gtk_container_add(GTK_CONTAINER(win), win->notebook);
+    
+    gtk_window_set_title(GTK_WINDOW(win), "LWQQ");
 }
 
 static void qq_mainwindowclass_init(QQMainWindowClass *wc)
