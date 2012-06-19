@@ -6,6 +6,10 @@
 *.out
 *.files
 *.m4
+src/cli/lwqq-cli
+test/testlogin
+test/testlwdb
+test/testsendmsg
 config.h
 config.status
 configure
