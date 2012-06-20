@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.60])
-AC_INIT([lwqq], [0.1], [riegamaths@gmail.com], [http://github.com/mathslinux/lwqq])
+AC_INIT([LWQQ], [0.1], [riegamaths@gmail.com], [lwqq], [http://github.com/mathslinux/lwqq])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
@@ -93,6 +93,9 @@ AC_CONFIG_FILES([Makefile
         src/gui/Makefile
         src/cli/Makefile
         test/Makefile
+        icons/Makefile
+        icons/qqfaces/Makefile
+        icons/status/Makefile
         ])
 AC_OUTPUT
 
