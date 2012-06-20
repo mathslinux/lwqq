@@ -67,7 +67,7 @@ static void qq_splashpanel_init(QQSplashPanel *obj)
 	g_timeout_add(100, progress_bar_timeout_func, probar);
 	
 	GtkWidget *box = NULL;
-	box = gtk_hbox_new(FALSE, 0);
+    box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start(GTK_BOX(box), probar, TRUE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(obj), box, FALSE, FALSE, 50);
 }
