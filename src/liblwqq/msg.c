@@ -324,7 +324,9 @@ char *create_default_content(const char *content)
 {
     char s[2048];
 
-    snprintf(s, sizeof(s), "\"[\\\"%s\\\\n\\\",[\\\"font\\\",{\\\"name\\\":\\\"宋体\\\",\\\"size\\\":\\\"10\\\",\\\"style\\\":[0,0,0],\\\"color\\\":\\\"000000\\\"}]]\"", content);
+    snprintf(s, sizeof(s), "\"[\\\"%s\\\\n\\\",[\\\"font\\\","
+             "{\\\"name\\\":\\\"宋体\\\",\\\"size\\\":\\\"10\\\","
+             "\\\"style\\\":[0,0,0],\\\"color\\\":\\\"000000\\\"}]]\"", content);
     return strdup(s);
 }
 
