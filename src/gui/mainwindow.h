@@ -75,8 +75,18 @@ void qq_mainwindow_hide(GtkWidget *win);
  */
 void qq_mainwindow_show_hide(GtkWidget *win);
 
-/* If the window now is shown, hide it,
-   else show it. */
+/** 
+ * If the window now is shown, hide it, else show it
+ * 
+ * @param win 
+ */
 void qq_mainwindow_show_hide(GtkWidget *win);
+
+/**
+ * Show different panels
+ */
+void qq_mainwindow_show_loginpanel(GtkWidget *win);
+void qq_mainwindow_show_splashpanel(GtkWidget *win);
+void qq_mainwindow_show_mainpanel(GtkWidget *win);
 
 #endif  /* LWQQ_MAINWINDOW_H */

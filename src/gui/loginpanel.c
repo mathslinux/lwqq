@@ -10,6 +10,7 @@
 
 #include <gtk/gtk.h>
 #include "loginpanel.h"
+#include "mainwindow.h"
 
 static void qq_loginpanelclass_init(QQLoginPanelClass *c);
 static void qq_loginpanel_init(QQLoginPanel *obj);
@@ -63,6 +64,54 @@ static gboolean quick_login(GtkWidget* widget,GdkEvent* e,gpointer data)
     return TRUE;
 }
 
+/**
+ * login_cb(QQLoginPanel *panel)
+ * show the splashpanel and start the login procedure.
+ */
+static void login_cb(QQLoginPanel* panel)
+{
+    GtkWidget *win = panel -> container;
+    qq_mainwindow_show_splashpanel(win);
+
+#if 0
+    /* get user information from the login panel */
+    panel -> uin = qq_loginpanel_get_uin(panel);
+    panel -> passwd = qq_loginpanel_get_passwd(panel);
+    panel -> status = qq_loginpanel_get_status(panel);
+    panel -> rempw = qq_loginpanel_get_rempw(panel);
+
+    g_debug("Start login... qqnum: %s, status: %s (%s, %d)", panel -> uin,
+		    panel -> status, __FILE__, __LINE__);
+
+    /* *
+     * run the login state machine
+     * we have a login state machine for login
+     */
+    g_debug("Run login state machine...(%s, %d)", __FILE__, __LINE__);
+    state = LOGIN_SM_CHECKVC;
+    run_login_state_machine(panel);
+
+    g_object_set(cfg, "qqnum", panel -> uin, NULL);
+	if (panel->rempw)
+		g_object_set(cfg, "passwd", panel -> passwd, NULL);
+	else
+		g_object_set(cfg, "passwd", "", NULL);
+    g_object_set(cfg, "status", panel -> status, NULL);
+	g_object_set(cfg, "rempw", panel -> rempw, NULL);
+
+    qq_buddy_set(info -> me, "status", panel -> status);
+
+	/* Set mute status */
+	GQQLoginUser *usr = get_current_login_user(login_users);
+	if (usr)
+		qq_tray_set_mute_item(tray, usr->mute);
+
+    //clear the error message.
+    gtk_label_set_text(GTK_LABEL(panel -> err_label), "");
+    gqq_config_save_last_login_user(cfg);
+#endif
+}
+
 /** 
  * Callback of login_btn button
  * 
@@ -72,6 +121,8 @@ static gboolean quick_login(GtkWidget* widget,GdkEvent* e,gpointer data)
 static void login_btn_cb(GtkButton *btn, gpointer data)
 {
     /* FIXME */
+    QQLoginPanel *panel = QQ_LOGINPANEL(data);
+	login_cb(panel);
 }
 
 static void qq_loginpanel_init(QQLoginPanel *obj)

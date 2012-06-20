@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include "mainwindow.h"
 #include "loginpanel.h"
+#include "splashpanel.h"
 
 static void qq_mainwindow_init(QQMainWindow *win);
 static void qq_mainwindowclass_init(QQMainWindowClass *wc);
@@ -112,6 +113,7 @@ static void qq_mainwindow_init(QQMainWindow *win)
 	win->showed = FALSE;
 
     win->login_panel = qq_loginpanel_new(w);
+    win->splash_panel = qq_splashpanel_new();
         
     win->notebook = gtk_notebook_new();
 
@@ -124,9 +126,12 @@ static void qq_mainwindow_init(QQMainWindow *win)
     gtk_notebook_set_show_border(GTK_NOTEBOOK(win->notebook), TRUE);
 
     gtk_widget_show_all(win->login_panel);
+    gtk_widget_show_all(win->splash_panel);
 
     gtk_notebook_append_page(GTK_NOTEBOOK(win->notebook),
                              win->login_panel, NULL);
+    gtk_notebook_append_page(GTK_NOTEBOOK(win->notebook),
+                                 win->splash_panel, NULL);
     gtk_container_add(GTK_CONTAINER(win), win->notebook);
     
     gtk_window_set_title(GTK_WINDOW(win), "LWQQ");
@@ -134,4 +139,33 @@ static void qq_mainwindow_init(QQMainWindow *win)
 
 static void qq_mainwindowclass_init(QQMainWindowClass *wc)
 {
+}
+
+void qq_mainwindow_show_loginpanel(GtkWidget *win)
+{
+    if (!QQ_IS_MAINWINDOW(win)) {
+        g_warning("Not a mainwindow!!(%s, %d)", __FILE__, __LINE__);
+        return;
+    }
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(QQ_MAINWINDOW(win)->notebook), 0);
+}
+
+void qq_mainwindow_show_splashpanel(GtkWidget *win)
+{
+    if (!QQ_IS_MAINWINDOW(win)) {
+        g_warning("Not a mainwindow!!(%s, %d)", __FILE__, __LINE__);
+        return;
+    }
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(QQ_MAINWINDOW(win)->notebook), 1);
+}
+void qq_mainwindow_show_mainpanel(GtkWidget *win)
+{
+    if (!QQ_IS_MAINWINDOW(win)) {
+        g_warning("Not a mainwindow!!(%s, %d)", __FILE__, __LINE__);
+        return;
+    }
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(QQ_MAINWINDOW(win)->notebook), 2);
 }
