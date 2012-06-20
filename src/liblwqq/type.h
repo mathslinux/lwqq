@@ -60,7 +60,10 @@ typedef struct LwqqBuddy {
      * 41: Web QQ Client
      */
     char *client_type;
-    LIST_ENTRY(LwqqBuddy) entries;
+
+    char *status;               /* Online status */
+    pthread_mutex_t mutex;
+    LIST_ENTRY(LwqqBuddy) entries; /* FIXME: Do we really need this? */
 } LwqqBuddy;
 
 /* QQ group */

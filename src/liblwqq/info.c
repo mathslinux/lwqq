@@ -1037,3 +1037,115 @@ json_error:
         json_free_value(&json);
     lwqq_http_request_free(req);
 }
+
+static void update_online_buddies(LwqqClient *lc, json_t *json)
+{
+    /**
+     * The json object is:
+     * [{"uin":1100872453,"status":"online","client_type":21},"
+     * "{"uin":2726159277,"status":"busy","client_type":1}]
+     */
+    json_t *cur;
+    for (cur = json->child; cur != NULL; cur = cur->next) {
+        char *uin, *status, *client_type;
+        LwqqBuddy *b;
+        uin = json_parse_simple_value(cur, "uin");
+        status = json_parse_simple_value(cur, "status");
+        if (!uin || !status) {
+            continue;
+        }
+        client_type = json_parse_simple_value(cur, "client_type");
+        b = lwqq_buddy_find_buddy_by_uin(lc, uin);
+        if (b) {
+            s_free(b->status);
+            b->status = s_strdup(status);
+            if (client_type) {
+                s_free(b->client_type);
+                b->client_type = s_strdup(client_type);
+            }
+        }
+    }
+}
+
+/** 
+ * Get online buddies
+ * NB : This function must be called after lwqq_info_get_friends_info()
+ * because we stored buddy's status in buddy object which is created in
+ * lwqq_info_get_friends_info()
+ * 
+ * @param lc 
+ * @param err 
+ */
+void lwqq_info_get_online_buddies(LwqqClient *lc, LwqqErrorCode *err)
+{
+    char url[512];
+    LwqqHttpRequest *req = NULL;  
+    int ret;
+    json_t *json = NULL, *json_tmp;
+    char *cookies;
+
+    if (!lc) {
+        return ;
+    }
+
+    /* Create a GET request */
+    snprintf(url, sizeof(url),
+             "%s/channel/get_online_buddies2?clientid=%s&psessionid=%s",
+             "http://d.web2.qq.com", lc->clientid, lc->psessionid);
+    req = lwqq_http_create_default_request(url, err);
+    if (!req) {
+        goto done;
+    }
+    req->set_header(req, "Referer", "http://d.web2.qq.com/proxy.html?v=20101025002");
+    req->set_header(req, "Content-Transfer-Encoding", "binary");
+    req->set_header(req, "Content-type", "utf-8");
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
+    ret = req->do_request(req, 0, NULL);
+    if (ret || req->http_code != 200) {
+        if (err)
+            *err = LWQQ_EC_HTTP_ERROR;
+        goto done;
+    }
+
+    /**
+     * Here, we got a json object like this:
+     * {"retcode":0,"result":[{"uin":1100872453,"status":"online","client_type":21},"
+     * "{"uin":2726159277,"status":"busy","client_type":1}]}
+    */
+    ret = json_parse_document(&json, req->response);
+    if (ret != JSON_OK) {
+        lwqq_log(LOG_ERROR, "Parse json object of groups error: %s\n", req->response);
+        if (err)
+            *err = LWQQ_EC_ERROR;
+        goto done;
+    }
+
+    json_tmp = get_result_json_object(json);
+    if (!json_tmp) {
+        lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
+        goto json_error;
+    }
+
+    if (json_tmp->child) {
+        json_tmp = json_tmp->child;
+        update_online_buddies(lc, json_tmp);
+    }
+    
+done:
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+    return ;
+    
+json_error:
+    if (err)
+        *err = LWQQ_EC_ERROR;
+    /* Free temporary string */
+    if (json)
+        json_free_value(&json);
+    lwqq_http_request_free(req);
+}

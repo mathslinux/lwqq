@@ -220,6 +220,8 @@ void lwqq_buddy_free(LwqqBuddy *buddy)
     s_free(buddy->cate_index);
     s_free(buddy->client_type);
     
+    s_free(buddy->status);
+    
     s_free(buddy);
 }
 

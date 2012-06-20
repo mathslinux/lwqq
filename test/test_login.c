@@ -62,6 +62,16 @@ static void test_login(const char *qqnumber, const char *password)
     }
     lwqq_log(LOG_NOTICE, "Login successfully\n");
 
+    lwqq_info_get_friends_info(lc, &err);
+    
+    lwqq_info_get_online_buddies(lc, NULL);
+    LwqqBuddy *buddy;
+    LIST_FOREACH(buddy, &lc->friends, entries) {
+        if (buddy->status) {
+            lwqq_log(LOG_NOTICE, "uin:%s, status:%s\n", buddy->uin, buddy->status);
+        }
+    }
+    
 #if 0
     lwqq_info_get_friends_info(lc, &err);
 
@@ -176,9 +186,9 @@ static void test_login(const char *qqnumber, const char *password)
                 strcat(buf, group->option);
                 strcat(buf, ", ");
             }           
-         lwqq_log(LOG_DEBUG, "Group info: %s\n", buf);
+            lwqq_log(LOG_DEBUG, "Group info: %s\n", buf);
 
-         LIST_FOREACH(member, &group->members, entries) {
+            LIST_FOREACH(member, &group->members, entries) {
                 char buff[256] = {0};
                 if (member->nick) {
                     strcat(buff, "nick:");
@@ -213,6 +223,7 @@ static void test_login(const char *qqnumber, const char *password)
     lwqq_info_get_friend_detail_info(lc, lc->myself, &err);
 #endif 
 
+#if 0
     lc->msg_list->poll_msg(lc->msg_list);
 
     while (1) {
@@ -228,7 +239,7 @@ static void test_login(const char *qqnumber, const char *password)
         }
         pthread_mutex_unlock(&lc->msg_list->mutex);
     }
-//    lwqq_msg_poll(lc);
+#endif
     
     /* Logout test */
     sleep(2);
