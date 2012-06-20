@@ -1,3 +1,13 @@
+/**
+ * @file   splashpanel.c
+ * @author Dunrong Huang <riegamaths@gmail.com>
+ * @date   Wed Jun 20 17:41:03 2012
+ * 
+ * @brief  This file is based on gtkqq written by HuangCongyu
+ * 
+ * 
+ */
+
 #ifndef __LWQQ_SPLASHPANEL_H
 #define __LWQQ_SPLASHPANEL_H
 
