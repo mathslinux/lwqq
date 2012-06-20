@@ -6,6 +6,7 @@
 *.out
 *.files
 *.m4
+*~
 src/cli/lwqq-cli
 test/testlogin
 test/testlwdb
