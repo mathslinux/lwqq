@@ -12,6 +12,10 @@
 #include "loginpanel.h"
 #include "mainwindow.h"
 
+extern char *lwqq_install_dir;
+extern char *lwqq_icons_dir;
+extern char *lwqq_buddy_status_dir;
+
 static void qq_loginpanelclass_init(QQLoginPanelClass *c);
 static void qq_loginpanel_init(QQLoginPanel *obj);
 static void qq_loginpanel_destroy(GtkWidget *obj);
@@ -253,7 +257,9 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
     gtk_box_pack_start(GTK_BOX(vbox), hbox3, FALSE, FALSE, 0);
 
     gtk_box_set_homogeneous(GTK_BOX(obj), FALSE);
-    GtkWidget *logo = gtk_image_new_from_file("/tmp/webqq_icon.png");
+    char img[512];
+    g_snprintf(img, sizeof(img), "%s/webqq_icon.png", lwqq_icons_dir);
+    GtkWidget *logo = gtk_image_new_from_file(img);
     gtk_widget_set_size_request(logo, -1, 150);
     gtk_box_pack_start(GTK_BOX(obj), logo, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(obj), hbox1, FALSE, FALSE, 15);
