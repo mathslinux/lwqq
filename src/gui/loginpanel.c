@@ -64,9 +64,11 @@ static gboolean quick_login(GtkWidget* widget,GdkEvent* e,gpointer data)
     return TRUE;
 }
 
-/**
+/** 
  * login_cb(QQLoginPanel *panel)
  * show the splashpanel and start the login procedure.
+ * 
+ * @param panel 
  */
 static void login_cb(QQLoginPanel* panel)
 {

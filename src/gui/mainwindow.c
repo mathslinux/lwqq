@@ -13,6 +13,7 @@
 #include "mainwindow.h"
 #include "loginpanel.h"
 #include "splashpanel.h"
+#include "mainpanel.h"
 
 static void qq_mainwindow_init(QQMainWindow *win);
 static void qq_mainwindowclass_init(QQMainWindowClass *wc);
@@ -114,6 +115,7 @@ static void qq_mainwindow_init(QQMainWindow *win)
 
     win->login_panel = qq_loginpanel_new(w);
     win->splash_panel = qq_splashpanel_new();
+    win->main_panel = qq_mainpanel_new(w);
         
     win->notebook = gtk_notebook_new();
 
@@ -127,11 +129,15 @@ static void qq_mainwindow_init(QQMainWindow *win)
 
     gtk_widget_show_all(win->login_panel);
     gtk_widget_show_all(win->splash_panel);
-
+    gtk_widget_show_all(win->main_panel);
+    
     gtk_notebook_append_page(GTK_NOTEBOOK(win->notebook),
                              win->login_panel, NULL);
     gtk_notebook_append_page(GTK_NOTEBOOK(win->notebook),
-                                 win->splash_panel, NULL);
+                             win->splash_panel, NULL);
+    gtk_notebook_append_page(GTK_NOTEBOOK(win->notebook),
+                             win->main_panel, NULL);
+    
     gtk_container_add(GTK_CONTAINER(win), win->notebook);
     
     gtk_window_set_title(GTK_WINDOW(win), "LWQQ");
