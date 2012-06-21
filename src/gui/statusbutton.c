@@ -110,9 +110,10 @@ static void qq_statusbuttonclass_init(QQStatusButtonClass *c)
 {
     char img[512];
     /* FIXME */
-#define QQ_STATUSBUTTON_INIT_MACRO(status, name, w, h, b)               \
-    g_snprintf(img, sizeof(img), "%s/%s", lwqq_buddy_status_dir, name); \
-    c->pb[status] = gdk_pixbuf_new_from_file_at_scale(img, w, h, b, NULL);
+#define QQ_STATUSBUTTON_INIT_MACRO(status, name, w, h, b) {             \
+        g_snprintf(img, sizeof(img), "%s/%s", lwqq_buddy_status_dir, name); \
+        c->pb[status] = gdk_pixbuf_new_from_file_at_scale(img, w, h, b, NULL); \
+    }
 
     QQ_STATUSBUTTON_INIT_MACRO(STATUS_ONLINE, "online.png", 12, 12, TRUE);
     QQ_STATUSBUTTON_INIT_MACRO(STATUS_HIDDEN, "hidden.png", 12, 12, TRUE);
