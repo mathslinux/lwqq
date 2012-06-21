@@ -12,8 +12,10 @@
 #include "mainpanel.h"
 #include "statusbutton.h"
 
-#define IMGDIR "/tmp/misc/"               /* FIXME */
-#define QQ_FACEDIR ""           /* FIXME */
+extern char *lwqq_install_dir;
+extern char *lwqq_icons_dir;
+extern char *lwqq_buddy_status_dir;
+
 #if 0
 extern QQInfo *info;
 extern QQTray *tray;
@@ -285,18 +287,23 @@ static void qq_mainpanelclass_init(QQMainPanelClass *c)
 {
     this_class = c;
     GdkPixbuf * pb;
-    pb= gdk_pixbuf_new_from_file(IMGDIR"ContactMainTabButton1.png", NULL);
-    c->buddy_img[0] = gtk_image_new_from_pixbuf(pb);
-    pb = gdk_pixbuf_new_from_file(IMGDIR"ContactMainTabButton2.png", NULL);
-    c->buddy_img[1] = gtk_image_new_from_pixbuf(pb);
-    pb = gdk_pixbuf_new_from_file(IMGDIR"GroupMainTabButton1.png", NULL);
-    c->grp_img[0] = gtk_image_new_from_pixbuf(pb);
-    pb = gdk_pixbuf_new_from_file(IMGDIR"GroupMainTabButton2.png", NULL);
-    c->grp_img[1] = gtk_image_new_from_pixbuf(pb);
-    pb = gdk_pixbuf_new_from_file(IMGDIR"RecentMainTabButton1.png", NULL);
-    c->recent_img[0] = gtk_image_new_from_pixbuf(pb);
-    pb = gdk_pixbuf_new_from_file(IMGDIR"RecentMainTabButton2.png", NULL);
-    c->recent_img[1] = gtk_image_new_from_pixbuf(pb);
+    char img[512];
+
+#define QQ_MAINPANELCLASS_INIT_MACRO(variable, name) {                  \
+        g_snprintf(img, sizeof(img), "%s/%s", lwqq_icons_dir, name);    \
+        pb = gdk_pixbuf_new_from_file(img, NULL);                       \
+        variable = gtk_image_new_from_pixbuf(pb);                       \
+    }
+
+    QQ_MAINPANELCLASS_INIT_MACRO(c->buddy_img[0], "ContactMainTabButton1.png");
+    QQ_MAINPANELCLASS_INIT_MACRO(c->buddy_img[1], "ContactMainTabButton2.png");
+
+    QQ_MAINPANELCLASS_INIT_MACRO(c->grp_img[0], "GroupMainTabButton1.png");
+    QQ_MAINPANELCLASS_INIT_MACRO(c->grp_img[1], "GroupMainTabButton2.png");
+
+    QQ_MAINPANELCLASS_INIT_MACRO(c->recent_img[0], "RecentMainTabButton1.png");
+    QQ_MAINPANELCLASS_INIT_MACRO(c->recent_img[1], "RecentMainTabButton2.png");
+#undef QQ_MAINPANELCLASS_INIT_MACRO
 
     //increase the reference count
     g_object_ref(G_OBJECT(c->buddy_img[0]));
@@ -315,11 +322,6 @@ static void qq_mainpanelclass_init(QQMainPanelClass *c)
     gtk_widget_show(c->recent_img[1]);
 
     c->hand = gdk_cursor_new(GDK_HAND1);
-
-#if 0
-    gtkloop.ctx = g_main_context_default();
-    gtkloop.name = "MainPanel Gtk";
-#endif
 }
 
 void qq_mainpanel_update_my_info(QQMainPanel *panel)
