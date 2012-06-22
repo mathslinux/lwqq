@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include "mainpanel.h"
 #include "statusbutton.h"
+#include "buddytree.h"
 
 extern char *lwqq_install_dir;
 extern char *lwqq_icons_dir;
@@ -246,8 +247,17 @@ void qq_mainpanel_init(QQMainPanel *panel)
     gtk_notebook_set_show_border(GTK_NOTEBOOK(panel->notebook), TRUE);
     gtk_box_pack_start(GTK_BOX(panel), panel->notebook, TRUE, TRUE, 3);
     /* FIXME */
-#if 0
     panel->buddy_tree = qq_buddy_tree_new();
+    
+    GtkWidget *scrolled_win; 
+    scrolled_win= gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_win),
+                                   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled_win), panel->buddy_tree);
+    gtk_notebook_append_page(GTK_NOTEBOOK(panel->notebook),
+                             scrolled_win, NULL);
+
+#if 0
     panel->group_list = qq_buddy_list_new();
     panel->recent_list = qq_buddy_list_new();
 
@@ -257,14 +267,6 @@ void qq_mainpanel_init(QQMainPanel *panel)
     gtk_widget_set_has_tooltip(panel->group_list, TRUE);
 	g_signal_connect(panel->group_list, "query-tooltip",
                      G_CALLBACK(qq_group_list_on_show_tooltip), NULL);
-
-    GtkWidget *scrolled_win; 
-    scrolled_win= gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_win),
-                                    GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-    gtk_container_add(GTK_CONTAINER(scrolled_win), panel->buddy_tree);
-    gtk_notebook_append_page(GTK_NOTEBOOK(panel->notebook),
-                             scrolled_win, NULL);
 
     scrolled_win= gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_win),
