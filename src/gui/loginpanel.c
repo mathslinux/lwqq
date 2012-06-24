@@ -8,10 +8,15 @@
  * 
  */
 
+#include <stdlib.h>
+#include <string.h>
 #include <gtk/gtk.h>
+
 #include "loginpanel.h"
 #include "mainwindow.h"
 #include "statusbutton.h"
+#include "lwdb.h"
+#include "logger.h"
 
 extern char *lwqq_install_dir;
 extern char *lwqq_icons_dir;
@@ -21,6 +26,14 @@ static void qq_loginpanelclass_init(QQLoginPanelClass *c);
 static void qq_loginpanel_init(QQLoginPanel *obj);
 static void qq_loginpanel_destroy(GtkWidget *obj);
 static void login_btn_cb(GtkButton *btn, gpointer data);
+
+typedef struct LoginPanelUserInfo {
+    char *qqnumber;
+    char *password;
+    char *status;
+    char *rempwd;
+} LoginPanelUserInfo;
+static LoginPanelUserInfo login_panel_user_info;
 
 GType qq_loginpanel_get_type()
 {
@@ -69,6 +82,46 @@ static gboolean quick_login(GtkWidget* widget,GdkEvent* e,gpointer data)
     return TRUE;
 }
 
+static void free_login_panel_user_info()
+{
+    LoginPanelUserInfo *info = &login_panel_user_info;
+    g_free(info->password);
+    g_free(info->qqnumber);
+    g_free(info->rempwd);
+    g_free(info->status);
+}
+
+static void login_panel_update_user_info(QQLoginPanel* loginpanel)
+{
+    QQLoginPanel *panel = NULL;
+    gboolean active;
+    LoginPanelUserInfo *info;
+    
+    /* Free old data */
+    free_login_panel_user_info();
+    
+    panel = QQ_LOGINPANEL(loginpanel);
+
+    info = &login_panel_user_info;
+
+    info->qqnumber = gtk_combo_box_text_get_active_text(
+        GTK_COMBO_BOX_TEXT(panel->uin_entry));
+
+    info->password = g_strdup(gtk_entry_get_text(
+                                  GTK_ENTRY(panel->passwd_entry)));
+    
+    info->status = g_strdup(qq_statusbutton_get_status_string(
+                                loginpanel->status_comb));
+
+    active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(
+                                              loginpanel->rempwcb));
+    if (active == TRUE) {
+        info->rempwd = g_strdup("1");
+    } else {
+        info->rempwd = g_strdup("0");
+    }
+}
+
 /** 
  * login_cb(QQLoginPanel *panel)
  * show the splashpanel and start the login procedure.
@@ -77,18 +130,17 @@ static gboolean quick_login(GtkWidget* widget,GdkEvent* e,gpointer data)
  */
 static void login_cb(QQLoginPanel* panel)
 {
-    GtkWidget *win = panel -> container;
+    LoginPanelUserInfo *info = &login_panel_user_info;
+    GtkWidget *win = panel->container;
     qq_mainwindow_show_splashpanel(win);
+    
+    /* Get user information from the login panel */
+    login_panel_update_user_info(panel);
+    lwqq_log(LOG_NOTICE, "Start login... qqnum: %s, status: %s\n",
+             info->qqnumber, info->status);
 
+    free_login_panel_user_info();
 #if 0
-    /* get user information from the login panel */
-    panel -> uin = qq_loginpanel_get_uin(panel);
-    panel -> passwd = qq_loginpanel_get_passwd(panel);
-    panel -> status = qq_loginpanel_get_status(panel);
-    panel -> rempw = qq_loginpanel_get_rempw(panel);
-
-    g_debug("Start login... qqnum: %s, status: %s (%s, %d)", panel -> uin,
-		    panel -> status, __FILE__, __LINE__);
 
     /* *
      * run the login state machine
@@ -134,47 +186,29 @@ static void login_btn_cb(GtkButton *btn, gpointer data)
 
 static void qq_loginpanel_init(QQLoginPanel *obj)
 {
-#if 0
-    GQQLoginUser *usr, *tmp;
-    login_users = gqq_config_get_all_login_user(cfg);
+    LwdbGlobalUserEntry *e;
     
-    /* Put the last login user at the first of the array */
-    for(i = 0; i < login_users->len; ++i){
-        usr = (GQQLoginUser*)g_ptr_array_index(login_users, i);
-        if(usr == NULL){
-            continue;
-        }
-        if(usr->last == 1){
-            break;
-        }
-    }
-    if(i < login_users->len){
-        tmp = login_users->pdata[0];
-        login_users->pdata[0] = login_users->pdata[i];
-        login_users->pdata[i] = tmp;
-    }
-#endif
+    memset(&login_panel_user_info, 0, sizeof(login_panel_user_info));
 
+    obj->gdb = lwdb_globaldb_new();
+    if (!obj->gdb) {
+        lwqq_log(LOG_ERROR, "Create global db failed, exit\n");
+        exit(1);
+    }
     obj->uin_label = gtk_label_new("QQ Number:");
     obj->uin_entry = gtk_combo_box_text_new_with_entry();
-#if 0
-    for (i = 0; i < login_users->len; ++i) {
-        usr = (GQQLoginUser*)g_ptr_array_index(login_users, i);
+    LIST_FOREACH(e, &obj->gdb->head, entries) {
         gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(obj->uin_entry),
-                                       usr->qqnumber);
+                                       e->qqnumber);
     }
-#endif
     gtk_combo_box_set_active(GTK_COMBO_BOX(obj->uin_entry), 0);
 
     obj->passwd_label = gtk_label_new("Password:");
     obj->passwd_entry = gtk_entry_new();
-#if 0
-    if(login_users->len > 0){
-        usr = (GQQLoginUser*)g_ptr_array_index(login_users, 0);
-		if (usr->rempw)
-			gtk_entry_set_text(GTK_ENTRY(obj->passwd_entry), usr->passwd);
+    e = LIST_FIRST(&obj->gdb->head);
+    if (e && e->rempwd) {
+        gtk_entry_set_text(GTK_ENTRY(obj->passwd_entry), e->password);
     }
-#endif
     g_signal_connect(G_OBJECT(obj->uin_entry), "changed",
                      G_CALLBACK(qqnumber_combox_changed), obj);
 	g_signal_connect(G_OBJECT(obj->uin_entry),"key-press-event",
@@ -210,7 +244,7 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
     /* rember password check box */
     obj->rempwcb = gtk_check_button_new_with_label("Remeber Password");
 #if 0
-	if(login_users->len > 0){
+	if (login_users->len > 0) {
         usr = (GQQLoginUser*)g_ptr_array_index(login_users, 0);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(obj->rempwcb), usr->rempw);
     }
@@ -225,6 +259,7 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
     obj->login_btn = gtk_button_new_with_label("Login");
     gtk_widget_set_size_request(obj->login_btn, 90, -1);
     g_signal_connect(G_OBJECT(obj->login_btn), "clicked", G_CALLBACK(login_btn_cb), (gpointer)obj);
+    
     /* status combo box */
     obj->status_comb = qq_statusbutton_new();
 #if 0
@@ -232,7 +267,7 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
         usr = (GQQLoginUser*)g_ptr_array_index(login_users, 0);
         qq_statusbutton_set_status_string(obj->status_comb, usr->status);
     }
-#endif 
+#endif
 
     GtkWidget *hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(hbox1), vbox, TRUE, FALSE, 0);
@@ -269,6 +304,12 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
  */
 static void qq_loginpanel_destroy(GtkWidget *obj)
 {
+    QQLoginPanel *lp = QQ_LOGINPANEL(obj);
+    
+    /* Free LwdbGlobalDB */
+    lwdb_globaldb_free(lp->gdb);
+    lp->gdb = NULL;
+
     /*
      * Child widgets will be destroied by their parents.
      * So, we should not try to unref the Child widgets here.

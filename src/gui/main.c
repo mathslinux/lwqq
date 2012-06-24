@@ -10,6 +10,7 @@
 
 #include <gtk/gtk.h>
 #include "mainwindow.h"
+#include "lwdb.h"
 
 /* Directory where lwqq installed in */
 char *lwqq_install_dir = NULL;
@@ -18,6 +19,8 @@ char *lwqq_buddy_status_dir = NULL;
 
 static void gui_init()
 {
+    /* initialize lwdb */
+    lwdb_init();
     lwqq_install_dir = g_strdup(LWQQ_INSTALL_DIR);
     lwqq_icons_dir = g_strdup_printf("%s/icons", lwqq_install_dir);
     lwqq_buddy_status_dir = g_strdup_printf("%s/status", lwqq_icons_dir);

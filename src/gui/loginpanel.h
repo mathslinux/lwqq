@@ -12,6 +12,7 @@
 #define LWQQ_LOGINPANEL_H
 
 #include <gtk/gtk.h>
+#include "lwdb.h"
 
 #define QQ_LOGINPANEL(obj)                                              \
     G_TYPE_CHECK_INSTANCE_CAST(obj, qq_loginpanel_get_type(), QQLoginPanel)
@@ -19,7 +20,6 @@
     G_TYPE_CHECK_CLASS_CAST(c, qq_loginpanel_get_type(), QQLoginPanelClass)
 #define QQ_IS_LOGINPANEL(obj)                                   \
     G_TYPE_CHECK_INSTANCE_TYPE(obj, qq_loginpanel_get_type())
-
 
 typedef struct _QQLoginPanel {
     GtkVBox parent;
@@ -31,8 +31,7 @@ typedef struct _QQLoginPanel {
     GtkWidget *err_label;           /* show error infomation. */
     GtkWidget *login_btn, *status_comb;
 
-    const gchar *uin, *passwd, *status;
-    gint rempw;
+    LwdbGlobalDB *gdb;
 
     GtkWidget *container;
 
