@@ -11,6 +11,7 @@
 #include <gtk/gtk.h>
 #include "loginpanel.h"
 #include "mainwindow.h"
+#include "statusbutton.h"
 
 extern char *lwqq_install_dir;
 extern char *lwqq_icons_dir;
@@ -224,9 +225,9 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
     obj->login_btn = gtk_button_new_with_label("Login");
     gtk_widget_set_size_request(obj->login_btn, 90, -1);
     g_signal_connect(G_OBJECT(obj->login_btn), "clicked", G_CALLBACK(login_btn_cb), (gpointer)obj);
-#if 0
     /* status combo box */
     obj->status_comb = qq_statusbutton_new();
+#if 0
     if (login_users->len > 0) {
         usr = (GQQLoginUser*)g_ptr_array_index(login_users, 0);
         qq_statusbutton_set_status_string(obj->status_comb, usr->status);
@@ -238,9 +239,7 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
 
     GtkWidget *hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     GtkWidget *hbox3 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-#if 0
     gtk_box_pack_start(GTK_BOX(hbox2), obj->status_comb, FALSE, FALSE, 0);
-#endif
     gtk_box_pack_start(GTK_BOX(hbox2), obj->login_btn, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox3), hbox2, TRUE, FALSE, 0);
 
