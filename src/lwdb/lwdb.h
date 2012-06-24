@@ -39,13 +39,15 @@ typedef struct LwdbGlobalUserEntry {
     char *password;
     char *status;
     char *rempwd;
+    LIST_ENTRY(LwdbGlobalUserEntry) entries;
 } LwdbGlobalUserEntry;
 
 typedef struct LwdbGlobalDB {
     SwsDB *db;                  /**< Pointer sqlite3 db */
     LwqqErrorCode (*add_new_user)(struct LwdbGlobalDB *db, const char *qqnumber);
     LwdbGlobalUserEntry * (*query_user_info)(struct LwdbGlobalDB *db,
-                                          const char *qqnumber);
+                                             const char *qqnumber);
+    LIST_HEAD(, LwdbGlobalUserEntry) head; /**< QQ friends */
     LwqqErrorCode (*update_user_info)(struct LwdbGlobalDB *db,
                                       const char *key, const char *value);
 } LwdbGlobalDB;

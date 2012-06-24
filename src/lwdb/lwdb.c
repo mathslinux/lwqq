@@ -217,6 +217,8 @@ LwdbGlobalDB *lwdb_globaldb_new()
 {
     LwdbGlobalDB *db = NULL;
     int ret;
+    char sql[256];
+    SwsStmt *stmt = NULL;
     
     if (!db_is_valid(global_database_name, 0)) {
         ret = lwdb_create_db(global_database_name, 0);
@@ -233,11 +235,35 @@ LwdbGlobalDB *lwdb_globaldb_new()
     db->add_new_user = lwdb_globaldb_add_new_user;
     db->query_user_info = lwdb_globaldb_query_user_info;
     db->update_user_info = lwdb_globaldb_update_user_info;
-    
-    
+
+    snprintf(sql, sizeof(sql), "SELECT qqnumber,db_name,password,"
+             "status,rempwd FROM users;");
+    ret = sws_query_start(db->db, sql, &stmt, NULL);
+    if (ret) {
+        printf ("buffffffffff\n");
+        goto failed;
+    }
+
+    while (!sws_query_next(stmt, NULL)) {
+        LwdbGlobalUserEntry *e = s_malloc0(sizeof(*e));
+        char buf[256] = {0};
+#define LWDB_GLOBALDB_NEW_MACRO(i, member) {                    \
+            sws_query_column(stmt, i, buf, sizeof(buf), NULL);  \
+            e->member = s_strdup(buf);                          \
+        }
+        LWDB_GLOBALDB_NEW_MACRO(0, qqnumber);
+        LWDB_GLOBALDB_NEW_MACRO(1, db_name);
+        LWDB_GLOBALDB_NEW_MACRO(2, password);
+        LWDB_GLOBALDB_NEW_MACRO(3, status);
+        LWDB_GLOBALDB_NEW_MACRO(4, rempwd);
+#undef LWDB_GLOBALDB_NEW_MACRO
+        LIST_INSERT_HEAD(&db->head, e, entries);
+    }
+    sws_query_end(stmt, NULL);
     return db;
 
 failed:
+    sws_query_end(stmt, NULL);
     lwdb_globaldb_free(db);
     return NULL;
 }
@@ -249,10 +275,17 @@ failed:
  */
 void lwdb_globaldb_free(LwdbGlobalDB *db)
 {
-    if (db) {
-        sws_close_db(db->db, NULL);
-        s_free(db);
+    LwdbGlobalUserEntry *e, *e_next;
+    if (!db)
+        return ;
+    
+    sws_close_db(db->db, NULL);
+
+    LIST_FOREACH_SAFE(e, &db->head, entries, e_next) {
+        LIST_REMOVE(e, entries);
+        lwdb_globaldb_free_user_entry(e);
     }
+    s_free(db);
 }
 
 /** 
