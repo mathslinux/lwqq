@@ -79,7 +79,7 @@ static void qqnumber_combox_changed(GtkComboBox *widget, gpointer data)
 
 static gboolean quick_login(GtkWidget* widget,GdkEvent* e,gpointer data)
 {
-    return TRUE;
+    return FALSE;
 }
 
 static void free_login_panel_user_info()
@@ -122,6 +122,30 @@ static void login_panel_update_user_info(QQLoginPanel* loginpanel)
     }
 }
 
+static void update_gdb(QQLoginPanel *lp)
+{
+#define UPDATE_GDB_MACRO() {                                            \
+        gdb->update_user_info(gdb, info->qqnumber, "password", info->password); \
+        gdb->update_user_info(gdb, info->qqnumber, "status", info->status); \
+        gdb->update_user_info(gdb, info->qqnumber, "rempwd", info->rempwd); \
+    }
+    LwdbGlobalDB *gdb = lp->gdb;
+    LwdbGlobalUserEntry *e;
+    LoginPanelUserInfo *info = &login_panel_user_info;
+    
+    LIST_FOREACH(e, &gdb->head, entries) {
+        if (!g_strcmp0(e->qqnumber, info->qqnumber)) {
+            UPDATE_GDB_MACRO();
+            return ;
+        }
+    }
+
+    gdb->add_new_user(gdb, e->qqnumber);
+    UPDATE_GDB_MACRO();
+    
+#undef UPDATE_GDB_MACRO
+}
+
 /** 
  * login_cb(QQLoginPanel *panel)
  * show the splashpanel and start the login procedure.
@@ -139,6 +163,8 @@ static void login_cb(QQLoginPanel* panel)
     lwqq_log(LOG_NOTICE, "Start login... qqnum: %s, status: %s\n",
              info->qqnumber, info->status);
 
+    /* Update database */
+    update_gdb(panel);
     free_login_panel_user_info();
 #if 0
 
