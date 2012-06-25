@@ -398,7 +398,7 @@ static LwqqErrorCode lwdb_globaldb_update_user_info(
     }
 
     snprintf(sql, sizeof(sql), "UPDATE users SET %s='%s' WHERE qqnumber='%s';",
-             qqnumber, key, value);
+             key, value, qqnumber);
     if (!sws_exec_sql(db->db, sql, NULL)) {
         return LWQQ_EC_DB_EXEC_FAIELD;
     }
