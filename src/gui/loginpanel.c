@@ -288,12 +288,9 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
     
     /* status combo box */
     obj->status_comb = qq_statusbutton_new();
-#if 0
-    if (login_users->len > 0) {
-        usr = (GQQLoginUser*)g_ptr_array_index(login_users, 0);
-        qq_statusbutton_set_status_string(obj->status_comb, usr->status);
+    if (e && e->status) {
+        qq_statusbutton_set_status_string(obj->status_comb, e->status);
     }
-#endif
 
     GtkWidget *hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(hbox1), vbox, TRUE, FALSE, 0);
