@@ -140,7 +140,7 @@ static void update_gdb(QQLoginPanel *lp)
         }
     }
 
-    gdb->add_new_user(gdb, e->qqnumber);
+    gdb->add_new_user(gdb, info->qqnumber);
     UPDATE_GDB_MACRO();
     
 #undef UPDATE_GDB_MACRO
