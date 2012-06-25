@@ -27,7 +27,7 @@ void lwdb_init();
  * LWDB final
  * 
  */
-void lwdb_final();
+void lwdb_finalize();
 
 /* Initialization and final API end */
 

@@ -115,10 +115,10 @@ void lwdb_init()
 }
 
 /** 
- * LWDB final
+ * LWDB finalize
  * 
  */
-void lwdb_final()
+void lwdb_finalize()
 {
     s_free(database_path);
     s_free(global_database_name);

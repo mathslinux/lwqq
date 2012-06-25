@@ -28,6 +28,7 @@ static void gui_init()
 
 static void gui_finalize()
 {
+    lwdb_finalize();
     g_free(lwqq_install_dir);
     g_free(lwqq_icons_dir);
     g_free(lwqq_buddy_status_dir);

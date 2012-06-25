@@ -58,6 +58,6 @@ done:
     lwdb_globaldb_free_user_entry(e);
     lwdb_globaldb_free(gdb);
     lwdb_userdb_free(udb);
-    lwdb_final();
+    lwdb_finalize();
     return 0;
 }
