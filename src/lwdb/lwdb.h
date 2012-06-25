@@ -48,7 +48,7 @@ typedef struct LwdbGlobalDB {
     LwdbGlobalUserEntry * (*query_user_info)(struct LwdbGlobalDB *db,
                                              const char *qqnumber);
     LIST_HEAD(, LwdbGlobalUserEntry) head; /**< QQ friends */
-    LwqqErrorCode (*update_user_info)(struct LwdbGlobalDB *db,
+    LwqqErrorCode (*update_user_info)(struct LwdbGlobalDB *db, const char *qqnumber,
                                       const char *key, const char *value);
 } LwdbGlobalDB;
 

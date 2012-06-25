@@ -31,7 +31,8 @@ static LwqqErrorCode lwdb_globaldb_add_new_user(
 static LwdbGlobalUserEntry *lwdb_globaldb_query_user_info(
     struct LwdbGlobalDB *db, const char *qqnumber);
 static LwqqErrorCode lwdb_globaldb_update_user_info(
-    struct LwdbGlobalDB *db, const char *key, const char *value);
+    struct LwdbGlobalDB *db, const char *qqnumber,
+    const char *key, const char *value);
 
 static LwqqBuddy *lwdb_userdb_query_buddy_info(
     struct LwdbUserDB *db, const char *qqnumber);
@@ -387,15 +388,17 @@ failed:
 }
 
 static LwqqErrorCode lwdb_globaldb_update_user_info(
-    struct LwdbGlobalDB *db, const char *key, const char *value)
+    struct LwdbGlobalDB *db, const char *qqnumber,
+    const char *key, const char *value)
 {
     char sql[256];
     
-    if (!key || !value) {
+    if (!qqnumber || !key || !value) {
         return LWQQ_EC_NULL_POINTER;
     }
 
-    snprintf(sql, sizeof(sql), "UPDATE users SET %s='%s';", key, value);
+    snprintf(sql, sizeof(sql), "UPDATE users SET %s='%s' WHERE qqnumber='%s';",
+             qqnumber, key, value);
     if (!sws_exec_sql(db->db, sql, NULL)) {
         return LWQQ_EC_DB_EXEC_FAIELD;
     }
