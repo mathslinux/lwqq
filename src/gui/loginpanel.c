@@ -257,8 +257,8 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
     
     /* password label and entry */
     GtkWidget *passwd_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_box_pack_start(GTK_BOX(passwd_hbox), obj->passwd_label
-                       , FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(passwd_hbox), obj->passwd_label,
+                       FALSE, FALSE, 0);
     GtkWidget *passwd_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     gtk_box_pack_start(GTK_BOX(passwd_vbox), passwd_hbox, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(passwd_vbox), obj->passwd_entry, FALSE, FALSE, 0);
@@ -269,12 +269,12 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
 
     /* rember password check box */
     obj->rempwcb = gtk_check_button_new_with_label("Remeber Password");
-#if 0
-	if (login_users->len > 0) {
-        usr = (GQQLoginUser*)g_ptr_array_index(login_users, 0);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(obj->rempwcb), usr->rempw);
+    if (e && e->rempwd) {
+        gboolean r;
+        r = atoi(e->rempwd) == 1 ? TRUE : FALSE;
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(obj->rempwcb), r);
+
     }
-#endif
     /* g_signal_connect(G_OBJECT(obj->rempwcb), "toggled" */
     /*                     , G_CALLBACK(qqnumber_combox_changed), obj); */
     GtkWidget *hbox4 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
