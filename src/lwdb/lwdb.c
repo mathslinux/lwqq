@@ -18,6 +18,9 @@
 #include <string.h>
 #include <sqlite3.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include "smemory.h"
 #include "logger.h"
 #include "swsqlite.h"
@@ -99,8 +102,13 @@ void lwdb_init()
         lwqq_log(LOG_ERROR, "Cant get $HOME, exit\n");
         exit(1);
     }
+    
     snprintf(buf, sizeof(buf), "%s/.config/lwqq", home);
     database_path = s_strdup(buf);
+    if (access(database_path, F_OK)) {
+        /* Create a new config directory if we dont have */
+        mkdir(database_path, 0755);
+    }
     
     snprintf(buf, sizeof(buf), "%s/lwqq.db", database_path);
     global_database_name = s_strdup(buf);
