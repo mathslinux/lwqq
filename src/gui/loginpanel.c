@@ -17,10 +17,15 @@
 #include "statusbutton.h"
 #include "lwdb.h"
 #include "logger.h"
+#include "login.h"
+#include "msgloop.h"
 
+extern LwqqClient *lwqq_client;
 extern char *lwqq_install_dir;
 extern char *lwqq_icons_dir;
 extern char *lwqq_buddy_status_dir;
+
+extern GQQMessageLoop *get_info_loop;
 
 static void qq_loginpanelclass_init(QQLoginPanelClass *c);
 static void qq_loginpanel_init(QQLoginPanel *obj);
@@ -146,6 +151,24 @@ static void update_gdb(QQLoginPanel *lp)
 #undef UPDATE_GDB_MACRO
 }
 
+static void do_login(gpointer data)
+{
+    LwqqErrorCode err;
+    LoginPanelUserInfo *info = &login_panel_user_info;
+
+    lwqq_client = lwqq_client_new(info->qqnumber, info->password);
+    if (!lwqq_client) {
+        lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
+        return ;
+    }
+    lwqq_login(lwqq_client, &err);
+}
+
+static void handle_login(QQLoginPanel *panel)
+{
+    gqq_mainloop_attach(get_info_loop, do_login, 1, panel);
+}
+
 /** 
  * login_cb(QQLoginPanel *panel)
  * show the splashpanel and start the login procedure.
@@ -165,27 +188,16 @@ static void login_cb(QQLoginPanel* panel)
 
     /* Update database */
     update_gdb(panel);
-    free_login_panel_user_info();
+
+    handle_login(panel);
+
+    /* free_login_panel_user_info(); */
 #if 0
 
     /* *
      * run the login state machine
      * we have a login state machine for login
      */
-    g_debug("Run login state machine...(%s, %d)", __FILE__, __LINE__);
-    state = LOGIN_SM_CHECKVC;
-    run_login_state_machine(panel);
-
-    g_object_set(cfg, "qqnum", panel -> uin, NULL);
-	if (panel->rempw)
-		g_object_set(cfg, "passwd", panel -> passwd, NULL);
-	else
-		g_object_set(cfg, "passwd", "", NULL);
-    g_object_set(cfg, "status", panel -> status, NULL);
-	g_object_set(cfg, "rempw", panel -> rempw, NULL);
-
-    qq_buddy_set(info -> me, "status", panel -> status);
-
 	/* Set mute status */
 	GQQLoginUser *usr = get_current_login_user(login_users);
 	if (usr)
