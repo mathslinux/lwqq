@@ -146,6 +146,25 @@ failed:
     return NULL;
 }
 
+static void process_status_change(LwqqRecvMsgList* list,json_t* node)
+{
+    LwqqClient* lc = (LwqqClient*)list->lc;
+    LwqqBuddy* buddy;
+    char* uin,*status,*client_type;
+    uin = json_parse_simple_value(node,"uin");
+    status = json_parse_simple_value(node,"status");
+    client_type = json_parse_simple_value(node,"client_type");
+
+    buddy = lwqq_buddy_find_buddy_by_uin(lc,uin);
+    if(buddy){
+        if(buddy->status) s_free(buddy->status);
+        buddy->status = s_strdup(status);
+
+        if(buddy->client_type) s_free(buddy->client_type);
+        if(client_type)buddy->client_type = s_strdup(client_type);
+    }
+}
+
 /**
  * Parse message received from server
  * Buddy message:
@@ -186,6 +205,11 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str)
         json_t *tmp, *ctent;
         
         msg_type = json_parse_simple_value(cur, "poll_type");
+        printf("%s\n",msg_type);
+        if(strcmp(msg_type,"buddies_status_change")==0){
+            process_status_change(list,cur);
+            continue;
+        }
         from = json_parse_simple_value(cur, "from_uin");
         to = json_parse_simple_value(cur, "to_uin");
         tmp = json_find_first_label_all(cur, "content");
