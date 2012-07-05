@@ -28,6 +28,13 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str);
 
 static int send_msg(struct LwqqSendMsg *sendmsg);
 
+static LwqqMsg * lwqq_msg_message_new(const char * msg_type, const char *from,
+                                      const char *to, const char *content);
+static void lwqq_msg_message_free(LwqqMsg *msg);
+static LwqqMsg * lwqq_msg_status_new(const char * msg_type, const char *who,
+                                     const char * status);
+static void lwqq_msg_status_free(LwqqMsg *msg);
+
 /** 
  * Create a new LwqqRecvMsgList object
  * 
@@ -75,24 +82,28 @@ void lwqq_recvmsg_free(LwqqRecvMsgList *list)
 /** 
  * Create a new LwqqMsg object
  * 
- * @param from 
- * @param to 
- * @param msg_type 
- * @param content 
+ * @param msg_type
+ * @param ... different type will call different constructor
+ *            and pass these parameters to the constructor
  * 
  * @return NULL on failure
  */
-LwqqMsg *lwqq_msg_new(const char *from, const char *to,
-                      const char *msg_type, const char *content)
+LwqqMsg *lwqq_msg_new(const char *msg_type, ...)
 {
-    LwqqMsg *msg;
-    
-    msg = s_malloc(sizeof(*msg));
-    msg->from = s_strdup(from);
-    msg->to = s_strdup(to);
-    msg->msg_type = s_strdup(msg_type);
-    msg->content = s_strdup(content);
-    return msg;
+    va_list ap;
+    va_start(ap, msg_type);
+    if (strncmp(msg_type, MT_MESSAGE, strlen(MT_MESSAGE)) == 0
+        || strncmp(msg_type, MT_GROUP_MESSAGE, strlen(MT_GROUP_MESSAGE)) == 0 ) {
+        char * from = va_arg(ap, char *);
+        char * to = va_arg(ap, char *);
+        char * content = va_arg(ap, char *);
+        return lwqq_msg_message_new(msg_type, from , to , content);
+    } else if (strncmp(msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0 ) {
+        char * who = va_arg(ap, char *);
+        char * status = va_arg(ap, char *);
+        return lwqq_msg_status_new(msg_type, who, status);
+    }
+    return NULL;
 }
 
 /** 
@@ -104,11 +115,97 @@ void lwqq_msg_free(LwqqMsg *msg)
 {
     if (!msg)
         return;
+    if (strncmp(msg->msg_type, MT_MESSAGE, strlen(MT_MESSAGE)) == 0
+        || strncmp(msg->msg_type, MT_GROUP_MESSAGE, strlen(MT_GROUP_MESSAGE)) == 0 ) {
+        lwqq_msg_message_free(msg);
+    } else if (strncmp(msg->msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0 ) {
+        lwqq_msg_status_free(msg);
+    }
+}
 
-    s_free(msg->from);
-    s_free(msg->to);
-    s_free(msg->msg_type);
-    s_free(msg->content);
+/** 
+ * Create message object. msg_type must be MT_MESSAGE.
+ * 
+ * @param msg_type 
+ * @param from 
+ * @param to 
+ * @param content 
+ * 
+ * @return 
+ */
+static LwqqMsg * lwqq_msg_message_new(const char * msg_type, const char *from,
+                                      const char *to, const char *content)
+{
+    LwqqMsg *msg;
+
+    if (strcmp(msg_type, MT_MESSAGE) != 0)
+        return NULL;
+    
+    msg = s_malloc(sizeof(*msg));
+    msg->message.from = s_strdup(from);
+    msg->message.to = s_strdup(to);
+    msg->message.msg_type = s_strdup(msg_type);
+    msg->message.content = s_strdup(content);
+    return msg;
+}
+
+/** 
+ * Free message object
+ * 
+ * @param msg 
+ */
+static void lwqq_msg_message_free(LwqqMsg *msg)
+{
+    if (!msg)
+        return;
+    if (strncmp(msg->msg_type, MT_MESSAGE, strlen(MT_MESSAGE)) != 0
+        && strncmp(msg->msg_type, MT_GROUP_MESSAGE, strlen(MT_GROUP_MESSAGE)) != 0)
+        return;
+    s_free(msg->message.from);
+    s_free(msg->message.to);
+    s_free(msg->message.msg_type);
+    s_free(msg->message.content);
+}
+
+/** 
+ * create status change message object, msg_type must be MT_STATUS_CHANGE
+ * 
+ * @param msg_type 
+ * @param who 
+ * @param status 
+ * 
+ * @return 
+ */
+static LwqqMsg * lwqq_msg_status_new(const char * msg_type, const char *who,
+                                     const char * status)
+{
+    LwqqMsg *msg;
+
+    if (strcmp(msg_type, MT_STATUS_CHANGE) != 0)
+        return NULL;
+    msg =  s_malloc(sizeof(*msg));
+    LwqqMsgStatus * m = (LwqqMsgStatus *)msg;
+    
+    m->who = s_strdup(who);
+    m->status = s_strdup(status);
+    m->msg_type = s_strdup(msg_type);
+    return msg;
+}
+
+/** 
+ * free status change message object.
+ * 
+ * @param msg 
+ */
+static void lwqq_msg_status_free(LwqqMsg *msg)
+{
+    if (!msg)
+        return;
+    if (strncmp(msg->msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) != 0 )
+        return;
+    s_free(msg->status.who);
+    s_free(msg->status.msg_type);
+    s_free(msg->status.status);
 }
 
 /** 
@@ -184,25 +281,41 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str)
     for (cur = json_tmp; cur != NULL; cur = cur->next) {
         char *msg_type, *from, *to, *content;
         json_t *tmp, *ctent;
+        LwqqRecvMsg * msg;
+        const char * mt_message = "message";
+        const char * mt_group_message = "group_message";
+        const char * mt_status  = "buddies_status_change";
         
         msg_type = json_parse_simple_value(cur, "poll_type");
-        from = json_parse_simple_value(cur, "from_uin");
-        to = json_parse_simple_value(cur, "to_uin");
-        tmp = json_find_first_label_all(cur, "content");
-        if (tmp && tmp->child && tmp->child->child) {
-            for (ctent = tmp->child->child; ctent != NULL; ctent = ctent->next) {
-                if (ctent->type != JSON_STRING)
-                    continue;
-                /* Convert to utf-8 */
-                content = ucs4toutf8(ctent->text);
-            }
-        } else {
-            content = NULL;
-        }
+
+        if (msg_type){
+            if (strncmp(msg_type, mt_message, strlen(mt_message)) == 0
+                || strncmp(msg_type, mt_message, strlen(mt_group_message)) == 0) {
+            
+                from = json_parse_simple_value(cur, "from_uin");
+                to = json_parse_simple_value(cur, "to_uin");
+                tmp = json_find_first_label_all(cur, "content");
+                if (tmp && tmp->child && tmp->child->child) {
+                    for (ctent = tmp->child->child; ctent != NULL; ctent = ctent->next) {
+                        if (ctent->type != JSON_STRING)
+                            continue;
+                        /* Convert to utf-8 */
+                        content = ucs4toutf8(ctent->text);
+                    }
+                } else {
+                    content = NULL;
+                }
         
-        LwqqRecvMsg *msg = s_malloc0(sizeof(*msg));
-        msg->msg = lwqq_msg_new(from, to, msg_type, content);
-        s_free(content);
+                msg = s_malloc0(sizeof(*msg));
+                msg->msg = lwqq_msg_new(msg_type, from, to, content);
+                s_free(content);
+            } else if (strncmp(msg_type, mt_status, strlen(mt_status)) == 0) {
+                char * who = json_parse_simple_value(cur, "uin");
+                char * status = json_parse_simple_value(cur, "status");
+                msg = s_malloc0(sizeof(*msg));
+                msg->msg = lwqq_msg_new(msg_type, who, status);
+            }
+        }
         pthread_mutex_lock(&list->mutex);
         SIMPLEQ_INSERT_TAIL(&list->head, msg, entries);
         pthread_mutex_unlock(&list->mutex);
@@ -299,7 +412,7 @@ LwqqSendMsg *lwqq_sendmsg_new(void *client, const char *to,
     
     sendmsg = s_malloc0(sizeof(*sendmsg));
     sendmsg->lc = client;
-    sendmsg->msg = lwqq_msg_new(lc->username, to, msg_type, content);
+    sendmsg->msg = lwqq_msg_new(msg_type, lc->username, to, content);
     sendmsg->send = send_msg; 
 
     return sendmsg;
@@ -342,7 +455,7 @@ static int send_msg(struct LwqqSendMsg *sendmsg)
 {
     int ret;
     LwqqClient *lc;
-    LwqqMsg *msg;
+    LwqqMsgMessage *msg;
     LwqqHttpRequest *req = NULL;  
     char *cookies;
     char *s;
@@ -353,7 +466,7 @@ static int send_msg(struct LwqqSendMsg *sendmsg)
     if (!lc) {
         goto failed;
     }
-    msg = sendmsg->msg;
+    msg = &sendmsg->msg->message;
     content = create_default_content(msg->content);
     snprintf(data, sizeof(data), "{\"to\":%s,\"face\":0,\"content\":%s,"
              "\"msg_id\":%ld,\"clientid\":\"%s\",\"psessionid\":\"%s\"}",

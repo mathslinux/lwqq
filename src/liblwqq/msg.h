@@ -14,17 +14,47 @@
 #include <pthread.h>
 
 /**
- * Lwqq Message object, used by receiving and sending message
+ * define the strings used for poll_type.
+ */
+#define MT_MESSAGE "message"
+#define MT_GROUP_MESSAGE "group_message"
+#define MT_STATUS_CHANGE  "buddies_status_change"
+/** 
+ * Message object, receiving and sending chat message
  * 
  */
-typedef struct LwqqMsg {
+typedef struct LwqqMsgMessage {
+    char * msg_type; /* must not be changed */
+
     char *from;                 /**< Message sender(qqnumber) */
     char *to;                   /**< Message receiver(qqnumber) */
     
+    char *content;              /**< Message content */
+
+} LwqqMsgMessage;
+
+/**
+ * buddies status change message body.
+ */
+typedef struct LwqqMsgStatus {
+    char * msg_type; /* must not be changed */
+
+    char * who;
+    char * status;
+} LwqqMsgStatus;
+
+/**
+ * Lwqq Message object. different message type base on msg_type.
+ * It can be convert to LwqqMsgMessage or LwqqMsgStatus because
+ * they have the same member "char * msg_typ"". Please do NOT change
+ * the first member in these struct.
+ * 
+ */
+typedef union LwqqMsg {
     /* Message type. e.g. buddy message or group message */
     char *msg_type;
-
-    char *content;              /**< Message content */
+    LwqqMsgMessage message;
+    LwqqMsgStatus status;
 } LwqqMsg;
 
 /** 
@@ -37,8 +67,7 @@ typedef struct LwqqMsg {
  * 
  * @return NULL on failure
  */
-LwqqMsg *lwqq_msg_new(const char *from, const char *to,
-                      const char *msg_type, const char *content);
+LwqqMsg *lwqq_msg_new(const char *msg_type, ...);
 /** 
  * Free a LwqqMsg object
  * 

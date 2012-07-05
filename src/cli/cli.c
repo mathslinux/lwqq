@@ -265,8 +265,26 @@ static void *recvmsg_thread(void *list)
         pthread_mutex_lock(&l->mutex);
         if (!SIMPLEQ_EMPTY(&l->head)) {
             msg = SIMPLEQ_FIRST(&l->head);
-            if (msg->msg->content) {
-                printf("Receive message: %s\n", msg->msg->content);
+            char * msg_type = msg->msg->msg_type;
+            if (msg_type) {
+                printf("Receive message type: %s \n", msg->msg->msg_type);
+                if (strcmp(msg_type, MT_MESSAGE) == 0) {
+                    LwqqMsgMessage * m = (LwqqMsgMessage *)(msg->msg);
+                    if (m->content) {
+                        printf("Receive message: %s\n", m->content);
+                    }
+                } else if ( strcmp(msg_type, MT_GROUP_MESSAGE) == 0 ) {
+                    if (msg->msg->message.content) {
+                        printf("Receive group message: %s\n", msg->msg->message.content);
+                    }
+                } else if (strcmp(msg_type, MT_STATUS_CHANGE) == 0) {
+                    if (msg->msg->status.who
+                        && msg->msg->status.status) {
+                        printf("Receive status change: %s - > %s\n", 
+                                msg->msg->status.who,
+                                msg->msg->status.status);
+                    }
+                }
             }
             SIMPLEQ_REMOVE_HEAD(&l->head, entries);
         }
