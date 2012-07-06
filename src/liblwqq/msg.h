@@ -19,6 +19,14 @@
 #define MT_MESSAGE "message"
 #define MT_GROUP_MESSAGE "group_message"
 #define MT_STATUS_CHANGE  "buddies_status_change"
+
+/**
+ * Every message will contain these elems.
+ */
+typedef struct LwqqMsgAny {
+    char * msg_type; /* must not be changed */
+} LwqqMsgAny;
+
 /** 
  * Message object, receiving and sending chat message
  * 
@@ -53,6 +61,7 @@ typedef struct LwqqMsgStatus {
 typedef union LwqqMsg {
     /* Message type. e.g. buddy message or group message */
     char *msg_type;
+    LwqqMsgAny any;
     LwqqMsgMessage message;
     LwqqMsgStatus status;
 } LwqqMsg;

@@ -266,7 +266,7 @@ static void *recvmsg_thread(void *list)
         if (!SIMPLEQ_EMPTY(&l->head)) {
             msg = SIMPLEQ_FIRST(&l->head);
             char * msg_type = msg->msg->msg_type;
-            if (msg_type) {
+            if (msg_type && strlen(msg_type) > 0) {
                 printf("Receive message type: %s \n", msg->msg->msg_type);
                 if (strcmp(msg_type, MT_MESSAGE) == 0) {
                     LwqqMsgMessage * m = (LwqqMsgMessage *)(msg->msg);
@@ -284,7 +284,10 @@ static void *recvmsg_thread(void *list)
                                 msg->msg->status.who,
                                 msg->msg->status.status);
                     }
+                } else  {
+                    printf("unknow message\n");
                 }
+
             }
             SIMPLEQ_REMOVE_HEAD(&l->head, entries);
         }

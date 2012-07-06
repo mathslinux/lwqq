@@ -35,6 +35,9 @@ static LwqqMsg * lwqq_msg_status_new(const char * msg_type, const char *who,
                                      const char * status);
 static void lwqq_msg_status_free(LwqqMsg *msg);
 
+static LwqqMsg * lwqq_msg_any_new(const char * msg_type);
+static void lwqq_msg_any_free(LwqqMsg *msg);
+
 /** 
  * Create a new LwqqRecvMsgList object
  * 
@@ -97,11 +100,16 @@ LwqqMsg *lwqq_msg_new(const char *msg_type, ...)
         char * from = va_arg(ap, char *);
         char * to = va_arg(ap, char *);
         char * content = va_arg(ap, char *);
+        va_end(ap);
         return lwqq_msg_message_new(msg_type, from , to , content);
     } else if (strncmp(msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0 ) {
         char * who = va_arg(ap, char *);
         char * status = va_arg(ap, char *);
+        va_end(ap);
         return lwqq_msg_status_new(msg_type, who, status);
+    } else {
+        va_end(ap);
+        return lwqq_msg_any_new(msg_type);
     }
     return NULL;
 }
@@ -120,7 +128,10 @@ void lwqq_msg_free(LwqqMsg *msg)
         lwqq_msg_message_free(msg);
     } else if (strncmp(msg->msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0 ) {
         lwqq_msg_status_free(msg);
+    } else {
+        lwqq_msg_any_free(msg);
     }
+    s_free(msg);
 }
 
 /** 
@@ -138,10 +149,11 @@ static LwqqMsg * lwqq_msg_message_new(const char * msg_type, const char *from,
 {
     LwqqMsg *msg;
 
-    if (strcmp(msg_type, MT_MESSAGE) != 0)
+    if (strcmp(msg_type, MT_MESSAGE) != 0
+        && strcmp(msg_type, MT_GROUP_MESSAGE) != 0)
         return NULL;
     
-    msg = s_malloc(sizeof(*msg));
+    msg = s_malloc0(sizeof(*msg));
     msg->message.from = s_strdup(from);
     msg->message.to = s_strdup(to);
     msg->message.msg_type = s_strdup(msg_type);
@@ -206,6 +218,38 @@ static void lwqq_msg_status_free(LwqqMsg *msg)
     s_free(msg->status.who);
     s_free(msg->status.msg_type);
     s_free(msg->status.status);
+}
+
+/** 
+ * create "any" object. it only contains msg_type now.
+ * 
+ * @param msg_type 
+ * 
+ * @return NULL on failure.
+ */
+static LwqqMsg * lwqq_msg_any_new(const char * msg_type)
+{
+    LwqqMsg *msg;
+    
+    if (!msg_type)
+        return NULL;
+    msg =  s_malloc(sizeof(*msg));
+    LwqqMsgAny * m = (LwqqMsgAny *)msg;
+    
+    m->msg_type = s_strdup(msg_type);
+    return msg;
+}
+
+/** 
+ * free "any" object.
+ * 
+ * @param msg 
+ */
+static void lwqq_msg_any_free(LwqqMsg *msg)
+{
+    if (!msg)
+        return;
+    s_free(msg->any.msg_type);
 }
 
 /** 
@@ -281,16 +325,13 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str)
     for (cur = json_tmp; cur != NULL; cur = cur->next) {
         char *msg_type, *from, *to, *content;
         json_t *tmp, *ctent;
-        LwqqRecvMsg * msg;
-        const char * mt_message = "message";
-        const char * mt_group_message = "group_message";
-        const char * mt_status  = "buddies_status_change";
+        LwqqRecvMsg * msg = NULL;
         
         msg_type = json_parse_simple_value(cur, "poll_type");
 
         if (msg_type){
-            if (strncmp(msg_type, mt_message, strlen(mt_message)) == 0
-                || strncmp(msg_type, mt_message, strlen(mt_group_message)) == 0) {
+            if (strncmp(msg_type, MT_MESSAGE, strlen(MT_MESSAGE)) == 0
+                || strncmp(msg_type, MT_GROUP_MESSAGE, strlen(MT_GROUP_MESSAGE)) == 0) {
             
                 from = json_parse_simple_value(cur, "from_uin");
                 to = json_parse_simple_value(cur, "to_uin");
@@ -309,11 +350,14 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList* list, const char *str)
                 msg = s_malloc0(sizeof(*msg));
                 msg->msg = lwqq_msg_new(msg_type, from, to, content);
                 s_free(content);
-            } else if (strncmp(msg_type, mt_status, strlen(mt_status)) == 0) {
+            } else if (strncmp(msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0) {
                 char * who = json_parse_simple_value(cur, "uin");
                 char * status = json_parse_simple_value(cur, "status");
                 msg = s_malloc0(sizeof(*msg));
                 msg->msg = lwqq_msg_new(msg_type, who, status);
+            } else {
+                msg = s_malloc0(sizeof(*msg));
+                msg->msg = lwqq_msg_new(msg_type);
             }
         }
         pthread_mutex_lock(&list->mutex);
