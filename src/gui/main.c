@@ -13,6 +13,7 @@
 #include "mainwindow.h"
 #include "msgloop.h"
 #include "lwdb.h"
+#include "logger.h"
 
 /* Directory where lwqq installed in */
 char *lwqq_install_dir = NULL;
@@ -27,6 +28,11 @@ GQQMessageLoop *get_info_loop = NULL;
 
 static void gui_init()
 {
+    if (g_thread_get_initialized() == FALSE) {
+        g_thread_init(NULL);
+        lwqq_log(LOG_DEBUG, "Init the gthread system\n");
+    }
+
     get_info_loop = gqq_msgloop_start("Get informain");
     if (get_info_loop == NULL) {
         exit(1);
