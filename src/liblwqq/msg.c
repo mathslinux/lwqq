@@ -323,42 +323,44 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
     /* make json_tmp point to first child of "result" */
     json_tmp = json_tmp->child->child;
     for (cur = json_tmp; cur != NULL; cur = cur->next) {
-        char *msg_type, *from, *to, *content;
-        json_t *tmp, *ctent;
         LwqqRecvMsg *msg = NULL;
+        char *msg_type;
         
         msg_type = json_parse_simple_value(cur, "poll_type");
 
-        if (msg_type) {
-            if (strncmp(msg_type, MT_MESSAGE, strlen(MT_MESSAGE)) == 0
-                || strncmp(msg_type, MT_GROUP_MESSAGE, strlen(MT_GROUP_MESSAGE)) == 0) {
-            
-                from = json_parse_simple_value(cur, "from_uin");
-                to = json_parse_simple_value(cur, "to_uin");
-                tmp = json_find_first_label_all(cur, "content");
-                if (tmp && tmp->child && tmp->child->child) {
-                    for (ctent = tmp->child->child; ctent != NULL; ctent = ctent->next) {
-                        if (ctent->type != JSON_STRING)
-                            continue;
-                        /* Convert to utf-8 */
-                        content = ucs4toutf8(ctent->text);
-                    }
-                } else {
-                    content = NULL;
+        if (!msg_type)
+            continue;
+
+        if (strncmp(msg_type, MT_MESSAGE, strlen(MT_MESSAGE)) == 0
+            || strncmp(msg_type, MT_GROUP_MESSAGE, strlen(MT_GROUP_MESSAGE)) == 0) {
+            char *from, *to, *content = NULL;
+            json_t *tmp;
+            from = json_parse_simple_value(cur, "from_uin");
+            to = json_parse_simple_value(cur, "to_uin");
+            tmp = json_find_first_label_all(cur, "content");
+            if (tmp && tmp->child && tmp->child->child) {
+                json_t *ctent;
+                for (ctent = tmp->child->child; ctent != NULL; ctent = ctent->next) {
+                    if (ctent->type != JSON_STRING)
+                        continue;
+                    /* Convert to utf-8 */
+                    content = ucs4toutf8(ctent->text);
                 }
-        
-                msg = s_malloc0(sizeof(*msg));
-                msg->msg = lwqq_msg_new(msg_type, from, to, content);
-                s_free(content);
-            } else if (strncmp(msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0) {
-                char *who = json_parse_simple_value(cur, "uin");
-                char *status = json_parse_simple_value(cur, "status");
-                msg = s_malloc0(sizeof(*msg));
-                msg->msg = lwqq_msg_new(msg_type, who, status);
             } else {
-                msg = s_malloc0(sizeof(*msg));
-                msg->msg = lwqq_msg_new(msg_type);
+                content = NULL;
             }
+
+            msg = s_malloc0(sizeof(*msg));
+            msg->msg = lwqq_msg_new(msg_type, from, to, content);
+            s_free(content);
+        } else if (strncmp(msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0) {
+            char *who = json_parse_simple_value(cur, "uin");
+            char *status = json_parse_simple_value(cur, "status");
+            msg = s_malloc0(sizeof(*msg));
+            msg->msg = lwqq_msg_new(msg_type, who, status);
+        } else {
+            msg = s_malloc0(sizeof(*msg));
+            msg->msg = lwqq_msg_new(msg_type);
         }
         pthread_mutex_lock(&list->mutex);
         SIMPLEQ_INSERT_TAIL(&list->head, msg, entries);
