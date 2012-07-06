@@ -169,6 +169,13 @@ LwqqClient *lwqq_client_new(const char *username, const char *password);
 char *lwqq_get_cookies(LwqqClient *lc);
 
 /** 
+ * Free LwqqVerifyCode object
+ * 
+ * @param vc 
+ */
+void lwqq_vc_free(LwqqVerifyCode *vc);
+
+/** 
  * Free LwqqClient instance
  * 
  * @param client LwqqClient instance
