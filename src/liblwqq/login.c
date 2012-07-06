@@ -589,7 +589,6 @@ static char *generate_clientid()
 static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
 {
     char msg[1024] ={0};
-    char *ptwebqq;
     char *buf;
     LwqqHttpRequest *req = NULL;  
     char *response = NULL;
@@ -609,8 +608,6 @@ static void set_online_status(LwqqClient *lc, char *status, LwqqErrorCode *err)
         goto done ;
     }
 
-    /* Do we really need ptwebqq */
-    ptwebqq = lc->cookies->ptwebqq ? lc->cookies->ptwebqq : "";
     snprintf(msg, sizeof(msg), "{\"status\":\"%s\",\"ptwebqq\":\"%s\","
              "\"passwd_sig\":""\"\",\"clientid\":\"%s\""
              ", \"psessionid\":null}"

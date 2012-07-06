@@ -8,8 +8,10 @@
  * 
  */
 
+#include <stdlib.h>
 #include <gtk/gtk.h>
 #include "mainwindow.h"
+#include "msgloop.h"
 #include "lwdb.h"
 
 /* Directory where lwqq installed in */
@@ -17,8 +19,19 @@ char *lwqq_install_dir = NULL;
 char *lwqq_icons_dir = NULL;
 char *lwqq_buddy_status_dir = NULL;
 
+/**
+ * The main loop used to get information from the server.
+ * Such as face images, buddy information.
+ */
+GQQMessageLoop *get_info_loop = NULL;
+
 static void gui_init()
 {
+    get_info_loop = gqq_msgloop_start("Get informain");
+    if (get_info_loop == NULL) {
+        exit(1);
+    }
+
     /* initialize lwdb */
     lwdb_init();
     lwqq_install_dir = g_strdup(LWQQ_INSTALL_DIR);

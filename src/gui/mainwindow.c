@@ -14,13 +14,22 @@
 #include "loginpanel.h"
 #include "splashpanel.h"
 #include "mainpanel.h"
+#include "type.h"
+#include "login.h"
+
+LwqqClient *lwqq_client = NULL;
 
 static void qq_mainwindow_init(QQMainWindow *win);
 static void qq_mainwindowclass_init(QQMainWindowClass *wc);
 
 gboolean qq_mainwindow_close(GtkWidget *widget)
 {
+    lwqq_logout(lwqq_client, NULL);
+    gtk_main_quit();
+    /* FIXME */
+#if 0
     qq_mainwindow_hide(widget);
+#endif
     
     return TRUE;
 }
