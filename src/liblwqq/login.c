@@ -767,6 +767,10 @@ void lwqq_login(LwqqClient *client, LwqqErrorCode *err)
     /* Last: do real login */
     do_login(client, md5, err);
     s_free(md5);
+
+    /* Free old value */
+    lwqq_vc_free(client->vc);
+    client->vc = NULL;
 }
 
 /** 
