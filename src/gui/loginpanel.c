@@ -151,9 +151,37 @@ static void update_gdb(QQLoginPanel *lp)
 #undef UPDATE_GDB_MACRO
 }
 
-static void do_login(gpointer data)
+/* FIXME, it's just a temporary function */
+static char *get_vc(char *vc_file)
 {
-    LwqqErrorCode err;
+    char vc[128] = {0};
+    int vc_len;
+    FILE *f;
+
+    if ((f = fopen(vc_file, "r")) == NULL) {
+        return NULL;
+    }
+
+    if (!fgets(vc, sizeof(vc), f)) {
+        fclose(f);
+        return NULL;
+    }
+    
+    vc_len = strlen(vc);
+    if (vc[vc_len - 1] == '\n') {
+        vc[vc_len - 1] = '\0';
+    }
+    return g_strdup(vc);
+}
+
+/** 
+ * Handle login. In this function, we do login, get friends information,
+ * Get group information, and so on.
+ * 
+ * @param panel 
+ */
+static void handle_login(QQLoginPanel *panel)
+{
     LoginPanelUserInfo *info = &login_panel_user_info;
 
     lwqq_client = lwqq_client_new(info->qqnumber, info->password);
@@ -161,15 +189,47 @@ static void do_login(gpointer data)
         lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
         return ;
     }
-    lwqq_login(lwqq_client, &err);
+    while (1) {
+        LwqqClient *lc = lwqq_client;
+        LwqqErrorCode err;
+        lwqq_login(lwqq_client, &err);
+        if (err == LWQQ_EC_OK) {
+            lwqq_log(LOG_NOTICE, "Login successfully\n");
+            qq_mainwindow_show_mainpanel(panel->container);
+            break;
+        } else if (err == LWQQ_EC_LOGIN_NEED_VC) {
+#if 1                           /* FIXME */
+            char vc_image[128];
+            char vc_file[128];
+            snprintf(vc_image, sizeof(vc_image), "/tmp/lwqq_%s.jpeg", lc->username);
+            snprintf(vc_file, sizeof(vc_file), "/tmp/lwqq_%s.txt", lc->username);
+            /* Delete old verify image */
+            unlink(vc_file);
+
+            lwqq_log(LOG_NOTICE, "Need verify code to login, please check "
+                     "image file %s, and input what you see to file %s\n",
+                     vc_image, vc_file);
+            while (1) {
+                if (!access(vc_file, F_OK)) {
+                    sleep(1);
+                    break;
+                }
+                sleep(1);
+            }
+            lc->vc->str = get_vc(vc_file);
+            if (!lc->vc->str) {
+                continue;
+            }
+            lwqq_log(LOG_NOTICE, "Get verify code: %s\n", lc->vc->str);
+#endif
+        } else {
+            /* FIXME, need more output */
+            lwqq_log(LOG_ERROR, "Login failed\n");
+        }
+    }
 }
 
-static void handle_login(QQLoginPanel *panel)
-{
-    gqq_mainloop_attach(get_info_loop, do_login, 1, panel);
-}
-
-/** 
+/**
  * login_cb(QQLoginPanel *panel)
  * show the splashpanel and start the login procedure.
  * 
@@ -189,7 +249,7 @@ static void login_cb(QQLoginPanel* panel)
     /* Update database */
     update_gdb(panel);
 
-    handle_login(panel);
+    gqq_mainloop_attach(get_info_loop, handle_login, 1, panel);
 
     /* free_login_panel_user_info(); */
 #if 0
@@ -209,7 +269,7 @@ static void login_cb(QQLoginPanel* panel)
 #endif
 }
 
-/** 
+/**
  * Callback of login_btn button
  * 
  * @param btn 
@@ -255,6 +315,7 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
                      G_CALLBACK(quick_login), (gpointer)obj);
     /* not visibily */
     gtk_entry_set_visibility(GTK_ENTRY(obj->passwd_entry), FALSE);
+
     gtk_widget_set_size_request(obj->uin_entry, 200, -1);
     gtk_widget_set_size_request(obj->passwd_entry, 220, -1);
 
