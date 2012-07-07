@@ -256,10 +256,6 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     json_t *json = NULL, *json_tmp;
     char *cookies;
 
-    if (!err) {
-        return ;
-    }
-    
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
     create_post_data(lc, msg, sizeof(msg));
 
@@ -280,7 +276,8 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     }
     ret = req->do_request(req, 1, msg);
     if (ret || req->http_code != 200) {
-        *err = LWQQ_EC_HTTP_ERROR;
+        if (err)
+            *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
@@ -292,7 +289,8 @@ void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
         lwqq_log(LOG_ERROR, "Parse json object of friends error: %s\n", req->response);
-        *err = LWQQ_EC_ERROR;
+        if (err)
+            *err = LWQQ_EC_ERROR;
         goto done;
     }
 
@@ -328,7 +326,8 @@ done:
     return ;
 
 json_error:
-    *err = LWQQ_EC_ERROR;
+    if (err)
+        *err = LWQQ_EC_ERROR;
     /* Free temporary string */
     if (json)
         json_free_value(&json);
@@ -436,10 +435,6 @@ void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
     json_t *json = NULL, *json_tmp;
     char *cookies;
 
-    if (!err) {
-        return ;
-    }
-    
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
     create_post_data(lc, msg, sizeof(msg));
 
@@ -459,7 +454,8 @@ void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
     }
     ret = req->do_request(req, 1, msg);
     if (ret || req->http_code != 200) {
-        *err = LWQQ_EC_HTTP_ERROR;
+        if (err)
+            *err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
 
@@ -477,7 +473,8 @@ void lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
     ret = json_parse_document(&json, req->response);
     if (ret != JSON_OK) {
         lwqq_log(LOG_ERROR, "Parse json object of groups error: %s\n", req->response);
-        *err = LWQQ_EC_ERROR;
+        if (err)
+            *err = LWQQ_EC_ERROR;
         goto done;
     }
 
@@ -506,7 +503,8 @@ done:
     return ;
 
 json_error:
-    *err = LWQQ_EC_ERROR;
+    if (err)
+        *err = LWQQ_EC_ERROR;
     /* Free temporary string */
     if (json)
         json_free_value(&json);
@@ -816,7 +814,8 @@ done:
     return ;
 
 json_error:
-    *err = LWQQ_EC_ERROR;
+    if (err)
+        *err = LWQQ_EC_ERROR;
     /* Free temporary string */
     if (json)
         json_free_value(&json);
