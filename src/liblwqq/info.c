@@ -149,7 +149,7 @@ static void parse_info_child(LwqqClient *lc, json_t *json)
     
     json = json->child;    //point to the array.[]
     for (cur = json->child; cur != NULL; cur = cur->next) {
-        buddy = s_malloc0(sizeof(*buddy));
+        buddy = lwqq_buddy_new();
         buddy->face = s_strdup(json_parse_simple_value(cur, "face"));
         buddy->flag = s_strdup(json_parse_simple_value(cur, "flag"));
         buddy->nick = s_strdup(json_parse_simple_value(cur, "nick"));
