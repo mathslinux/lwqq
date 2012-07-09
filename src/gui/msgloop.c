@@ -9,6 +9,7 @@
  */
 
 #include <msgloop.h>
+#include "logger.h"
 
 /* The Invoker type */
 typedef void (*Invoker)(gpointer method, gpointer *pars);
@@ -30,28 +31,27 @@ typedef struct {
 
 static gpointer thread_main(gpointer data)
 {
-    gchar *name;
-    GQQMessageLoop *ml= (GQQMessageLoop*)data;
+    GQQMessageLoop *ml= (GQQMessageLoop *)data;
+    char name[256];
 
     ml->ctx = g_main_context_new();
     if (ml->ctx == NULL) {
-        g_error("Create context for %s loop failed... (%s, %d)", ml->name,
-                __FILE__, __LINE__);
+        lwqq_log(LOG_ERROR, "Create context for %s loop failed\n", ml->name);
         return NULL;
     }
+
     GMainLoop *loop = g_main_loop_new(ml->ctx, TRUE);
     if (loop == NULL) {
-        g_error("Create %s main loop failed...(%s, %d)", ml->name,
-                __FILE__, __LINE__);
+        lwqq_log(LOG_ERROR, "Create %s main loop failed\n", ml->name);
         return NULL;
     }
     ml->loop = loop;
 
-    g_debug("Start %s main loop...(%s, %d)", ml->name, __FILE__, __LINE__);
-    name = g_strdup(ml->name);
+    lwqq_log(LOG_DEBUG, "Start %s main loop ......\n", ml->name);
+    g_snprintf(name, sizeof(name), "%s", ml->name);
     g_main_loop_run(ml->loop);
-    g_debug("%s main loop quit.(%s, %d)", name, __FILE__, __LINE__);
-    g_free(name);
+
+    lwqq_log(LOG_DEBUG, "%s main loop quit\n", name);
     return NULL;
 }
 
@@ -65,15 +65,8 @@ GQQMessageLoop* gqq_msgloop_start(const gchar *name)
     ml->name = g_strdup(name);
 
     GError *err = NULL;
-    if (
-#if GLIB_CHECK_VERSION(2,31,0)
-        g_thread_new("", thread_main, ml)
-#else
-        g_thread_create(thread_main, ml, FALSE, &err)
-#endif
-        == NULL) {
-        g_warning("Create main loop thread failed... %s (%s, %d)",
-                  err->message, __FILE__, __LINE__);
+    if (g_thread_create(thread_main, ml, FALSE, &err) == NULL) {
+        lwqq_log(LOG_WARNING, "Create main loop thread failed\n", err->message);
         g_error_free(err);
         g_free(ml->name);
         g_slice_free(GQQMessageLoop, ml);
