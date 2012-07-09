@@ -12,6 +12,7 @@
 #define LWQQ_MSG_H
 
 #include <pthread.h>
+#include "queue.h"
 
 /**
  * define the strings used for poll_type.
