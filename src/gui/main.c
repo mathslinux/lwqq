@@ -24,6 +24,7 @@ char *lwqq_buddy_status_dir = NULL;
 char *lwqq_user_dir = NULL;
 QQTray *tray = NULL;
 GtkWidget *main_win = NULL;
+GHashTable *lwqq_chat_window = NULL;
 
 //
 // The main loop used to get information from the server.
@@ -76,10 +77,15 @@ static void gui_init()
 
     /* initialize lwdb */
     lwdb_init();
+
     lwqq_install_dir = g_strdup(LWQQ_INSTALL_DIR);
     lwqq_icons_dir = g_strdup_printf("%s/icons", lwqq_install_dir);
     lwqq_buddy_status_dir = g_strdup_printf("%s/status", lwqq_icons_dir);
     lwqq_user_dir = g_strdup_printf("%s/lwqq", g_get_user_config_dir());
+
+    /* Hash table for chatwindow */
+    lwqq_chat_window = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                             g_free, NULL);
 }
 
 static void gui_finalize()
