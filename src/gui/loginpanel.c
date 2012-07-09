@@ -365,7 +365,7 @@ static void handle_login(QQLoginPanel *panel)
     }
     while (1) {
         LwqqClient *lc = lwqq_client;
-        LwqqErrorCode err;
+        LwqqErrorCode err = LWQQ_EC_ERROR;
         lwqq_login(lwqq_client, &err);
         if (err == LWQQ_EC_OK) {
             lwqq_log(LOG_NOTICE, "Login successfully\n");
