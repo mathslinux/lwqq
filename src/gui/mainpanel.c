@@ -160,9 +160,9 @@ static gboolean qq_group_list_on_show_tooltip(GtkWidget* widget
 static void qq_mainpanel_init(QQMainPanel *panel)
 {
 
-    GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     GtkWidget *box = NULL;
-    GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
     panel -> faceimgframe = gtk_frame_new(NULL);
     gtk_box_pack_start(GTK_BOX(hbox), panel -> faceimgframe
@@ -170,7 +170,7 @@ static void qq_mainpanel_init(QQMainPanel *panel)
 
     panel -> status_btn = qq_statusbutton_new();
     panel -> nick = gtk_label_new("");
-    box = gtk_hbox_new(FALSE, 0);
+    box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(box), panel -> status_btn, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), panel -> nick, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), box, FALSE, FALSE, 2);
@@ -178,7 +178,7 @@ static void qq_mainpanel_init(QQMainPanel *panel)
     panel -> longnick = gtk_label_new("");
     panel -> longnick_entry = gtk_entry_new();    
     gtk_widget_set_size_request(GTK_WIDGET(panel -> longnick_entry), 0, 0);
-    panel -> longnick_box = gtk_hbox_new(FALSE, 0);
+    panel -> longnick_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     panel -> longnick_eventbox = gtk_event_box_new();
     gtk_container_add(GTK_CONTAINER(panel -> longnick_eventbox)
                         , panel -> longnick);
@@ -237,7 +237,7 @@ static void qq_mainpanel_init(QQMainPanel *panel)
     g_signal_connect(GTK_WIDGET(panel -> recent_btn), "leave-notify-event"
                                 , G_CALLBACK(btn_group_leave_cb), panel);
 
-    hbox = gtk_hbox_new(TRUE, 0);
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(hbox), panel -> buddy_btn, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), panel -> grp_btn, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), panel -> recent_btn, TRUE, TRUE, 0);
