@@ -12,6 +12,7 @@
 #include "logger.h"
 #include "login.h"
 #include "info.h"
+#include "smemory.h"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -34,7 +35,7 @@ static void qq_loginpanel_init(QQLoginPanel *obj);
 static void qq_loginpanel_destroy(GtkWidget *obj);
 static void qqnumber_combox_changed(GtkComboBox *widget, gpointer data);
 //static void update_face_image(LwqqClient *lc, QQMainPanel *panel);
-//static void update_buddy_qq_number(LwqqClient *lc, QQMainPanel *panel);
+static void update_buddy_qq_number(LwqqClient *lc, QQMainPanel *panel);
 
 typedef struct LoginPanelUserInfo {
     char *qqnumber;
@@ -161,12 +162,8 @@ static void update_details(LwqqClient *lc, QQLoginPanel *panel)
     gqq_mainloop_attach(&gtkloop, qq_mainpanel_update_online_buddies, 1, mp);
 
     //update qq number
-    lwqq_info_get_all_friend_qqnumbers(lc, NULL);
-    qq_mainpanel_update_buddy_info(mp);
+    update_buddy_qq_number(lc, (QQMainPanel *)QQ_MAINWINDOW(panel->container)->main_panel);
 #if 0
-    update_buddy_qq_number(info
-                           , (QQMainPanel*)QQ_MAINWINDOW(panel -> container)
-                           -> main_panel);
     // update group number
     gint i;
     QQGroup *grp;
@@ -927,29 +924,25 @@ gint qq_loginpanel_get_rempw(QQLoginPanel *loginpanel)
 	return  gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(loginpanel->rempwcb));
 }
 
-typedef struct{
+typedef struct {
     LwqqClient *lc;
-    GPtrArray *array;
-    gint t_num;
-    gint id;
-}ThreadFuncPar;
+    LwqqBuddy *bdy;
+} ThreadFuncPar;
 
 //
 // Get buddy qq number thread func
 //
-#if 0
-void get_buddy_qqnumber_thread_func( gpointer data, gpointer user_data)
+static void get_buddy_qqnumber_thread_func(gpointer data, gpointer user_data)
 {
 
     ThreadFuncPar *par = data;
-    LwqqClient *lc = par -> info;
-    gint id = par -> id;
-    QQBuddy *bdy;
-    g_slice_free( ThreadFuncPar , par );
-    gchar num[100];
-    bdy = g_ptr_array_index(info -> buddies, id );
-    qq_get_qq_number( info, bdy ->uin -> str, num , NULL );
-    qq_buddy_set(bdy, "qqnumber", num);
+    LwqqClient *lc = par->lc;
+    LwqqBuddy *bdy = par->bdy;
+    g_slice_free(ThreadFuncPar ,par);
+
+    /* Free old one */
+    s_free(bdy->qqnumber);
+    bdy->qqnumber = lwqq_info_get_friend_qqnumber(lc, bdy->uin);
 }
 
 //
@@ -958,41 +951,34 @@ void get_buddy_qqnumber_thread_func( gpointer data, gpointer user_data)
 //
 static void update_buddy_qq_number(LwqqClient *lc, QQMainPanel *panel)
 {
-    if(info == NULL || panel == NULL){
-        return;
-    }
+    GThreadPool *thread_pool;
+    ThreadFuncPar *par = NULL;
+    LwqqBuddy *buddy;
 
-    GThreadPool * thread_pool;
+    thread_pool = g_thread_pool_new(get_buddy_qqnumber_thread_func, NULL,
+                                    100, TRUE, NULL);
 
-#if !GLIB_CHECK_VERSION(2,31,0)
-    g_thread_init(NULL);
-#endif
-    ThreadFuncPar * par = NULL;
-
-    thread_pool = g_thread_pool_new( get_buddy_qqnumber_thread_func, NULL ,100, TRUE, NULL );
-
-    if ( ! thread_pool ){
+    if (!thread_pool){
         g_debug("can not create new thread pool ...(%s,%d)",
                 __FILE__, __LINE__ );
         return;
     }
-    gint i = 0;
-    for ( ; i < info->buddies ->len ; i ++ )
-    {
+    LIST_FOREACH(buddy, &lc->friends, entries) {
         par = g_slice_new0(ThreadFuncPar);
-        par -> array = NULL;
-        par -> id = i;
-        par -> info = info;
-        g_thread_pool_push( thread_pool , (gpointer) par, NULL);
+        par->lc = lc;
+        par->bdy = buddy;
+        g_thread_pool_push(thread_pool, (gpointer)par, NULL);
     }
 
-    g_thread_pool_free(thread_pool, 0,1);
+    g_thread_pool_free(thread_pool, 0, 1);
 
     //update the panel
-    gqq_mainloop_attach(&gtkloop, qq_mainpanel_update_buddy_faceimg, 1, panel);
+    qq_mainpanel_update_buddy_info(panel);
+//    gqq_mainloop_attach(&gtkloop, qq_mainpanel_update_buddy_faceimg, 1, panel);
     return;
 }
 
+#if 0
 void get_buddy_face_thread_func(gpointer data, gpointer user_data)
 {
 
