@@ -209,6 +209,7 @@ void lwqq_buddy_free(LwqqBuddy *buddy)
     s_free(buddy->city);
     s_free(buddy->personal);
     s_free(buddy->nick);
+    s_free(buddy->long_nick);
     s_free(buddy->shengxiao);
     s_free(buddy->email);
     s_free(buddy->province);

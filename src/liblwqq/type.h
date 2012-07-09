@@ -43,6 +43,7 @@ typedef struct LwqqBuddy {
     char *city;
     char *personal;
     char *nick;
+    char *long_nick;
     char *shengxiao;
     char *email;
     char *province;
