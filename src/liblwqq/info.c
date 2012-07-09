@@ -156,7 +156,7 @@ static void parse_info_child(LwqqClient *lc, json_t *json)
         buddy->nick = s_strdup(json_parse_simple_value(cur, "nick"));
         buddy->uin = s_strdup(json_parse_simple_value(cur, "uin"));
                                 
-        /* Add to categories list */
+        /* Add to buddies list */
         LIST_INSERT_HEAD(&lc->friends, buddy, entries);
     }
 }
@@ -228,6 +228,7 @@ static void parse_friends_child(LwqqClient *lc, json_t *json)
 //    {"flag":0,"uin":1907104721,"categories":0}
     json = json->child;    //point to the array.[]
     for (cur = json->child; cur != NULL; cur = cur->next) {
+        LwqqFriendCategory *c_entry;
         uin = json_parse_simple_value(cur, "uin");
         cate_index = json_parse_simple_value(cur, "categories");
         if (!uin || !cate_index)
@@ -237,6 +238,11 @@ static void parse_friends_child(LwqqClient *lc, json_t *json)
         if (!buddy)
             continue;
 
+        LIST_FOREACH(c_entry, &lc->categories, entries) {
+            if (c_entry->index == atoi(cate_index)) {
+                c_entry->count++;
+            }
+        }
         buddy->cate_index = s_strdup(cate_index);
     }
 }

@@ -21,6 +21,7 @@ typedef struct LwqqFriendCategory {
     int index;
     int sort;
     char *name;
+    int count;
     LIST_ENTRY(LwqqFriendCategory) entries;
 } LwqqFriendCategory;
 
