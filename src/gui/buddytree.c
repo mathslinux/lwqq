@@ -360,9 +360,8 @@ static void tree_store_set_buddy_info(GtkTreeStore *store, LwqqBuddy *bdy,
         g_object_set(cw, "name", bdy -> markname ?: "", NULL);
     }
 
-    /* FIXME */
     gtk_tree_store_set(store, iter,
-                       BDY_LONGNICK, "hahahahaha", /* FIXME */
+                       BDY_LONGNICK, bdy->qqnumber ?: "",
                        BDY_STATUS, bdy->status ?: "offline",
                        BDY_QQNUMBER, bdy->qqnumber ?: "",
                        BDY_UIN, bdy->uin, -1);
@@ -626,31 +625,24 @@ void qq_buddy_tree_update_online_buddies(GtkWidget *tree, LwqqClient *lc)
 
 void qq_buddy_tree_update_buddy_info(GtkWidget *tree, LwqqClient *lc)
 {
-#if 0
-    gint i;
-    QQBuddy *bdy;
+    LwqqBuddy *bdy;
     GtkTreePath *path;
     GtkTreeIter iter;
     GtkTreeModel *model;
     GtkTreeRowReference *ref;
     model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
 
-    for(i = 0; i < info -> buddies -> len; ++i){
-        bdy = (QQBuddy*)g_ptr_array_index(info -> buddies, i);
-        if(bdy == NULL){
-            continue;
-        }
-        ref = g_hash_table_lookup(tree_map, bdy -> uin -> str);
+    LIST_FOREACH(bdy, &lc->friends, entries) {
+        ref = g_hash_table_lookup(tree_map, bdy -> uin);
         if(ref == NULL){
             g_warning("No TreeMap for %s. We may need add it..(%s, %d)"
-                                    , bdy -> uin -> str, __FILE__, __LINE__);
+                      , bdy -> uin, __FILE__, __LINE__);
             continue;
         }
         path = gtk_tree_row_reference_get_path(ref);
         gtk_tree_model_get_iter(model, &iter, path);
         tree_store_set_buddy_info(GTK_TREE_STORE(model), bdy, &iter);
-        gtk_tree_path_free(path);
+        gtk_tree_path_free(path);        
     }
-#endif
 }
 

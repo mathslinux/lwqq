@@ -359,9 +359,7 @@ void qq_mainpanel_update(QQMainPanel *panel)
 
 void qq_mainpanel_update_buddy_info(QQMainPanel *panel)
 {
-#if 0
-    qq_buddy_tree_update_buddy_info(panel->buddy_tree, info);
-#endif
+    qq_buddy_tree_update_buddy_info(panel->buddy_tree, lwqq_client);
 }
 
 void qq_mainpanel_update_buddy_faceimg(QQMainPanel *panel)

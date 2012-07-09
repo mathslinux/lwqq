@@ -155,13 +155,14 @@ static void update_details(LwqqClient *lc, QQLoginPanel *panel)
                         , QQ_MAINWINDOW(panel -> container) -> main_panel);
 #endif
 
+    QQMainPanel *mp = QQ_MAINPANEL(QQ_MAINWINDOW(panel->container)->main_panel);
     /* update online buddies */
     lwqq_info_get_online_buddies(lc, NULL);
-    gqq_mainloop_attach(&gtkloop,
-                        qq_mainpanel_update_online_buddies, 1,
-                        QQ_MAINWINDOW(panel->container)->main_panel);
+    gqq_mainloop_attach(&gtkloop, qq_mainpanel_update_online_buddies, 1, mp);
 
     //update qq number
+    lwqq_info_get_all_friend_qqnumbers(lc, NULL);
+    qq_mainpanel_update_buddy_info(mp);
 #if 0
     update_buddy_qq_number(info
                            , (QQMainPanel*)QQ_MAINWINDOW(panel -> container)
