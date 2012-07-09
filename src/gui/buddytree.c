@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <buddytree.h>
 #include <string.h>
 #include <logger.h>
@@ -12,6 +13,7 @@ extern char *lwqq_icons_dir;
 extern char *lwqq_buddy_status_dir;
 extern GtkWidget *main_win;
 extern char *lwqq_user_dir;
+extern GHashTable *lwqq_chat_window;
 
 enum{
     BDY_TYPE= 0,        //The client type
@@ -152,9 +154,11 @@ static gboolean get_category_iter_by_index(GtkTreeModel *model, gint index
 //
 // Get the face image of num with width and height.
 //
-#if 0
 static GdkPixbuf* create_face_image(const gchar *num, gint width, gint height)
 {
+    /* FIXME */
+    if (num) 
+        num = "12345678";
     gchar buf[500];
     GError *err = NULL;
 	g_snprintf(buf, 500, "%s/%s", lwqq_user_dir, num);
@@ -173,7 +177,6 @@ static GdkPixbuf* create_face_image(const gchar *num, gint width, gint height)
     }
     return pb;
 }
-#endif
 
 static gboolean buddy_tree_on_show_tooltip(GtkWidget* widget
                                             , int x
@@ -345,38 +348,46 @@ static gboolean clear_treemap_destroy(gpointer key, gpointer value, gpointer dat
     return TRUE;
 }
 
-#if 0
-static void tree_store_set_buddy_info(GtkTreeStore *store, LwqqBuddy *bdy, GtkTreeIter *iter)
+static void tree_store_set_buddy_info(GtkTreeStore *store, LwqqBuddy *bdy,
+                                      GtkTreeIter *iter)
 {
-#if 0
-    GtkWidget *cw = gqq_config_lookup_ht(cfg, "chat_window_map", bdy -> uin -> str);
-    // set markname and nick
-    gtk_tree_store_set(store, iter 
-                        , BDY_MARKNAME, bdy -> markname -> str
-                        , BDY_NICK, bdy -> nick -> str, -1);
-    if(cw != NULL){
-        g_object_set(cw, "name", bdy -> markname -> str, NULL);
+    /* FIXME, lwqq_chat_window APIs need to be wrapped */
+    GtkWidget *cw = g_hash_table_lookup(lwqq_chat_window, bdy->uin);
+
+    /* set markname and nick */
+    gtk_tree_store_set(store, iter,
+                       BDY_MARKNAME, bdy->markname ?: "",
+                       BDY_NICK, bdy->nick ?: "", -1);
+    if (cw) {
+        g_object_set(cw, "name", bdy -> markname ?: "", NULL);
     }
 
-    gtk_tree_store_set(store, iter
-                            , BDY_LONGNICK, bdy -> lnick -> str
-                            , BDY_STATUS, bdy -> status -> str
-                            , BDY_QQNUMBER, bdy -> qqnumber -> str
-                            , BDY_UIN, bdy -> uin -> str, -1);
-    if(cw != NULL){
-        g_object_set(cw, "uin", bdy -> qqnumber -> str , NULL);
+    /* FIXME */
+    gtk_tree_store_set(store, iter,
+                       BDY_LONGNICK, "hahahahaha", /* FIXME */
+                       BDY_STATUS, bdy->status ?: "offline",
+                       BDY_QQNUMBER, bdy->qqnumber ?: "",
+                       BDY_UIN, bdy->uin, -1);
+    if (cw) {
+        g_object_set(cw, "uin", bdy->qqnumber ?: "", NULL);
     }
 
     gchar buf[500];
     GdkPixbuf *pb;
     GError *err = NULL;
-    switch(bdy -> client_type)
+    int ct;
+    if (bdy->client_type) {
+        ct = atoi(bdy->client_type);
+    } else {
+        ct = 1;
+    }
+    switch(ct)
     {
     case 1:
 		gtk_tree_store_set(store, iter, BDY_TYPE, NULL, -1);
         break;
     case 21:
-        g_snprintf(buf, 500, "%s/phone.png", IMGDIR);
+        g_snprintf(buf, 500, "%s/phone.png", lwqq_icons_dir);
         pb = gdk_pixbuf_new_from_file_at_size(buf, 10, 15, &err);
         if(err != NULL){
             g_error_free(err);
@@ -386,7 +397,7 @@ static void tree_store_set_buddy_info(GtkTreeStore *store, LwqqBuddy *bdy, GtkTr
         g_object_unref(pb);
         break;
     case 41:
-        g_snprintf(buf, 500, "%s/webqq.png", IMGDIR);
+        g_snprintf(buf, 500, "%s/webqq.png", lwqq_icons_dir);
         pb = gdk_pixbuf_new_from_file_at_size(buf, 15, 15, &err);
         if(err != NULL){
             g_error_free(err);
@@ -400,17 +411,16 @@ static void tree_store_set_buddy_info(GtkTreeStore *store, LwqqBuddy *bdy, GtkTr
     }
 
     // set face image
-    pb = create_face_image(bdy -> qqnumber -> str, 20, 20);
+    pb = create_face_image(bdy->qqnumber, 20, 20);
     gtk_tree_store_set(store, iter, BDY_IMAGE, pb, -1);
     g_object_unref(pb);
 
     // set the tool tip image
-    pb = create_face_image(bdy -> qqnumber -> str, 80, 80);
+    pb = create_face_image(bdy->qqnumber, 80, 80);
     gtk_tree_store_set(store, iter, BDY_TOOLTIPIMAGE, pb, -1);
     g_object_unref(pb);
-#endif
 }
-#endif
+
 //
 // Create the model of the contact tree
 //
@@ -420,7 +430,7 @@ static GtkTreeModel *create_model(LwqqClient *lc)
     //Clear
     g_hash_table_foreach_remove(tree_map, clear_treemap_destroy, NULL);
 
-    GtkTreeIter iter;//, child;
+    GtkTreeIter iter;
     GtkTreeStore *store = gtk_tree_store_new(COLUMNS,
                                              GDK_TYPE_PIXBUF,
                                              GDK_TYPE_PIXBUF,
@@ -435,42 +445,42 @@ static GtkTreeModel *create_model(LwqqClient *lc)
                                              G_TYPE_INT,
                                              G_TYPE_INT);
     LIST_FOREACH(cate, &lc->categories, entries) {
+        GtkTreeIter child;
+        LwqqBuddy *buddy;
+        int j = 0;
         gtk_tree_store_append(store, &iter, NULL);
         gtk_tree_store_set(store, &iter, BDY_MARKNAME, cate->name,
                            CATE_CNT, 0,
                            CATE_TOTAL, cate->count,
                            CATE_INDEX, cate->index, -1);
-    }
 
-    return GTK_TREE_MODEL(store);
-#if 0
-    QQCategory *cate;
-    QQBuddy *bdy;
-    GtkTreeRowReference *ref;
-    GtkTreePath *path;
-    gint i, j, k;
-    gint num;
-    for(i = 0; i < info -> categories -> len; ++i){
-        //add the categories
-        //find the ith catogory.
-        k = 0;
-        do{
-            cate = (QQCategory*)info -> categories -> pdata[k];
-            if(cate -> index == i){
+        /* add the buddies in this category. */
+        LIST_FOREACH(buddy, &lc->friends, entries) {
+            GtkTreePath *path;
+            GtkTreeRowReference *ref;
+            if (atoi(buddy->cate_index) != cate->index) {
+                /* Find the buddy belong to this category */
+                continue;
+            }
+
+            if (++j > cate->count) {
+                lwqq_log(LOG_ERROR, "BUG!!!!!\n");
                 break;
             }
-            ++k;
-        }while(k < info -> categories -> len);
+            
+            gtk_tree_store_append(store, &child, &iter);
+            tree_store_set_buddy_info(store, buddy, &child);
+            //get the tree row reference
+            path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &child);
+            ref = gtk_tree_row_reference_new(GTK_TREE_MODEL(store), path);
+            gtk_tree_path_free(path);
 
-        num = cate -> members -> len;
-        gtk_tree_store_append(store, &iter, NULL);
-        gtk_tree_store_set(store, &iter, BDY_MARKNAME, cate -> name -> str
-                           , CATE_CNT, 0
-                           , CATE_TOTAL, num
-                           , CATE_INDEX, cate -> index, -1);
-
-        //add the buddies in this category.
-        for(j = 0; j < cate -> members -> len; ++j){
+            //create and add a tree map
+            g_hash_table_insert(tree_map, g_strdup(buddy->uin), ref);
+            
+        }
+#if 0
+        for (j = 0; j < cate->count; ++j) {
             gtk_tree_store_append(store, &child, &iter);
             bdy = (QQBuddy*) cate -> members -> pdata[j];
             
@@ -484,8 +494,10 @@ static GtkTreeModel *create_model(LwqqClient *lc)
             //create and add a tree map
             g_hash_table_insert(tree_map, g_strdup(bdy -> uin -> str), ref);
         }
-    }
 #endif
+    }
+
+    return GTK_TREE_MODEL(store);
 }
 
 //
