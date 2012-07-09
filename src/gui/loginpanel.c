@@ -350,6 +350,50 @@ static char *get_vc(char *vc_file)
     return g_strdup(vc);
 }
 
+static gpointer poll_msg(gpointer data)
+{
+    LwqqRecvMsgList *l = (LwqqRecvMsgList *)data;
+    l->poll_msg(l);
+    while (1) {
+        LwqqRecvMsg *msg;
+        pthread_mutex_lock(&l->mutex);
+        if (SIMPLEQ_EMPTY(&l->head)) {
+            /* No message now, wait 100ms */
+            pthread_mutex_unlock(&l->mutex);
+            usleep(100000);
+            continue;
+        }
+        msg = SIMPLEQ_FIRST(&l->head);
+        char *msg_type = msg->msg->msg_type;
+        if (msg_type && strlen(msg_type) > 0) {
+            printf("Receive message type: %s \n", msg->msg->msg_type);
+            if (strcmp(msg_type, MT_MESSAGE) == 0) {
+                LwqqMsgMessage * m = (LwqqMsgMessage *)(msg->msg);
+                if (m->content) {
+                    printf("Receive message: %s\n", m->content);
+                }
+            } else if ( strcmp(msg_type, MT_GROUP_MESSAGE) == 0 ) {
+                if (msg->msg->message.content) {
+                    printf("Receive group message: %s\n", msg->msg->message.content);
+                }
+            } else if (strcmp(msg_type, MT_STATUS_CHANGE) == 0) {
+                if (msg->msg->status.who
+                    && msg->msg->status.status) {
+                    printf("Receive status change: %s - > %s\n", 
+                           msg->msg->status.who,
+                           msg->msg->status.status);
+                }
+            } else  {
+                printf("unknow message\n");
+            }
+
+        }
+        SIMPLEQ_REMOVE_HEAD(&l->head, entries);
+        pthread_mutex_unlock(&l->mutex);
+    }
+    return NULL;
+}
+
 /** 
  * Handle login. In this function, we do login, get friends information,
  * Get group information, and so on.
@@ -372,9 +416,14 @@ static void handle_login(QQLoginPanel *panel)
         if (err == LWQQ_EC_OK) {
             lwqq_log(LOG_NOTICE, "Login successfully\n");
             lwqq_info_get_friends_info(lc, NULL);
+
+            /* Start poll message */
+            g_thread_new("Poll message", poll_msg, lc->msg_list);
+
             /* update main panel */
             gqq_mainloop_attach(&gtkloop, qq_mainpanel_update, 1,
                                 QQ_MAINPANEL(QQ_MAINWINDOW(panel->container)->main_panel));
+
             /* show main panel */
             gqq_mainloop_attach(&gtkloop, qq_mainwindow_show_mainpanel,
                                 1, panel->container);
