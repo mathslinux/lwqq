@@ -130,7 +130,6 @@ static void qq_buddy_tree_pixbuf_cell_data_func(GtkTreeViewColumn *col
 //
 // Get category iter by index
 //
-#if 0
 static gboolean get_category_iter_by_index(GtkTreeModel *model, gint index
                                             , GtkTreeIter *iter)
 {
@@ -150,7 +149,6 @@ static gboolean get_category_iter_by_index(GtkTreeModel *model, gint index
     }
     return TRUE;
 }
-#endif
 //
 // Get the face image of num with width and height.
 //
@@ -569,8 +567,7 @@ void qq_buddy_tree_update_model(GtkWidget *tree, LwqqClient *lc)
 
 void qq_buddy_tree_update_online_buddies(GtkWidget *tree, LwqqClient *lc)
 {
-#if 0
-    gint i, cate_cnt;
+    gint cate_cnt;
 //    QQBuddy *bdy;
     GtkTreePath *path;
     GtkTreeIter iter, cate_iter;
@@ -578,49 +575,45 @@ void qq_buddy_tree_update_online_buddies(GtkWidget *tree, LwqqClient *lc)
     GtkTreeRowReference *ref;
     model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
     GtkWidget *cw;
+    LwqqBuddy *bdy;
 
     // clear the online count
-    QQCategory *cate;
-    for(i = 0; i < info -> categories -> len; ++i){
-        cate = g_ptr_array_index(info -> categories, i);
-        if(!get_category_iter_by_index(model, cate -> index, &cate_iter)){
+    LwqqFriendCategory *cate;
+    LIST_FOREACH(cate, &lc->categories, entries) {
+        if(!get_category_iter_by_index(model, cate->index, &cate_iter)){
             continue;
         }
         gtk_tree_store_set(GTK_TREE_STORE(model), &cate_iter, CATE_CNT, 0, -1);
     }
 
-#define MOVE_TO_FIRST(x) \
-    for(i = 0; i < info -> buddies -> len; ++i){\
-        bdy = (QQBuddy*)g_ptr_array_index(info -> buddies, i);\
-        if(bdy == NULL){\
-            continue;\
-        }\
-        if(g_strcmp0(bdy -> status -> str, x) == 0){\
-            ref  = g_hash_table_lookup(tree_map, bdy -> uin -> str);\
-            if(ref == NULL){\
-                g_warning("No TreeMap for %s. We may need add it..(%s, %d)"\
-                                    , bdy -> uin -> str, __FILE__, __LINE__);\
-                continue;\
-            }\
-            path = gtk_tree_row_reference_get_path(ref);\
-            gtk_tree_model_get_iter(model, &iter, path);\
-            tree_store_set_buddy_info(GTK_TREE_STORE(model), bdy, &iter);\
-            gtk_tree_path_free(path);\
-            gtk_tree_store_move_after(GTK_TREE_STORE(model), &iter, NULL);\
-            if(!get_category_iter_by_index(model, bdy -> cate_index, &cate_iter)){\
-                g_warning("No category's index is %d (%s, %d)", bdy -> cate_index\
-                                    , __FILE__, __LINE__);\
-            }else{\
-                gtk_tree_model_get(model, &cate_iter, CATE_CNT, &cate_cnt, -1);\
-                ++cate_cnt;\
-                gtk_tree_store_set(GTK_TREE_STORE(model), &cate_iter, \
-                                    CATE_CNT, cate_cnt, -1);\
-            }\
-            cw = gqq_config_lookup_ht(cfg, "chat_window_map", bdy -> uin -> str);\
-            if(cw != NULL){\
-                g_object_set(cw, "status", bdy -> status -> str, NULL);\
-            }\
-        }\
+#define MOVE_TO_FIRST(x)                                                \
+    LIST_FOREACH(bdy, &lc->friends, entries) {                          \
+        if (g_strcmp0(bdy->status, x) == 0) {                           \
+            ref = g_hash_table_lookup(tree_map, bdy->uin);              \
+            if (ref == NULL) {                                          \
+                g_warning("No TreeMap for %s. We may need add it..(%s, %d)" \
+                          , bdy->uin, __FILE__, __LINE__);              \
+                continue;                                               \
+            }                                                           \
+            path = gtk_tree_row_reference_get_path(ref);                \
+            gtk_tree_model_get_iter(model, &iter, path);                \
+            tree_store_set_buddy_info(GTK_TREE_STORE(model), bdy, &iter); \
+            gtk_tree_path_free(path);                                   \
+            gtk_tree_store_move_after(GTK_TREE_STORE(model), &iter, NULL); \
+            if(!get_category_iter_by_index(model, atoi(bdy->cate_index), &cate_iter)){ \
+                g_warning("No category's index is %s (%s, %d)", bdy -> cate_index \
+                          , __FILE__, __LINE__);                        \
+            }else{                                                      \
+                gtk_tree_model_get(model, &cate_iter, CATE_CNT, &cate_cnt, -1); \
+                ++cate_cnt;                                             \
+                gtk_tree_store_set(GTK_TREE_STORE(model), &cate_iter,   \
+                                   CATE_CNT, cate_cnt, -1);             \
+            }                                                           \
+            cw = g_hash_table_lookup(lwqq_chat_window, bdy->uin);       \
+            if(cw){                                                     \
+                g_object_set(cw, "status", bdy -> status ?: "offline", NULL); \
+            }                                                           \
+        }                                                               \
     }
     
     MOVE_TO_FIRST("busy");
@@ -629,8 +622,6 @@ void qq_buddy_tree_update_online_buddies(GtkWidget *tree, LwqqClient *lc)
     MOVE_TO_FIRST("online");
     MOVE_TO_FIRST("callme");
 #undef MOVE_TO_FIRST
-#endif
-    return;
 }
 
 void qq_buddy_tree_update_buddy_info(GtkWidget *tree, LwqqClient *lc)

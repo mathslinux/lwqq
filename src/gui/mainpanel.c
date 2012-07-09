@@ -373,9 +373,7 @@ void qq_mainpanel_update_buddy_faceimg(QQMainPanel *panel)
 
 void qq_mainpanel_update_online_buddies(QQMainPanel *panel)
 {
-#if 0
-    qq_buddy_tree_update_online_buddies(panel->buddy_tree, info);
-#endif
+    qq_buddy_tree_update_online_buddies(panel->buddy_tree, lwqq_client);
 }
 
 void qq_mainpanel_update_group_info(QQMainPanel *panel)
