@@ -121,7 +121,6 @@ static void parse_categories_child(LwqqClient *lc, json_t *json)
     /* add the default category */
     cate = s_malloc0(sizeof(*cate));
     cate->index = 0;
-    cate->index = 1;
     cate->name = s_strdup("My Friends");
     LIST_INSERT_HEAD(&lc->categories, cate, entries);
 }
