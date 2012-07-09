@@ -1,29 +1,18 @@
-/**
- * @file   mainpanel.c
- * @author Dunrong Huang <riegamaths@gmail.com>
- * @date   Wed Jun 20 17:41:03 2012
- * 
- * @brief  This file is based on gtkqq written by HuangCongyu
- * 
- * 
- */
-
-#ifndef __LWQQ_MAINPANEL_H
-#define __LWQQ_MAINPANEL_H
-
+#ifndef __GTKQQ_MAINPANEL_H
+#define __GTKQQ_MAINPANEL_H
 #include <gtk/gtk.h>
 
-#define QQ_MAINPANEL(obj)                                   \
-    G_TYPE_CHECK_INSTANCE_CAST(obj, qq_mainpanel_get_type(), QQMainPanel)
-#define QQ_MAINPANELCLASS(c)                                            \
-    G_TYPE_CHECK_CLASS_CAST(c, qq_mainpanel_get_type(), QQMainPanelClass)
-#define QQ_IS_MAINPANEL(obj)                                    \
-    G_TYPE_CHECK_INSTANCE_TYPE(obj, qq_mainpanel_get_type())
+#define QQ_MAINPANEL(obj)       G_TYPE_CHECK_INSTANCE_CAST(obj, qq_mainpanel_get_type()\
+                                            , QQMainPanel)
+#define QQ_MAINPANELCLASS(c)    G_TYPE_CHECK_CLASS_CAST(c\
+                                            , qq_mainpanel_get_type()\
+                                            , QQMainPanelClass)
+#define QQ_IS_MAINPANEL(obj)    G_TYPE_CHECK_INSTANCE_TYPE(obj, qq_mainpanel_get_type())
 
 typedef struct _QQMainPanel         QQMainPanel;
 typedef struct _QQMainPanelClass    QQMainPanelClass;
 
-struct _QQMainPanel {
+struct _QQMainPanel{
     GtkVBox parent;
 
     /*< private >*/
@@ -51,7 +40,7 @@ struct _QQMainPanel {
     GtkWidget *container;
 };
 
-struct _QQMainPanelClass {
+struct _QQMainPanelClass{
     GtkVBoxClass parent;
 
     /*< private >*/
@@ -83,5 +72,4 @@ void qq_mainpanel_update_buddy_faceimg(QQMainPanel *panel);
 void qq_mainpanel_update_online_buddies(QQMainPanel *panel);
 
 void qq_mainpanel_update_group_info(QQMainPanel *panel);
-
 #endif
