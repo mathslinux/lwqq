@@ -1,0 +1,69 @@
+#ifndef __GTKQQ_CHATWIDGET_H
+#define __GTKQQ_CHATWIDGET_H
+#include <gtk/gtk.h>
+#include "type.h"
+
+//
+// Chat widget
+// Contians:
+//      message text view, font tool bar, tool bar
+// Both the buddy chat window and the group chat window use this widget.
+//
+// ----------------------------------------------
+// |                                            |
+// |                                            |
+// |          message text view                 | <-- message text view
+// |                                            |
+// |                                            |
+// ----------------------------------------------
+// | font|v| size|v| |a| |a| |a| |clor|         | <-- font tool bar (may hide)
+// ----------------------------------------------
+// | |font| |face| ....... |clrscr|             | <-- tool bar
+// ----------------------------------------------
+// |                                            |
+// |          input text view                   | <--  input text view
+// |                                            |
+// ----------------------------------------------
+//
+#define QQ_CHATWIDGET(obj)      G_TYPE_CHECK_INSTANCE_CAST(obj, qq_chatwidget_get_type()\
+                                                , QQChatWidget)
+#define QQ_CHATWIDGETCLASS(c)   G_TYPE_CHECK_CLASS_CAST(c\
+                                                , qq_chatwidget_get_type()\
+                                                , QQChatWidgetClass)
+#define QQ_IS_CHATWIDGET(obj)   G_TYPE_CHECK_INSTANCE_TYPE(obj, qq_chatwidget_get_type())
+
+typedef struct __QQChatWidget         QQChatWidget;
+typedef struct __QQChatWidgetClass    QQChatWidgetClass;
+
+struct __QQChatWidget{
+    GtkVBox parent;
+
+};
+
+struct __QQChatWidgetClass{
+    GtkVBoxClass parent;
+};
+
+GtkWidget* qq_chatwidget_new();
+GType qq_chatwidget_get_type();
+
+//
+// Add messages
+//
+void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg);
+void qq_chatwidget_add_send_message(GtkWidget *widget, LwqqSendMsg *msg);
+
+//
+// Get the text view
+//
+GtkWidget* qq_chatwidget_get_message_textview(GtkWidget *widget);
+GtkWidget* qq_chatwidget_get_input_textview(GtkWidget *widget);
+
+//
+// Get the font of font tool bar
+//
+#if 0
+QQMsgContent* qq_chatwidget_get_font(GtkWidget *widget);
+#endif
+
+#endif
