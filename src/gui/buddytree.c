@@ -1,5 +1,6 @@
 #include <buddytree.h>
 #include <string.h>
+#include <logger.h>
 #if 0
 #include <chatwindow.h>
 #endif
@@ -413,33 +414,35 @@ static void tree_store_set_buddy_info(GtkTreeStore *store, LwqqBuddy *bdy, GtkTr
 //
 // Create the model of the contact tree
 //
-static GtkTreeModel* create_model(LwqqClient *lc)
+static GtkTreeModel *create_model(LwqqClient *lc)
 {
     LwqqFriendCategory *cate;
     //Clear
     g_hash_table_foreach_remove(tree_map, clear_treemap_destroy, NULL);
 
     GtkTreeIter iter;//, child;
-    GtkTreeStore *store = gtk_tree_store_new(COLUMNS
-                                             , GDK_TYPE_PIXBUF
-                                             , GDK_TYPE_PIXBUF
-                                             , G_TYPE_STRING
-                                             , G_TYPE_STRING
-                                             , G_TYPE_STRING
-                                             , G_TYPE_STRING
-                                             , G_TYPE_STRING
-                                             , G_TYPE_STRING
-                                             , GDK_TYPE_PIXBUF
-                                             , G_TYPE_INT
-                                             , G_TYPE_INT
-                                             , G_TYPE_INT);
+    GtkTreeStore *store = gtk_tree_store_new(COLUMNS,
+                                             GDK_TYPE_PIXBUF,
+                                             GDK_TYPE_PIXBUF,
+                                             G_TYPE_STRING,
+                                             G_TYPE_STRING,
+                                             G_TYPE_STRING,
+                                             G_TYPE_STRING,
+                                             G_TYPE_STRING,
+                                             G_TYPE_STRING,
+                                             GDK_TYPE_PIXBUF,
+                                             G_TYPE_INT,
+                                             G_TYPE_INT,
+                                             G_TYPE_INT);
     LIST_FOREACH(cate, &lc->categories, entries) {
         gtk_tree_store_append(store, &iter, NULL);
-        gtk_tree_store_set(store, &iter, BDY_MARKNAME, cate->name
-                           , CATE_CNT, 0
-                           , CATE_TOTAL, cate->count
-                           , CATE_INDEX, cate->index, -1);
+        gtk_tree_store_set(store, &iter, BDY_MARKNAME, cate->name,
+                           CATE_CNT, 0,
+                           CATE_TOTAL, cate->count,
+                           CATE_INDEX, cate->index, -1);
     }
+
+    return GTK_TREE_MODEL(store);
 #if 0
     QQCategory *cate;
     QQBuddy *bdy;
@@ -483,7 +486,6 @@ static GtkTreeModel* create_model(LwqqClient *lc)
         }
     }
 #endif
-    return GTK_TREE_MODEL(store);
 }
 
 //
