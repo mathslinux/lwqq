@@ -1,15 +1,11 @@
 #include <chatwindow.h>
 #include <stdlib.h>
 #include "type.h"
-#if 0
 #include <chattextview.h>
-#endif
 #include <tray.h>
 #include <msgloop.h>
 #include <gdk/gdkkeysyms.h>
-#if 0
 #include <chatwidget.h>
-#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -81,17 +77,17 @@ GtkWidget* qq_chatwindow_new(const gchar *uin)
 //
 // Close button clicked handler
 //
-#if 0
 static void qq_chatwindow_on_close_clicked(GtkWidget *widget, gpointer  data)
 {
+#if 0
     QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(data
                                         , qq_chatwindow_get_type()
                                         , QQChatWindowPriv);
     gqq_config_remove_ht(cfg, "chat_window_map", priv -> uin);
     gtk_widget_destroy(data);
     return;
-}
 #endif
+}
 
 
 //
@@ -121,9 +117,9 @@ static void qq_chatwindow_send_msg_cb(GtkWidget *widget, LwqqSendMsg *msg)
 //
 // Send button clicked handler
 //
-#if 0
 static void qq_chatwindow_on_send_clicked(GtkWidget *widget, gpointer  data)
 {
+#if 0
     QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(data
                                         , qq_chatwindow_get_type()
                                         , QQChatWindowPriv);
@@ -155,29 +151,32 @@ static void qq_chatwindow_on_send_clicked(GtkWidget *widget, gpointer  data)
     gqq_mainloop_attach(send_loop, qq_chatwindow_send_msg_cb
                                 , 2, data, msg);
     return;
+#endif
 }
 
 static gboolean qq_chatwindow_delete_event(GtkWidget *widget, GdkEvent *event
                                         , gpointer data)
 {
+#if 0
     QQChatWindowPriv *priv = data;
     gqq_config_remove_ht(cfg, "chat_window_map", priv -> uin);
+#endif
     return FALSE;
 }
-#endif
 
 //
 // Foucus in event
 // Stop blinking the tray
 //
-#if 0
 static gboolean qq_chatwindow_focus_in_event(GtkWidget *widget, GdkEvent *event
                                                 , gpointer data)
 {
+#if 0
     QQChatWindowPriv *priv = data;
     qq_tray_stop_blinking_for(tray, priv -> uin);
     g_debug("Focus in chatwindow of %s (%s, %d)", priv -> uin
                                     , __FILE__, __LINE__);
+#endif
     return FALSE;
 }
 
@@ -187,6 +186,7 @@ static gboolean qq_chatwindow_focus_in_event(GtkWidget *widget, GdkEvent *event
 static gboolean qq_input_textview_key_press(GtkWidget *widget, GdkEvent *e
                                             , gpointer data)
 {
+#if 0
     GdkEventKey *event = (GdkEventKey*)e;
     if(event -> keyval == GDK_KEY_Return || event -> keyval == GDK_KEY_KP_Enter
        || event -> keyval == GDK_KEY_ISO_Enter){
@@ -197,17 +197,17 @@ static gboolean qq_input_textview_key_press(GtkWidget *widget, GdkEvent *e
         qq_chatwindow_on_send_clicked(NULL, data);
         return TRUE;
     }
+#endif
     return FALSE;
 }
-#endif
 
 //
 // Chat window key press
 //
-#if 0
 static gboolean qq_chatwindow_key_press(GtkWidget *widget, GdkEvent *e
                                             , gpointer data)
 {
+#if 0
     GdkEventKey *event = (GdkEventKey*)e;
     if((event -> state & GDK_CONTROL_MASK) != 0 
                     && (event -> keyval == GDK_KEY_w || event -> keyval == GDK_KEY_W)){
@@ -215,89 +215,80 @@ static gboolean qq_chatwindow_key_press(GtkWidget *widget, GdkEvent *e
         gqq_config_remove_ht(cfg, "chat_window_map", priv -> uin);
         gtk_widget_destroy(widget);
     }
+#endif
     return FALSE;
 }
-#endif
 
 
 static void qq_chatwindow_init(QQChatWindow *win)
 {
-#if 0
-    QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(win
-                                        , qq_chatwindow_get_type()
-                                        , QQChatWindowPriv);
     gchar buf[500];
-    priv -> body_vbox = gtk_vbox_new(FALSE, 0);
+    QQChatWindowPriv *priv;
 
-    GtkWidget *header_hbox = gtk_hbox_new(FALSE, 0);
-    GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
+    priv = G_TYPE_INSTANCE_GET_PRIVATE(
+        win, qq_chatwindow_get_type(), QQChatWindowPriv);
+    priv->body_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+    GtkWidget *header_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
     GdkPixbuf *pb = NULL;
-    QQBuddy *bdy = qq_info_lookup_buddy_by_uin(info, priv -> uin);
-    g_snprintf(buf, 500, IMGDIR"%s", "avatar.gif");
+    LwqqBuddy *bdy = lwqq_buddy_find_buddy_by_uin(lwqq_client, priv->uin);
+    g_snprintf(buf, sizeof(buf), "%s/avatar.gif", lwqq_icons_dir);
     pb = gdk_pixbuf_new_from_file(buf, NULL);
     gtk_window_set_icon(GTK_WINDOW(win), pb);
     g_object_unref(pb);
-    g_snprintf(buf, 500, "Talking with %s", bdy == NULL ? priv -> uin 
-                                                    : bdy -> nick -> str);
+    g_snprintf(buf, 500, "Talking with %s", bdy? bdy->nick : priv->uin);
     gtk_window_set_title(GTK_WINDOW(win), buf);
 
-    //create header
+    /* create header */
     g_snprintf(buf, sizeof(buf), "%s/avatar.gif", lwqq_icons_dir);
     pb = gdk_pixbuf_new_from_file_at_size(buf, 35, 35, NULL);
-    priv -> faceimage = gtk_image_new_from_pixbuf(pb);
+    priv->faceimage = gtk_image_new_from_pixbuf(pb);
     g_object_unref(pb);
-    priv -> name_label = gtk_label_new("");
-    priv -> lnick_label = gtk_label_new("");
-    gtk_box_pack_start(GTK_BOX(header_hbox), priv -> faceimage
-                                        , FALSE, FALSE, 5); 
-    gtk_box_pack_start(GTK_BOX(vbox), priv -> name_label, FALSE, FALSE, 0); 
-    gtk_box_pack_start(GTK_BOX(vbox), priv -> lnick_label, FALSE, FALSE, 0); 
-    gtk_box_pack_start(GTK_BOX(header_hbox), vbox, FALSE, FALSE, 5); 
-    gtk_box_pack_start(GTK_BOX(priv -> body_vbox), header_hbox
-                                        , FALSE, FALSE, 5);
+    priv->name_label = gtk_label_new("");
+    priv->lnick_label = gtk_label_new("");
+    gtk_box_pack_start(GTK_BOX(header_hbox), priv->faceimage, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), priv->name_label, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), priv->lnick_label, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(header_hbox), vbox, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(priv->body_vbox), header_hbox, FALSE, FALSE, 5);
 
-    // message text view
-    priv -> chat_widget = qq_chatwidget_new();
-    gtk_box_pack_start(GTK_BOX(priv -> body_vbox), priv -> chat_widget
-                                                , TRUE, TRUE, 0); 
+    /* message text view */
+    priv->chat_widget = qq_chatwidget_new();
+    gtk_box_pack_start(GTK_BOX(priv->body_vbox), priv->chat_widget,
+                       TRUE, TRUE, 0);
 
-    // buttons
-    GtkWidget *buttonbox = gtk_hbutton_box_new();
+    /* buttons */
+    GtkWidget *buttonbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonbox), GTK_BUTTONBOX_END);
     gtk_box_set_spacing(GTK_BOX(buttonbox), 5);
-    priv -> close_btn = gtk_button_new_with_label("Close");
-    g_signal_connect(G_OBJECT(priv -> close_btn), "clicked",
-                             G_CALLBACK(qq_chatwindow_on_close_clicked), win);
-    priv -> send_btn = gtk_button_new_with_label("Send");
-    g_signal_connect(G_OBJECT(priv -> send_btn), "clicked",
-                             G_CALLBACK(qq_chatwindow_on_send_clicked), win);
-    gtk_container_add(GTK_CONTAINER(buttonbox), priv -> close_btn);
-    gtk_container_add(GTK_CONTAINER(buttonbox), priv -> send_btn);
-    gtk_box_pack_start(GTK_BOX(priv -> body_vbox), buttonbox, FALSE, FALSE, 3); 
+    priv->close_btn = gtk_button_new_with_label("Close");
+    g_signal_connect(G_OBJECT(priv->close_btn), "clicked",
+                     G_CALLBACK(qq_chatwindow_on_close_clicked), win);
+    priv->send_btn = gtk_button_new_with_label("Send");
+    g_signal_connect(G_OBJECT(priv->send_btn), "clicked",
+                     G_CALLBACK(qq_chatwindow_on_send_clicked), win);
+    gtk_container_add(GTK_CONTAINER(buttonbox), priv->close_btn);
+    gtk_container_add(GTK_CONTAINER(buttonbox), priv->send_btn);
+    gtk_box_pack_start(GTK_BOX(priv->body_vbox), buttonbox, FALSE, FALSE, 3);
 
     GtkWidget *w = GTK_WIDGET(win);
     gtk_window_resize(GTK_WINDOW(w), 500, 450);
-    gtk_container_add(GTK_CONTAINER(win), priv -> body_vbox);
+    gtk_container_add(GTK_CONTAINER(win), priv->body_vbox);
 
-    gtk_widget_show_all(priv -> body_vbox);
-    gtk_widget_grab_focus(qq_chatwidget_get_input_textview(
-                                priv -> chat_widget));
+    gtk_widget_show_all(priv->body_vbox);
+    gtk_widget_grab_focus(qq_chatwidget_get_input_textview(priv->chat_widget));
 
-    g_signal_connect(G_OBJECT(win), "delete-event"
-                                , G_CALLBACK(qq_chatwindow_delete_event)
-                                , priv);
-    g_signal_connect(G_OBJECT(win), "focus-in-event"
-                                , G_CALLBACK(qq_chatwindow_focus_in_event)
-                                , priv);
-    g_signal_connect(G_OBJECT(win), "key-press-event"
-                            , G_CALLBACK(qq_chatwindow_key_press), priv);
+    g_signal_connect(G_OBJECT(win), "delete-event",
+                     G_CALLBACK(qq_chatwindow_delete_event), priv);
+    g_signal_connect(G_OBJECT(win), "focus-in-event",
+                     G_CALLBACK(qq_chatwindow_focus_in_event), priv);
+    g_signal_connect(G_OBJECT(win), "key-press-event",
+                     G_CALLBACK(qq_chatwindow_key_press), priv);
 
-    g_signal_connect(G_OBJECT(qq_chatwidget_get_input_textview(
-                                                priv -> chat_widget))
-                            , "key-press-event"
-                            , G_CALLBACK(qq_input_textview_key_press), win);
-#endif
+    g_signal_connect(G_OBJECT(qq_chatwidget_get_input_textview(priv->chat_widget)),
+                     "key-press-event", G_CALLBACK(qq_input_textview_key_press), win);
 }
 
 /*
