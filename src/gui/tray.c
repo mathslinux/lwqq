@@ -32,9 +32,8 @@ static void qq_trayclass_init(QQTrayClass *tc, gpointer data);
 GType qq_tray_get_type()
 {
     static GType t = 0;
-    if(!t){
-        const GTypeInfo info =
-        {
+    if (!t) {
+        const GTypeInfo info = {
             sizeof(QQTrayClass),
             NULL,    /* base_init */
             NULL,    /* base_finalize */
@@ -52,15 +51,18 @@ GType qq_tray_get_type()
     return t;
 }
 
-QQTray* qq_tray_new()
+QQTray *qq_tray_new()
 {
     gchar img[256];
     g_snprintf(img, sizeof(img), "%s/webqq_icon.png", lwqq_icons_dir);
     return QQ_TRAY(g_object_new(qq_tray_get_type(), "file", img , NULL));
 }
 
-/*
+/**
  * Blinking uin's face image
+ *
+ * @param tray
+ * @param uin
  */
 static void qq_tray_blinking(QQTray *tray, const gchar *uin)
 {
