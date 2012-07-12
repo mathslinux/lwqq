@@ -27,6 +27,7 @@ extern LwqqClient *lwqq_client;
 extern char *lwqq_install_dir;
 extern char *lwqq_icons_dir;
 extern char *lwqq_buddy_status_dir;
+extern QQTray *tray;
 
 extern GQQMessageLoop *get_info_loop;
 extern GQQMessageLoop *send_loop;
@@ -360,11 +361,20 @@ static void handle_new_msg(LwqqRecvMsg *msg)
         GtkWidget *cw = g_hash_table_lookup(lwqq_chat_window, m->from);
         printf("Receive message: %s\n", m->content);
         if (!cw) {
-            cw = qq_chatwindow_new(m->from); 
+            cw = qq_chatwindow_new(m->from);
+            lwqq_log(LOG_DEBUG, "No chat window for uin:%s, create a new:%p\n",
+                     m->from, cw);
+#if 0
             // not show it
             gtk_widget_hide(cw);
+#endif
             g_hash_table_insert(lwqq_chat_window, g_strdup(m->from), cw);
+        } else {
+            lwqq_log(LOG_DEBUG, "Found chat window:%p for uin:%s\n", cw, m->from);
         }
+        qq_chatwindow_add_recv_message(cw, msg);
+        qq_tray_blinking_for(tray, m->from);
+        gtk_widget_show(cw);
     } else if (strcmp(msg_type, MT_GROUP_MESSAGE) == 0) {
         printf("Receive group message: %s\n", msg->msg->message.content);
     } else if (strcmp(msg_type, MT_STATUS_CHANGE) == 0) {
