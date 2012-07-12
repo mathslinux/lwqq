@@ -5,6 +5,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <stdlib.h>
 #include <statusbutton.h>
+#include <chatwindow.h>
 #include <msgloop.h>
 #include <string.h>
 #include "type.h"
@@ -29,6 +30,8 @@ extern char *lwqq_buddy_status_dir;
 
 extern GQQMessageLoop *get_info_loop;
 extern GQQMessageLoop *send_loop;
+
+extern GHashTable *lwqq_chat_window;
 
 static void qq_loginpanelclass_init(QQLoginPanelClass *c);
 static void qq_loginpanel_init(QQLoginPanel *obj);
@@ -347,6 +350,36 @@ static char *get_vc(char *vc_file)
     return g_strdup(vc);
 }
 
+static void handle_new_msg(LwqqRecvMsg *msg)
+{
+    char *msg_type = msg->msg->msg_type;
+    printf("Receive message type: %s \n", msg->msg->msg_type);
+
+    if (strcmp(msg_type, MT_MESSAGE) == 0) {
+        LwqqMsgMessage *m = (LwqqMsgMessage *)(msg->msg);
+        GtkWidget *cw = g_hash_table_lookup(lwqq_chat_window, m->from);
+        printf("Receive message: %s\n", m->content);
+        if (!cw) {
+            cw = qq_chatwindow_new(m->from); 
+            // not show it
+            gtk_widget_hide(cw);
+            g_hash_table_insert(lwqq_chat_window, m->from, cw);
+        }
+
+    } else if (strcmp(msg_type, MT_GROUP_MESSAGE) == 0) {
+        printf("Receive group message: %s\n", msg->msg->message.content);
+    } else if (strcmp(msg_type, MT_STATUS_CHANGE) == 0) {
+        printf("Receive status change: %s - > %s\n", 
+               msg->msg->status.who,
+               msg->msg->status.status);
+    } else {
+        printf("unknow message\n");
+    }
+
+    lwqq_msg_free(msg->msg);
+    s_free(msg);
+}
+
 static gpointer poll_msg(gpointer data)
 {
     LwqqRecvMsgList *l = (LwqqRecvMsgList *)data;
@@ -361,27 +394,9 @@ static gpointer poll_msg(gpointer data)
             continue;
         }
         msg = SIMPLEQ_FIRST(&l->head);
-        char *msg_type = msg->msg->msg_type;
-        printf("Receive message type: %s \n", msg->msg->msg_type);
-
-        if (strcmp(msg_type, MT_MESSAGE) == 0) {
-            LwqqMsgMessage *m = (LwqqMsgMessage *)(msg->msg);
-            printf("Receive message: %s\n", m->content);
-        } else if (strcmp(msg_type, MT_GROUP_MESSAGE) == 0) {
-            printf("Receive group message: %s\n", msg->msg->message.content);
-        } else if (strcmp(msg_type, MT_STATUS_CHANGE) == 0) {
-            printf("Receive status change: %s - > %s\n", 
-                   msg->msg->status.who,
-                   msg->msg->status.status);
-        } else {
-            printf("unknow message\n");
-        }
-
         SIMPLEQ_REMOVE_HEAD(&l->head, entries);
         pthread_mutex_unlock(&l->mutex);
-
-        lwqq_msg_free(msg->msg);
-        s_free(msg);
+        gqq_mainloop_attach(&gtkloop, handle_new_msg, 1, msg);
     }
     return NULL;
 }

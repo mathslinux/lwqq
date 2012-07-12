@@ -18,6 +18,8 @@ extern char *lwqq_install_dir;
 extern char *lwqq_icons_dir;
 extern char *lwqq_buddy_status_dir;
 extern GtkWidget *main_win;
+extern GHashTable *lwqq_chat_window;
+extern char *lwqq_user_dir;
 
 static void qq_chatwindow_init(QQChatWindow *win);
 static void qq_chatwindowclass_init(QQChatWindowClass *wc);
@@ -77,16 +79,14 @@ GtkWidget* qq_chatwindow_new(const gchar *uin)
 //
 // Close button clicked handler
 //
-static void qq_chatwindow_on_close_clicked(GtkWidget *widget, gpointer  data)
+static void qq_chatwindow_on_close_clicked(GtkWidget *widget, gpointer data)
 {
-#if 0
-    QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(data
-                                        , qq_chatwindow_get_type()
-                                        , QQChatWindowPriv);
-    gqq_config_remove_ht(cfg, "chat_window_map", priv -> uin);
+    QQChatWindowPriv *priv;
+    
+    priv = G_TYPE_INSTANCE_GET_PRIVATE(
+        data, qq_chatwindow_get_type(), QQChatWindowPriv);
+    g_hash_table_remove(lwqq_chat_window, priv->uin);
     gtk_widget_destroy(data);
-    return;
-#endif
 }
 
 
@@ -157,10 +157,8 @@ static void qq_chatwindow_on_send_clicked(GtkWidget *widget, gpointer  data)
 static gboolean qq_chatwindow_delete_event(GtkWidget *widget, GdkEvent *event
                                         , gpointer data)
 {
-#if 0
     QQChatWindowPriv *priv = data;
-    gqq_config_remove_ht(cfg, "chat_window_map", priv -> uin);
-#endif
+    g_hash_table_remove(lwqq_chat_window, priv->uin);
     return FALSE;
 }
 
@@ -168,15 +166,12 @@ static gboolean qq_chatwindow_delete_event(GtkWidget *widget, GdkEvent *event
 // Foucus in event
 // Stop blinking the tray
 //
-static gboolean qq_chatwindow_focus_in_event(GtkWidget *widget, GdkEvent *event
-                                                , gpointer data)
+static gboolean qq_chatwindow_focus_in_event(GtkWidget *widget, GdkEvent *event,
+                                             gpointer data)
 {
-#if 0
     QQChatWindowPriv *priv = data;
-    qq_tray_stop_blinking_for(tray, priv -> uin);
-    g_debug("Focus in chatwindow of %s (%s, %d)", priv -> uin
-                                    , __FILE__, __LINE__);
-#endif
+    qq_tray_stop_blinking_for(tray, priv->uin);
+    g_debug("Focus in chatwindow of %s (%s, %d)", priv->uin, __FILE__, __LINE__);
     return FALSE;
 }
 
@@ -319,81 +314,78 @@ static void qq_chatwindow_getter(GObject *object, guint property_id,
 /*
  * The setter.
  */
-static void qq_chatwindow_setter(GObject *object, guint property_id,  
+static void qq_chatwindow_setter(GObject *object, guint property_id,
                                  const GValue *value, GParamSpec *pspec)
 {
-#if 0
-    if(object == NULL || value == NULL || property_id < 0){
-            return;
+    if (!object || !value || property_id < 0) {
+        return;
     }
     QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(
-                                    object, qq_chatwindow_get_type()
-                                    , QQChatWindowPriv);
-    gchar buf[500]; 
+        object, qq_chatwindow_get_type()
+        , QQChatWindowPriv);
+    gchar buf[500];
     GdkPixbuf *pb = NULL;
-    switch (property_id)
-    {
+    switch (property_id) {
     case QQ_CHATWINDOW_PROPERTY_UIN:
-        g_stpcpy(priv -> uin, g_value_get_string(value));
+        g_stpcpy(priv->uin, g_value_get_string(value));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
         break;
     }
 
-    QQBuddy *bdy = qq_info_lookup_buddy_by_uin(info, priv -> uin);
-    gchar *name = priv -> uin;
-    if(bdy == NULL){
-        return;
+    LwqqBuddy *bdy = lwqq_buddy_find_buddy_by_uin(lwqq_client, priv->uin);
+    gchar *name = priv->uin;
+    if (!bdy) {
+        return ;
     }
     // set lnick
-    g_snprintf(buf, 500, "<b>%s</b>", bdy -> lnick -> str);
-    gtk_label_set_markup(GTK_LABEL(priv -> lnick_label), buf);
+    g_snprintf(buf, 500, "<b>%s</b>", bdy->long_nick ?: "");
+    gtk_label_set_markup(GTK_LABEL(priv->lnick_label), buf);
     // set face image
-	g_snprintf(buf, 500, "%s/%s", QQ_FACEDIR, bdy -> qqnumber -> str);
+	g_snprintf(buf, 500, "%s/%s", lwqq_user_dir, bdy->qqnumber ?: "");
     pb= gdk_pixbuf_new_from_file_at_size(buf, 35, 35, NULL);
-    if(pb == NULL){
-        pb= gdk_pixbuf_new_from_file_at_size(IMGDIR"/avatar.gif"
-                                        , 35, 35, NULL);
+    if (!pb) {
+        char img[512];
+        g_snprintf(img, sizeof(img), "%s/avatar.gif", lwqq_icons_dir);
+        pb = gdk_pixbuf_new_from_file_at_size(img, 35, 35, NULL);
     }
-    gtk_image_set_from_pixbuf(GTK_IMAGE(priv -> faceimage), pb);
+    gtk_image_set_from_pixbuf(GTK_IMAGE(priv->faceimage), pb);
     // window icon
     gtk_window_set_icon(GTK_WINDOW(object), pb);
     g_object_unref(pb);
 
-    if(bdy -> markname == NULL || bdy -> markname -> len <= 0){
-        name = bdy -> nick -> str;
-    }else{
-        name = bdy -> markname -> str;
+    if (!bdy->markname || bdy->markname[0] == '\0') {
+        name = bdy->nick;
+    } else {
+        name = bdy->markname;
     }
     // set status and name
-    if(g_strcmp0("online", bdy -> status -> str) == 0 
-                    || g_strcmp0("away", bdy -> status -> str) == 0
-                    || g_strcmp0("busy", bdy -> status -> str) == 0
-                    || g_strcmp0("silent", bdy -> status -> str) == 0
-                    || g_strcmp0("callme", bdy -> status -> str) == 0){
-        gtk_widget_set_sensitive(priv -> faceimage, TRUE);
-        g_snprintf(buf, 500, "<b>%s</b><span color='blue'>[%s]</span>"
-                                            , name
-                                            , bdy -> status -> str);
-    }else{
-        gtk_widget_set_sensitive(priv -> faceimage, FALSE);
+    if (g_strcmp0("online", bdy->status) == 0 
+        || g_strcmp0("away", bdy->status) == 0
+        || g_strcmp0("busy", bdy->status) == 0
+        || g_strcmp0("silent", bdy->status) == 0
+        || g_strcmp0("callme", bdy->status) == 0) {
+        gtk_widget_set_sensitive(priv->faceimage, TRUE);
+        g_snprintf(buf, 500, "<b>%s</b><span color='blue'>[%s]</span>",
+                   name, bdy->status);
+    } else {
+        gtk_widget_set_sensitive(priv->faceimage, FALSE);
         g_snprintf(buf, 500, "<b>%s</b>", name);
     }
-    gtk_label_set_markup(GTK_LABEL(priv -> name_label), buf);
+    gtk_label_set_markup(GTK_LABEL(priv->name_label), buf);
 
     // window title
     g_snprintf(buf, 500, "Talking with %s", name);
     gtk_window_set_title(GTK_WINDOW(object), buf);
-#endif
 }
 
 static void qq_chatwindowclass_init(QQChatWindowClass *wc)
 {
     g_type_class_add_private(wc, sizeof(QQChatWindowPriv));
 
-    G_OBJECT_CLASS(wc) -> get_property = qq_chatwindow_getter;
-    G_OBJECT_CLASS(wc) -> set_property = qq_chatwindow_setter;
+    G_OBJECT_CLASS(wc)->get_property = qq_chatwindow_getter;
+    G_OBJECT_CLASS(wc)->set_property = qq_chatwindow_setter;
 
     //install the uin property
     GParamSpec *pspec;
@@ -418,22 +410,20 @@ void qq_chatwindow_add_send_message(GtkWidget *widget, LwqqSendMsg *msg)
                                         , qq_chatwindow_get_type()
                                         , QQChatWindowPriv);
 
-    GtkWidget *mt = qq_chatwidget_get_message_textview(priv -> chat_widget);
+    GtkWidget *mt = qq_chatwidget_get_message_textview(priv->chat_widget);
     qq_chat_textview_add_send_message(mt, msg);
 #endif
 }
 
 void qq_chatwindow_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg)
 {
-#if 0
-    if(widget == NULL || msg == NULL){
+    if (!widget || !msg){
         return;
     }
 
-    QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(widget
-                                        , qq_chatwindow_get_type()
-                                        , QQChatWindowPriv);
-    GtkWidget *mt = qq_chatwidget_get_message_textview(priv -> chat_widget);
+    QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(
+        widget, qq_chatwindow_get_type(), QQChatWindowPriv);
+    
+    GtkWidget *mt = qq_chatwidget_get_message_textview(priv->chat_widget);
     qq_chat_textview_add_recv_message(mt, msg);
-#endif
 }

@@ -356,9 +356,11 @@ static void tree_store_set_buddy_info(GtkTreeStore *store, LwqqBuddy *bdy,
     gtk_tree_store_set(store, iter,
                        BDY_MARKNAME, bdy->markname ?: "",
                        BDY_NICK, bdy->nick ?: "", -1);
+#if 0
     if (cw) {
         g_object_set(cw, "name", bdy -> markname ?: "", NULL);
     }
+#endif
 
     gtk_tree_store_set(store, iter,
                        BDY_LONGNICK, bdy->qqnumber ?: "",
@@ -366,7 +368,7 @@ static void tree_store_set_buddy_info(GtkTreeStore *store, LwqqBuddy *bdy,
                        BDY_QQNUMBER, bdy->qqnumber ?: "",
                        BDY_UIN, bdy->uin, -1);
     if (cw) {
-        g_object_set(cw, "uin", bdy->qqnumber ?: "", NULL);
+        g_object_set(cw, "uin", bdy->uin, NULL);
     }
 
     gchar buf[500];

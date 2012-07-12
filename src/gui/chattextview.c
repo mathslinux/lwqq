@@ -126,16 +126,17 @@ static void qq_chat_buffer_insert_text(GtkTextBuffer *textbuf
 // @param time : the time. ms
 // @param color_tag : the color tag name
 //
-#if 0
 static void qq_chat_textview_add_message(QQChatTextview *view
                                 , const gchar *name
                                 , GPtrArray *contents
                                 , const gchar *time
                                 , const gchar *color_tag)
 {
+#if 0
     if(name == NULL || contents == NULL || time == NULL){
         return;
     }
+#endif
     QQChatTextviewPriv *priv  = G_TYPE_INSTANCE_GET_PRIVATE(
                                     view, qq_chat_textview_get_type()
                                     , QQChatTextviewPriv);
@@ -166,6 +167,12 @@ static void qq_chat_textview_add_message(QQChatTextview *view
                                 , head, head_len
                                 , color_tag, "left_margin1",  NULL);
 
+    /* FIXME */
+    qq_chat_textview_add_string(GTK_WIDGET(view)
+                                , "1234"
+                                , 4);
+
+#if 0
     gint i;
     QQMsgContent *cent;
     QQMsgFont *font = NULL;
@@ -211,6 +218,7 @@ static void qq_chat_textview_add_message(QQChatTextview *view
             break;
         }
     }
+#endif
 
     // insert new line
     gtk_text_buffer_get_end_iter(textbuf, &end_iter);
@@ -222,7 +230,6 @@ static void qq_chat_textview_add_message(QQChatTextview *view
                                             , priv -> end_mark);
     return;
 }
-#endif
 
 static void qq_chat_textview_init(QQChatTextview *view)
 {
@@ -274,11 +281,11 @@ void qq_chat_textview_add_send_message(GtkWidget *widget, LwqqSendMsg *msg)
 
 void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg)
 {
-#if 0
     if(widget == NULL || msg == NULL){
         return;
     }
 
+#if 0
 	QQGMember *mb = NULL;
 	QQGroup *gp = NULL;
 	GString *code = msg->group_code;
@@ -300,21 +307,27 @@ void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg)
 		}
 			
 	} else {
-	    QQBuddy *bdy = qq_info_lookup_buddy_by_uin(info, msg -> from_uin -> str);
-		if(bdy == NULL){
-			name = msg -> from_uin -> str;
+#endif
+        LwqqMsgMessage *m = (LwqqMsgMessage *)msg->msg;
+	    LwqqBuddy *bdy = lwqq_buddy_find_buddy_by_uin(lwqq_client, m->from);
+        gchar *name;
+		if (bdy == NULL) {
+        name = m -> from;
 		}else{
-			name = bdy -> markname -> str;
-			if(bdy -> markname -> len <= 0){
-				name = bdy -> nick -> str;
-			}
+        /* FIXME */
+//			name = bdy -> markname;
+            name = bdy -> nick;
+			/* if(bdy -> markname){ */
+			/* 	name = bdy -> nick -> str; */
+			/* } */
 		}	
+#if 0
 	}
+#endif
     qq_chat_textview_add_message(QQ_CHAT_TEXTVIEW(widget)
 								 , name
-								 , msg -> contents, msg -> time -> str
+								 , NULL, "2345674" /* FIXME */
 								 , "blue");
-#endif
 }
 
 void qq_chat_textview_add_face(GtkWidget *widget, gint face)
