@@ -332,6 +332,7 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
             continue;
 
         /* FIXME, MT_MESSAGE should be a MACRO */
+        msg = s_malloc0(sizeof(*msg));
         if (strncmp(msg_type, MT_MESSAGE, strlen(MT_MESSAGE)) == 0
             || strncmp(msg_type, MT_GROUP_MESSAGE, strlen(MT_GROUP_MESSAGE)) == 0) {
             char *from, *to, *content = NULL;
@@ -354,7 +355,6 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
             if (!from || !to || !content) {
                 continue;
             }
-            msg = s_malloc0(sizeof(*msg));
             msg->msg = lwqq_msg_new(msg_type, from, to, content);
             s_free(content);
         } else if (strncmp(msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0) {
@@ -363,15 +363,18 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
             if (!who || !status) {
                 continue;
             }
-            msg = s_malloc0(sizeof(*msg));
             msg->msg = lwqq_msg_new(msg_type, who, status);
         } else {
-            msg = s_malloc0(sizeof(*msg));
             msg->msg = lwqq_msg_new(msg_type);
         }
-        pthread_mutex_lock(&list->mutex);
-        SIMPLEQ_INSERT_TAIL(&list->head, msg, entries);
-        pthread_mutex_unlock(&list->mutex);
+
+        if (msg->msg) {
+            pthread_mutex_lock(&list->mutex);
+            SIMPLEQ_INSERT_TAIL(&list->head, msg, entries);
+            pthread_mutex_unlock(&list->mutex);
+        } else {
+            s_free(msg);
+        }
     }
     
 done:
