@@ -363,7 +363,7 @@ static void handle_new_msg(LwqqRecvMsg *msg)
             cw = qq_chatwindow_new(m->from); 
             // not show it
             gtk_widget_hide(cw);
-            g_hash_table_insert(lwqq_chat_window, m->from, cw);
+            g_hash_table_insert(lwqq_chat_window, g_strdup(m->from), cw);
         }
     } else if (strcmp(msg_type, MT_GROUP_MESSAGE) == 0) {
         printf("Receive group message: %s\n", msg->msg->message.content);
