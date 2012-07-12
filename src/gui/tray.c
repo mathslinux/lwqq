@@ -78,7 +78,7 @@ static void qq_tray_blinking(QQTray *tray, const gchar *uin)
     }
     pb = gdk_pixbuf_new_from_file(buf, NULL);
     if (!pb) {
-        g_snprintf(buf, sizeof(buf), "%s/%s", lwqq_user_dir, bdy->qqnumber ?: "");
+        g_snprintf(buf, sizeof(buf), "%s/webqq_icon.png", lwqq_icons_dir);
         pb = gdk_pixbuf_new_from_file(buf, NULL);
     }
     gtk_status_icon_set_from_pixbuf(GTK_STATUS_ICON(tray), pb);
