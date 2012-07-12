@@ -331,6 +331,7 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
         if (!msg_type)
             continue;
 
+        /* FIXME, MT_MESSAGE should be a MACRO */
         if (strncmp(msg_type, MT_MESSAGE, strlen(MT_MESSAGE)) == 0
             || strncmp(msg_type, MT_GROUP_MESSAGE, strlen(MT_GROUP_MESSAGE)) == 0) {
             char *from, *to, *content = NULL;
@@ -350,12 +351,18 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
                 content = NULL;
             }
 
+            if (!from || !to || !content) {
+                continue;
+            }
             msg = s_malloc0(sizeof(*msg));
             msg->msg = lwqq_msg_new(msg_type, from, to, content);
             s_free(content);
         } else if (strncmp(msg_type, MT_STATUS_CHANGE, strlen(MT_STATUS_CHANGE)) == 0) {
             char *who = json_parse_simple_value(cur, "uin");
             char *status = json_parse_simple_value(cur, "status");
+            if (!who || !status) {
+                continue;
+            }
             msg = s_malloc0(sizeof(*msg));
             msg->msg = lwqq_msg_new(msg_type, who, status);
         } else {
