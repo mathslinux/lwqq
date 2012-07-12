@@ -19,7 +19,7 @@
 #include <config.h>
 #endif
 
-/*
+/**
  * The global value
  * in main.c
  */
@@ -401,7 +401,7 @@ static gpointer poll_msg(gpointer data)
     return NULL;
 }
 
-/** 
+/**
  * Handle login. In this function, we do login, get friends information,
  * Get group information, and so on.
  * 
