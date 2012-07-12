@@ -104,7 +104,6 @@ static void face_tool_button_clicked(GtkToolButton *btn, gpointer data)
     QQChatWidgetPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(data
                                         , qq_chatwidget_get_type()
                                         , QQChatWidgetPriv);
-#endif
     int x , y , ex , ey , root_x , root_y;
 
     // Get the top level window
@@ -117,7 +116,6 @@ static void face_tool_button_clicked(GtkToolButton *btn, gpointer data)
     gtk_window_get_position(GTK_WINDOW(parent), &root_x, &root_y);
     x = root_x + ex + 2;
     y = root_y + ey + 45;
-#if 0
     qq_face_popup_window_popup(priv -> facepopupwindow, x, y);
 #endif
 }
