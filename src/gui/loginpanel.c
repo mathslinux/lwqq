@@ -379,6 +379,9 @@ static gpointer poll_msg(gpointer data)
 
         SIMPLEQ_REMOVE_HEAD(&l->head, entries);
         pthread_mutex_unlock(&l->mutex);
+
+        lwqq_msg_free(msg->msg);
+        s_free(msg);
     }
     return NULL;
 }
