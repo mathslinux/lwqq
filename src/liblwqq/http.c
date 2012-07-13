@@ -89,7 +89,7 @@ void lwqq_http_request_free(LwqqHttpRequest *request)
     
     if (request) {
         s_free(request->response);
-        curl_easy_cleanup(request->req);
+        ghttp_request_destroy(request->req);
         s_free(request);
     }
 }

@@ -27,7 +27,7 @@ static void ev_io_come(EV_P_ ev_io* w,int revent);
 while(list!=NULL){ \
     void *ptr = list; \
     list = list->next; \
-    free(ptr); \
+    s_free(ptr); \
 }
 #define slist_append(list,node) \
 (node->next = list,node)
@@ -39,7 +39,7 @@ static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
 
     size_t name_len = strlen(name);
     size_t value_len = strlen(value);
-    char* opt = s_malloc(name_len+value_len+1);
+    char* opt = s_malloc(name_len+value_len+2);
 
     strcpy(opt,name);
     opt[name_len] = ':';
@@ -323,7 +323,6 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
 
     curl_easy_perform(request->req);
 
-    printf("res::%s\n",request->response);
     have_read_bytes = request->resp_len;
 
     /* NB: *response may null */
@@ -354,7 +353,7 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
 
     /* OK, done */
     if ((*resp)[have_read_bytes -1] != '\0') {
-        /* Realloc a byte, cause *resp hasn't end with char '\0' */
+        // Realloc a byte, cause *resp hasn't end with char '\0' 
         *resp = s_realloc(*resp, have_read_bytes + 1);
         (*resp)[have_read_bytes] = '\0';
     }
