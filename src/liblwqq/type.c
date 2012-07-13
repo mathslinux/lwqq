@@ -53,7 +53,9 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     v = (v - v % 1000) / 1000;
     v = v % 10000 * 10000;
     lc->msg_id = v;
-    
+
+    lwqq_log(LOG_DEBUG, "Create a new client with username:%s, password:%s "
+             "successfully\n", lc->username, lc->password);
     return lc;
     
 failed:
