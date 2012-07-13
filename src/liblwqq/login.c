@@ -291,7 +291,7 @@ static void get_verify_image(LwqqClient *lc)
         s_free(content_length);
     }
     update_cookies(lc->cookies, req, "verifysession", 1);
-    snprintf(image_file, sizeof(image_file), "/tmp/%s.jpeg", lc->username);
+    snprintf(image_file, sizeof(image_file), "/tmp/lwqq_%s.jpeg", lc->username);
     /* Delete old file first */
     unlink(image_file);
     int fd = creat(image_file, S_IRUSR | S_IWUSR);
