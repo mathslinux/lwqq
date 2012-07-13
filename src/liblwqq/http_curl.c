@@ -1,7 +1,8 @@
 #include <string.h>
 #include <zlib.h>
 #include <ev.h>
-#include <ghttp.h>
+#include <stdio.h>
+#include <curl/curl.h>
 #include "smemory.h"
 #include "http.h"
 #include "logger.h"
@@ -22,13 +23,32 @@ static int lwqq_http_do_request_async(struct LwqqHttpRequest *request, int metho
                                       void *data);
 static void ev_io_come(EV_P_ ev_io* w,int revent);
 
+#define slist_free_all(list) \
+while(list!=NULL){ \
+    void *ptr = list; \
+    list = list->next; \
+    free(ptr); \
+}
+#define slist_append(list,node) \
+(node->next = list,node)
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
                                 const char *value)
 {
     if (!request->req || !name || !value)
         return ;
 
-    ghttp_set_header(request->req, name, value);
+    size_t name_len = strlen(name);
+    size_t value_len = strlen(value);
+    char* opt = s_malloc(name_len+value_len+1);
+
+    strcpy(opt,name);
+    opt[name_len] = ':';
+    strcpy(opt+name_len+1,value);
+
+    request->header = curl_slist_append((struct curl_slist*)request->header,opt);
+    curl_easy_setopt(request->req,CURLOPT_HTTPHEADER,request->header);
+
+    s_free(opt);
 }
 
 static void lwqq_http_set_default_header(LwqqHttpRequest *request)
@@ -51,7 +71,15 @@ static char *lwqq_http_get_header(LwqqHttpRequest *request, const char *name)
         return NULL; 
     }
 
-    const char *h = ghttp_get_header(request->req, name);
+    const char *h = NULL;
+    struct curl_slist* list = request->recv_head;
+    while(list!=NULL){
+        if(strncmp(name,list->data,strlen(name))==0){
+            h = list->data+strlen(name)+1;
+            break;
+        }
+        list = list->next;
+    }
     if (!h) {
         lwqq_log(LOG_WARNING, "Cant get http header: %s\n", name);
         return NULL;
@@ -67,16 +95,24 @@ static char *lwqq_http_get_cookie(LwqqHttpRequest *request, const char *name)
         return NULL; 
     }
     
-    char *cookie = ghttp_get_cookie(request->req, name);
+    char* cookie = NULL;
+    struct cookie_list* list = request->cookie;
+    while(list!=NULL){
+        if(strcmp(list->name,name)==0){
+            cookie = list->value;
+            break;
+        }
+        list = list->next;
+    }
+    printf("cookie:%s\n",cookie);
     if (!cookie) {
         lwqq_log(LOG_WARNING, "No cookie: %s\n", name);
         return NULL;
     }
 
     lwqq_log(LOG_DEBUG, "Parse Cookie: %s=%s\n", name, cookie);
-    return cookie;
+    return s_strdup(cookie);
 }
-
 /** 
  * Free Http Request
  * 
@@ -89,11 +125,45 @@ void lwqq_http_request_free(LwqqHttpRequest *request)
     
     if (request) {
         s_free(request->response);
-        ghttp_request_destroy(request->req);
+        curl_slist_free_all(request->header);
+        curl_slist_free_all(request->recv_head);
+        slist_free_all(request->cookie);
+        curl_easy_cleanup(request->req);
         s_free(request);
     }
 }
 
+static size_t write_header( void *ptr, size_t size, size_t nmemb, void *userdata)
+{
+    char* str = (char*)ptr;
+    LwqqHttpRequest* request = (LwqqHttpRequest*) userdata;
+    request->recv_head = curl_slist_append(request->recv_head,(char*)ptr);
+    //read cookie from header;
+    if(strncmp(str,"Set-Cookie",strlen("Set-Cookie"))==0){
+        struct cookie_list * node = s_malloc0(sizeof(*node));
+        sscanf(str,"Set-Cookie: %[^=]=%[^;];",node->name,node->value);
+        request->cookie = slist_append(request->cookie,node);
+    }
+    return size*nmemb;
+}
+static size_t write_content(void* ptr,size_t size,size_t nmemb,void* userdata)
+{
+    LwqqHttpRequest* request = (LwqqHttpRequest*) userdata;
+    double s;
+    int resp_len = request->resp_len;
+    curl_easy_getinfo(request->req,CURLINFO_CONTENT_LENGTH_DOWNLOAD,&s);
+    if(s==-1.0){
+        request->response = s_realloc(request->response,resp_len+size*nmemb+5);
+    }
+    if(request->response==NULL){
+        //add one to ensure the last \0;
+        request->response = s_malloc0((size_t)s+5);
+        resp_len = 0;
+    }
+    memcpy(request->response+resp_len,ptr,size*nmemb);
+    request->resp_len+=size*nmemb;
+    return size*nmemb;
+}
 /** 
  * Create a new Http request instance
  *
@@ -110,16 +180,21 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
     LwqqHttpRequest *request;
     request = s_malloc0(sizeof(*request));
     
-    request->req = ghttp_request_new();
+    //request->req = ghttp_request_new();
+    request->req = curl_easy_init();
     if (!request->req) {
         /* Seem like request->req must be non null. FIXME */
         goto failed;
     }
-    if (ghttp_set_uri(request->req, (char *)uri) == -1) {
+    if(curl_easy_setopt(request->req,CURLOPT_URL,uri)!=0){
         lwqq_log(LOG_WARNING, "Invalid uri: %s\n", uri);
         goto failed;
     }
-
+    
+    curl_easy_setopt(request->req,CURLOPT_HEADERFUNCTION,write_header);
+    curl_easy_setopt(request->req,CURLOPT_HEADERDATA,request);
+    curl_easy_setopt(request->req,CURLOPT_WRITEFUNCTION,write_content);
+    curl_easy_setopt(request->req,CURLOPT_WRITEDATA,request);
     request->do_request = lwqq_http_do_request;
     request->do_request_async = lwqq_http_do_request_async;
     request->set_header = lwqq_http_set_header;
@@ -226,10 +301,8 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
     if (!request->req)
         return -1;
 
-    ghttp_status status;
     char *buf;
     int have_read_bytes = 0;
-    ghttp_type m;
     char **resp = &request->response;
 
     /* Clear off last response */
@@ -239,49 +312,19 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
     }
 
     /* Set http method */
-    if (method == 0) {
-        m = ghttp_type_get;
-    } else if (method == 1) {
-        m = ghttp_type_post;
+    if (method==0){
+    }else if (method == 1 && body) {
+        curl_easy_setopt(request->req,CURLOPT_POST,1);
+        curl_easy_setopt(request->req,CURLOPT_COPYPOSTFIELDS,body);
     } else {
         lwqq_log(LOG_WARNING, "Wrong http method\n");
         goto failed;
     }
-    if (ghttp_set_type(request->req, m) == -1) {
-        lwqq_log(LOG_WARNING, "Set request type error\n");
-        goto failed;
-    }
 
-    /* For POST method, set http body */
-    if (m == ghttp_type_post && body) {
-        ghttp_set_body(request->req, body, strlen(body));
-    }
-    
-    if (ghttp_prepare(request->req)) {
-        goto failed;
-    }
+    curl_easy_perform(request->req);
 
-    for ( ; ; ) {
-        int len = 0;
-        status = ghttp_process(request->req);
-        if(status == ghttp_error) {
-            lwqq_log(LOG_ERROR, "Http request failed: %s\n",
-                     ghttp_get_error(request->req));
-            goto failed;
-        }
-        /* NOTE: buf may NULL, notice it */
-        buf = ghttp_get_body(request->req);
-        if (buf) {
-            len = ghttp_get_body_len(request->req);
-            *resp = s_realloc(*resp, have_read_bytes + len);
-            memcpy(*resp + have_read_bytes, buf, len);
-            have_read_bytes += len;
-        }
-        if(status == ghttp_done) {
-            /* NOTE: Ok, done */
-            break;
-        }
-    }
+    printf("res::%s\n",request->response);
+    have_read_bytes = request->resp_len;
 
     /* NB: *response may null */
     if (*resp == NULL) {
@@ -315,7 +358,7 @@ static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body
         *resp = s_realloc(*resp, have_read_bytes + 1);
         (*resp)[have_read_bytes] = '\0';
     }
-    request->http_code = ghttp_status_code(request->req);
+    curl_easy_getinfo(request->req,CURLINFO_RESPONSE_CODE,&request->http_code);
     return 0;
 
 failed:
@@ -374,150 +417,151 @@ static int lwqq_async_running = -1;
 
 void *lwqq_async_thread(void* data)
 {
-    struct ev_loop* loop = EV_DEFAULT;
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-    while (1) {
-        lwqq_async_running = 1;
-        ev_run(loop, 0);
-        lwqq_async_running = 0;
-        pthread_mutex_lock(&mutex);
-        pthread_cond_wait(&lwqq_async_cond, &mutex);
-        pthread_mutex_unlock(&mutex);
-    }
+//    struct ev_loop* loop = EV_DEFAULT;
+//    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+//    while (1) {
+//        lwqq_async_running = 1;
+//        ev_run(loop, 0);
+//        lwqq_async_running = 0;
+//        pthread_mutex_lock(&mutex);
+//        pthread_cond_wait(&lwqq_async_cond, &mutex);
+//        pthread_mutex_unlock(&mutex);
+//    }
 }
 
 static void ev_io_come(EV_P_ ev_io* w,int revent)
 {
-    AsyncWatchData *d = (AsyncWatchData *)w->data;
-    LwqqErrorCode ec;
-    char *buf;
-    LwqqHttpRequest *lhr = d->request;
-    ghttp_request *req = lhr->req;
-
-
-    int status = ghttp_process(req);
-    if (status == ghttp_error) {
-        ec = LWQQ_EC_ERROR;
-        goto done;
-    }
-    
-    /* NOTE: buf may NULL, notice it */
-    buf = ghttp_get_body(req);
-    if (buf) {
-        int len;
-        len = ghttp_get_body_len(req);
-        lhr->response = s_realloc(lhr->response, lhr->resp_len + len);
-        memcpy(lhr->response + lhr->resp_len, buf, len);
-        lhr->resp_len += len;
-    }
-    if (status == ghttp_done) {
-        ec = LWQQ_EC_OK;
-        goto done;
-    }
-
-    /* Go on */
-    return ;
-    
-done:
-    if (ec == LWQQ_EC_OK && lhr->response) {
-        /* Uncompress data here if we have a Content-Encoding header */
-        char *enc_type = NULL;
-        enc_type = lwqq_http_get_header(lhr, "Content-Encoding");
-        if (enc_type && strstr(enc_type, "gzip")) {
-            char *outdata;
-            int total = 0;
-        
-            outdata = ungzip(lhr->response, lhr->resp_len, &total);
-            if (outdata) {
-                s_free(lhr->response);
-                /* Update response data to uncompress data */
-                lhr->response = s_strdup(outdata);
-                s_free(outdata);
-                lhr->resp_len = total;
-            }
-        }
-        s_free(enc_type);
-
-        /* OK, done */
-        if (lhr->response[lhr->resp_len -1] != '\0') {
-            /* Realloc a byte, cause lhr->response hasn't end with char '\0' */
-            lhr->response = s_realloc(lhr->response, lhr->resp_len + 1);
-            lhr->response[lhr->resp_len] = '\0';
-        }
-    }
-
-    /* Callback */
-    d->callback(ec, lhr->response, d->data);
-
-    /* OK, exit this request */
-    ev_io_stop(EV_DEFAULT, w);
-    lwqq_http_request_free(d->request);
-    s_free(d);
-    s_free(w);
+//    AsyncWatchData *d = (AsyncWatchData *)w->data;
+//    LwqqErrorCode ec;
+//    char *buf;
+//    LwqqHttpRequest *lhr = d->request;
+//    ghttp_request *req = lhr->req;
+//
+//
+//    int status = ghttp_process(req);
+//    if (status == ghttp_error) {
+//        ec = LWQQ_EC_ERROR;
+//        goto done;
+//    }
+//    
+//    /* NOTE: buf may NULL, notice it */
+//    buf = ghttp_get_body(req);
+//    if (buf) {
+//        int len;
+//        len = ghttp_get_body_len(req);
+//        lhr->response = s_realloc(lhr->response, lhr->resp_len + len);
+//        memcpy(lhr->response + lhr->resp_len, buf, len);
+//        lhr->resp_len += len;
+//    }
+//    if (status == ghttp_done) {
+//        ec = LWQQ_EC_OK;
+//        goto done;
+//    }
+//
+//    /* Go on */
+//    return ;
+//    
+//done:
+//    if (ec == LWQQ_EC_OK && lhr->response) {
+//        /* Uncompress data here if we have a Content-Encoding header */
+//        char *enc_type = NULL;
+//        enc_type = lwqq_http_get_header(lhr, "Content-Encoding");
+//        if (enc_type && strstr(enc_type, "gzip")) {
+//            char *outdata;
+//            int total = 0;
+//        
+//            outdata = ungzip(lhr->response, lhr->resp_len, &total);
+//            if (outdata) {
+//                s_free(lhr->response);
+//                /* Update response data to uncompress data */
+//                lhr->response = s_strdup(outdata);
+//                s_free(outdata);
+//                lhr->resp_len = total;
+//            }
+//        }
+//        s_free(enc_type);
+//
+//        /* OK, done */
+//        if (lhr->response[lhr->resp_len -1] != '\0') {
+//            /* Realloc a byte, cause lhr->response hasn't end with char '\0' */
+//            lhr->response = s_realloc(lhr->response, lhr->resp_len + 1);
+//            lhr->response[lhr->resp_len] = '\0';
+//        }
+//    }
+//
+//    /* Callback */
+//    d->callback(ec, lhr->response, d->data);
+//
+//    /* OK, exit this request */
+//    ev_io_stop(EV_DEFAULT, w);
+//    lwqq_http_request_free(d->request);
+//    s_free(d);
+//    s_free(w);
 }
 
 static int lwqq_http_do_request_async(struct LwqqHttpRequest *request, int method,
                                       char *body, LwqqAsyncCallback callback,
                                       void *data)
 {
-    ghttp_type m;
-    int status;
-    
-    /* Set http method */
-    if (method == 0) {
-        m = ghttp_type_get;
-    } else if (method == 1) {
-        m = ghttp_type_post;
-    } else {
-        lwqq_log(LOG_WARNING, "Wrong http method\n");
-        lwqq_http_request_free(request);
-        return -1;
-    }
-    if (ghttp_set_type(request->req, m) == -1) {
-        lwqq_log(LOG_WARNING, "Set request type error\n");
-        lwqq_http_request_free(request);
-        return -1;
-    }
-
-    /* For POST method, set http body */
-    if (m == ghttp_type_post && body) {
-        ghttp_set_body(request->req, body, strlen(body));
-    }
-
-    ghttp_set_sync(request->req, ghttp_async);
-    if (ghttp_prepare(request->req)) {
-        lwqq_http_request_free(request);
-        return -1;
-    }
-    
-    status = ghttp_process(request->req);
-    if (status != ghttp_not_done){
-        lwqq_log(LOG_ERROR, "BUG!!!async error\n");
-        lwqq_http_request_free(request);
-        return -1;
-    }
-
-    ev_io *watcher = (ev_io *)s_malloc(sizeof(ev_io));
-    
-    ghttp_request* req = (ghttp_request*)request->req;
-    
-    ev_io_init(watcher, ev_io_come, ghttp_get_socket(req), EV_READ);
-    AsyncWatchData *d = s_malloc(sizeof(AsyncWatchData));
-    d->request = request;
-    d->callback = callback;
-    d->data = data;
-    watcher->data = d;
-
-    ev_io_start(EV_DEFAULT, watcher);
-
-    if (lwqq_async_running == -1) {
-        lwqq_async_running = 1;
-        pthread_create(&lwqq_async_tid, NULL, lwqq_async_thread, NULL);
-    } else if(lwqq_async_running == 0) {
-        pthread_cond_signal(&lwqq_async_cond);
-    }
-    
     return 0;
+    //ghttp_type m;
+    //int status;
+    //
+    ///* Set http method */
+    //if (method == 0) {
+    //    m = ghttp_type_get;
+    //} else if (method == 1) {
+    //    m = ghttp_type_post;
+    //} else {
+    //    lwqq_log(LOG_WARNING, "Wrong http method\n");
+    //    lwqq_http_request_free(request);
+    //    return -1;
+    //}
+    //if (ghttp_set_type(request->req, m) == -1) {
+    //    lwqq_log(LOG_WARNING, "Set request type error\n");
+    //    lwqq_http_request_free(request);
+    //    return -1;
+    //}
+
+    ///* For POST method, set http body */
+    //if (m == ghttp_type_post && body) {
+    //    ghttp_set_body(request->req, body, strlen(body));
+    //}
+
+    //ghttp_set_sync(request->req, ghttp_async);
+    //if (ghttp_prepare(request->req)) {
+    //    lwqq_http_request_free(request);
+    //    return -1;
+    //}
+    //
+    //status = ghttp_process(request->req);
+    //if (status != ghttp_not_done){
+    //    lwqq_log(LOG_ERROR, "BUG!!!async error\n");
+    //    lwqq_http_request_free(request);
+    //    return -1;
+    //}
+
+    //ev_io *watcher = (ev_io *)s_malloc(sizeof(ev_io));
+    //
+    //ghttp_request* req = (ghttp_request*)request->req;
+    //
+    //ev_io_init(watcher, ev_io_come, ghttp_get_socket(req), EV_READ);
+    //AsyncWatchData *d = s_malloc(sizeof(AsyncWatchData));
+    //d->request = request;
+    //d->callback = callback;
+    //d->data = data;
+    //watcher->data = d;
+
+    //ev_io_start(EV_DEFAULT, watcher);
+
+    //if (lwqq_async_running == -1) {
+    //    lwqq_async_running = 1;
+    //    pthread_create(&lwqq_async_tid, NULL, lwqq_async_thread, NULL);
+    //} else if(lwqq_async_running == 0) {
+    //    pthread_cond_signal(&lwqq_async_cond);
+    //}
+    //
+    //return 0;
 }
 
 #if 0
