@@ -128,13 +128,8 @@ static void qq_mainwindow_init(QQMainWindow *win)
         
     win->notebook = gtk_notebook_new();
 
-#if 0                           /* FIXME */
     gtk_notebook_set_show_tabs(GTK_NOTEBOOK(win->notebook), FALSE);
     gtk_notebook_set_show_border(GTK_NOTEBOOK(win->notebook), FALSE);
-#endif
-
-    gtk_notebook_set_show_tabs(GTK_NOTEBOOK(win->notebook), TRUE);
-    gtk_notebook_set_show_border(GTK_NOTEBOOK(win->notebook), TRUE);
 
     gtk_widget_show_all(win->login_panel);
     gtk_widget_show_all(win->splash_panel);

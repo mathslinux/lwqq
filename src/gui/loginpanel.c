@@ -1,3 +1,5 @@
+#include <glib.h>
+#include <glib/gstdio.h>
 #include <loginpanel.h>
 #include <mainpanel.h>
 #include <mainwindow.h>
@@ -40,6 +42,7 @@ static void qq_loginpanel_destroy(GtkWidget *obj);
 static void qqnumber_combox_changed(GtkComboBox *widget, gpointer data);
 //static void update_face_image(LwqqClient *lc, QQMainPanel *panel);
 static void update_buddy_qq_number(LwqqClient *lc, QQMainPanel *panel);
+static void run_login_state_machine(QQLoginPanel *panel);
 
 typedef struct LoginPanelUserInfo {
     char *qqnumber;
@@ -328,27 +331,48 @@ static void update_gdb(QQLoginPanel *lp)
 #undef UPDATE_GDB_MACRO
 }
 
-/* FIXME, it's just a temporary function */
-static char *get_vc(char *vc_file)
+static void get_vc(QQLoginPanel *panel)
 {
-    char vc[128] = {0};
-    int vc_len;
-    FILE *f;
+    LwqqClient *lc = lwqq_client;
+    char vc_image[128];
+    GtkWidget *w = panel->container;
 
-    if ((f = fopen(vc_file, "r")) == NULL) {
-        return NULL;
+    g_snprintf(vc_image, sizeof(vc_image), "/tmp/lwqq_%s.jpeg", lc->username);
+    if (g_access(vc_image, F_OK)) {
+        g_warning("No vc image data or type!(%s, %d)" , __FILE__, __LINE__);
+        gtk_label_set_text(GTK_LABEL(panel->err_label),
+                           "Login failed. Please retry.");
+        qq_mainwindow_show_loginpanel(w);
+        return;
     }
 
-    if (!fgets(vc, sizeof(vc), f)) {
-        fclose(f);
-        return NULL;
-    }
-    
-    vc_len = strlen(vc);
-    if (vc[vc_len - 1] == '\n') {
-        vc[vc_len - 1] = '\0';
-    }
-    return g_strdup(vc);
+    GtkWidget *dialog = gtk_dialog_new_with_buttons(
+        "Information", GTK_WINDOW(w), GTK_DIALOG_MODAL, GTK_STOCK_OK,
+        GTK_RESPONSE_OK, NULL);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_add(
+        GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), vbox);
+
+    GtkWidget *img = gtk_image_new_from_file(vc_image);
+
+    gtk_box_pack_start(GTK_BOX(vbox), gtk_label_new("VerifyCode："),
+                       FALSE, FALSE, 20);
+    gtk_box_pack_start(GTK_BOX(vbox), img, FALSE, FALSE, 0);
+
+    GtkWidget *vc_entry = gtk_entry_new();
+    gtk_widget_set_size_request(vc_entry, 200, -1);
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), vc_entry, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 10);
+
+    gtk_widget_set_size_request(dialog, 300, 220);
+    gtk_widget_show_all(dialog);
+    gtk_dialog_run(GTK_DIALOG(dialog));
+
+    /* got the verify code */
+    lc->vc->str = g_strdup(gtk_entry_get_text(GTK_ENTRY(vc_entry)));
+    gtk_widget_destroy(dialog);
+    run_login_state_machine(panel);
 }
 
 static void handle_new_msg(LwqqRecvMsg *msg)
@@ -418,63 +442,40 @@ static gpointer poll_msg(gpointer data)
  */
 static void handle_login(QQLoginPanel *panel)
 {
-    LoginPanelUserInfo *info = &login_panel_user_info;
+    LwqqClient *lc = lwqq_client;
+    LwqqErrorCode err = LWQQ_EC_ERROR;
 
-    lwqq_client = lwqq_client_new(info->qqnumber, info->password);
-    if (!lwqq_client) {
-        lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
-        return ;
-    }
-    while (1) {
-        LwqqClient *lc = lwqq_client;
-        LwqqErrorCode err = LWQQ_EC_ERROR;
-        lwqq_login(lwqq_client, &err);
-        if (err == LWQQ_EC_OK) {
-            lwqq_log(LOG_NOTICE, "Login successfully\n");
-            lwqq_info_get_friends_info(lc, NULL);
+    lwqq_login(lwqq_client, &err);
 
-            /* Start poll message */
-            g_thread_new("Poll message", poll_msg, lc->msg_list);
+    switch (err) {
+    case LWQQ_EC_OK:
+        lwqq_log(LOG_NOTICE, "Login successfully\n");
+        lwqq_info_get_friends_info(lc, NULL);
 
-            /* update main panel */
-            gqq_mainloop_attach(&gtkloop, qq_mainpanel_update, 1,
-                                QQ_MAINPANEL(QQ_MAINWINDOW(panel->container)->main_panel));
+        /* Start poll message */
+        g_thread_new("Poll message", poll_msg, lc->msg_list);
 
-            /* show main panel */
-            gqq_mainloop_attach(&gtkloop, qq_mainwindow_show_mainpanel,
-                                1, panel->container);
+        /* update main panel */
+        gqq_mainloop_attach(&gtkloop, qq_mainpanel_update, 1,
+                            QQ_MAINPANEL(QQ_MAINWINDOW(panel->container)->main_panel));
 
-            update_details(lc, panel);
-            break;
-        } else if (err == LWQQ_EC_LOGIN_NEED_VC) {
-#if 1                           /* FIXME */
-            char vc_image[128];
-            char vc_file[128];
-            snprintf(vc_image, sizeof(vc_image), "/tmp/lwqq_%s.jpeg", lc->username);
-            snprintf(vc_file, sizeof(vc_file), "/tmp/lwqq_%s.txt", lc->username);
-            /* Delete old verify image */
-            unlink(vc_file);
+        /* show main panel */
+        gqq_mainloop_attach(&gtkloop, qq_mainwindow_show_mainpanel,
+                            1, panel->container);
 
-            lwqq_log(LOG_NOTICE, "Need verify code to login, please check "
-                     "image file %s, and input what you see to file %s\n",
-                     vc_image, vc_file);
-            while (1) {
-                if (!access(vc_file, F_OK)) {
-                    sleep(1);
-                    break;
-                }
-                sleep(1);
-            }
-            lc->vc->str = get_vc(vc_file);
-            if (!lc->vc->str) {
-                continue;
-            }
-            lwqq_log(LOG_NOTICE, "Get verify code: %s\n", lc->vc->str);
-#endif
-        } else {
-            /* FIXME, need more output */
-            lwqq_log(LOG_ERROR, "Login failed\n");
-        }
+        update_details(lc, panel);
+        break;
+    case LWQQ_EC_LOGIN_NEED_VC:
+        gqq_mainloop_attach(&gtkloop, get_vc, 1, panel);
+        break;
+    case LWQQ_EC_ERROR:
+    default:
+        lwqq_log(LOG_ERROR, "Login failed\n");
+        gqq_mainloop_attach(&gtkloop, gtk_label_set_text, 2,
+                            GTK_LABEL(panel->err_label), "Login failed");
+        gqq_mainloop_attach(&gtkloop, qq_mainwindow_show_loginpanel,
+                            1, panel->container);
+        break;
     }
 }
 
@@ -568,7 +569,15 @@ static void login_cb(QQLoginPanel* panel)
     /* Update database */
     update_gdb(panel);
 
-    run_login_state_machine(panel);
+    if (lwqq_client) {
+        /* Free old object */
+        lwqq_client_free(lwqq_client);
+    }
+    lwqq_client = lwqq_client_new(info->qqnumber, info->password);
+
+    if (lwqq_client) {
+        run_login_state_machine(panel);
+    }
 
 #if 0
     GtkWidget *win = panel -> container;
