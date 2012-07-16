@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "type.h"
 #include "smemory.h"
@@ -109,7 +110,6 @@ static void lwqq_msg_message_free(void *opaque)
 
     s_free(msg->from);
     s_free(msg->to);
-    s_free(msg->time);
     s_free(msg->f_name);
     s_free(msg->f_color);
     s_free(msg->content);
@@ -291,11 +291,16 @@ static int parse_content(json_t *json, void *opaque)
 static int parse_new_msg(json_t *json, void *opaque)
 {
     LwqqMsgMessage *msg = opaque;
+    char *time;
     
     msg->from = s_strdup(json_parse_simple_value(json, "from_uin"));
     if (!msg->from) {
         return -1;
     }
+
+    time = json_parse_simple_value(json, "time");
+    time = time ?: "0";
+    msg->time = (time_t)strtoll(time, NULL, 10);
 
     msg->to = s_strdup(json_parse_simple_value(json, "to_uin"));
     if (!msg->to) {

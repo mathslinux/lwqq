@@ -17,7 +17,7 @@
 typedef struct LwqqMsgMessage {
     char *from;
     char *to;
-    char *time;
+    time_t time;
 
     /* For font  */
     char *f_name;
