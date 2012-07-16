@@ -346,6 +346,9 @@ void lwqq_info_get_friend_avatar(LwqqClient * lc,LwqqBuddy * buddy,LwqqErrorCode
     //there have avatar already do not repeat work;
     if(buddy->avatar) return;
 
+    LwqqHttpRequest* req;
+    char* cookies;
+    int ret;
     char url[512];
     //there are face 1 to face 10 server to accelerate speed.
     //we only use face5 now.
