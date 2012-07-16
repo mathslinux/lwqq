@@ -339,6 +339,47 @@ json_error:
     lwqq_http_request_free(req);
 }
 
+void lwqq_info_get_friend_avatar(LwqqClient * lc,LwqqBuddy * buddy,LwqqErrorCode *err)
+{
+    if(!lc||!buddy) return;
+    if(!buddy->uin) return;
+    //there have avatar already do not repeat work;
+    if(buddy->avatar) return;
+
+    char url[512];
+    //there are face 1 to face 10 server to accelerate speed.
+    //we only use face5 now.
+    snprintf(url, sizeof(url),
+             "%s/cgi/svr/face/getface?cache=0&type=1&fid=0&uin=%s&vfwebqq=%s"
+             "http://face5.qun.qq.com", buddy->uin, lc->vfwebqq);
+    req = lwqq_http_create_default_request(url, err);
+    if (!req) {
+        goto done;
+    }
+    req->set_header(req, "Referer", "http://web2.qq.com/");
+    cookies = lwqq_get_cookies(lc);
+    if (cookies) {
+        req->set_header(req, "Cookie", cookies);
+        s_free(cookies);
+    }
+    ret = req->do_request(req, 0, NULL);
+
+    if (ret || req->http_code != 200) {
+        if (err)
+            *err = LWQQ_EC_HTTP_ERROR;
+        goto done;
+    }
+    if(!req->resp_len) goto done;
+
+    buddy->avatar = s_malloc(req->resp_len);
+    memcpy(buddy->avatar,req->response,req->resp_len);
+    buddy->avatar_len = req->resp_len;
+
+done:
+    lwqq_http_request_free(req);
+    return ;
+}
+
 /**
  * Parsing group info like this.
  *

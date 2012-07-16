@@ -53,6 +53,8 @@ typedef struct LwqqBuddy {
     char *markname;
 
     char *flag;
+    char *avatar;               /**< This store avatar(face) raw jpeg data*/
+    size_t avatar_len;
 
     char *cate_index;           /**< Index of the category */
 
