@@ -35,6 +35,27 @@ static char *get_vc()
     return s_strdup(buf);
 }
 
+static void handle_new_msg(LwqqRecvMsg *recvmsg)
+{
+    LwqqMsg *msg = recvmsg->msg;
+
+    printf("Receive message type: %d\n", msg->type);
+
+    if (msg->type == LWQQ_MT_BUDDY_MSG) {
+        LwqqMsgMessage *mmsg = msg->opaque;
+        printf("Receive message: %s\n", mmsg->content);
+    } else if (msg->type == LWQQ_MT_GROUP_MSG) {
+        
+    } else if (msg->type == LWQQ_MT_STATUS_CHANGE) {
+        
+    } else {
+        printf("unknow message\n");
+    }
+    
+    lwqq_msg_free(recvmsg->msg);
+    s_free(recvmsg);
+}
+
 static void test_login(const char *qqnumber, const char *password)
 {
     LwqqClient *lc = lwqq_client_new(qqnumber, password);
@@ -223,23 +244,23 @@ static void test_login(const char *qqnumber, const char *password)
     lwqq_info_get_friend_detail_info(lc, lc->myself, &err);
 #endif 
 
-#if 0
     lc->msg_list->poll_msg(lc->msg_list);
 
     while (1) {
-        usleep(100);
+        LwqqRecvMsgList *l = lc->msg_list;
         LwqqRecvMsg *msg;
-        pthread_mutex_lock(&lc->msg_list->mutex);
-        if (!SIMPLEQ_EMPTY(&lc->msg_list->head)) {
-            msg = SIMPLEQ_FIRST(&lc->msg_list->head);
-            if (msg->msg->content) {
-                printf ("########################content: %s\n", msg->msg->content);
-            }
-            SIMPLEQ_REMOVE_HEAD(&lc->msg_list->head, entries);
+        pthread_mutex_lock(&l->mutex);
+        if (SIMPLEQ_EMPTY(&l->head)) {
+            /* No message now, wait 100ms */
+            pthread_mutex_unlock(&l->mutex);
+            usleep(100000);
+            continue;
         }
-        pthread_mutex_unlock(&lc->msg_list->mutex);
+        msg = SIMPLEQ_FIRST(&l->head);
+        SIMPLEQ_REMOVE_HEAD(&l->head, entries);
+        pthread_mutex_unlock(&l->mutex);
+        handle_new_msg(msg);
     }
-#endif
     
     /* Logout test */
     sleep(2);

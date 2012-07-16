@@ -263,7 +263,7 @@ static void qq_chat_textviewclass_init(QQChatTextviewClass *klass)
     g_type_class_add_private(klass, sizeof(QQChatTextviewPriv));
 }
 
-void qq_chat_textview_add_send_message(GtkWidget *widget, LwqqSendMsg *msg)
+void qq_chat_textview_add_send_message(GtkWidget *widget, LwqqMsg *msg)
 {
     if(widget == NULL || msg == NULL){
         return;
@@ -279,7 +279,7 @@ void qq_chat_textview_add_send_message(GtkWidget *widget, LwqqSendMsg *msg)
 #endif
 }
 
-void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg)
+void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqMsg *msg)
 {
     if(widget == NULL || msg == NULL){
         return;
@@ -308,7 +308,7 @@ void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg)
 			
 	} else {
 #endif
-        LwqqMsgMessage *m = (LwqqMsgMessage *)msg->msg;
+        LwqqMsgMessage *m = (LwqqMsgMessage *)msg->opaque;
 	    LwqqBuddy *bdy = lwqq_buddy_find_buddy_by_uin(lwqq_client, m->from);
         gchar *name;
 		if (bdy == NULL) {

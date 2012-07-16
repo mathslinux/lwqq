@@ -387,7 +387,7 @@ static void qq_chatwidgetclass_init(QQChatWidgetClass *wc)
 }
 
 
-void qq_chatwidget_add_send_message(GtkWidget *widget, LwqqSendMsg *msg)
+void qq_chatwidget_add_send_message(GtkWidget *widget, LwqqMsg *msg)
 {
     if(widget == NULL || msg == NULL){
         return;
@@ -399,7 +399,7 @@ void qq_chatwidget_add_send_message(GtkWidget *widget, LwqqSendMsg *msg)
 
     qq_chat_textview_add_send_message(priv -> message_textview, msg);
 }
-void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg)
+void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqMsg *msg)
 {
     if(widget == NULL || msg == NULL){
         return;

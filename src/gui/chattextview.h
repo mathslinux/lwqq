@@ -56,8 +56,8 @@ void qq_chat_textview_clear(GtkWidget *widget);
 //
 // Add messages
 //
-void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg);
-void qq_chat_textview_add_send_message(GtkWidget *widget, LwqqSendMsg *msg);
+void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqMsg *msg);
+void qq_chat_textview_add_send_message(GtkWidget *widget, LwqqMsg *msg);
 
 //
 // Add face or string

@@ -130,6 +130,7 @@ static int list_f(int argc, char **argv)
 
 static int send_f(int argc, char **argv)
 {
+#if 0
     LwqqSendMsg *msg;
 
     /* argv look like: {"send", "74357485" "hello"} */
@@ -144,6 +145,7 @@ static int send_f(int argc, char **argv)
     
     msg->send(msg);
 
+#endif
     return 0;
 }
 
@@ -251,6 +253,30 @@ void signal_handler(int signum)
 	}
 }
 
+static void handle_new_msg(LwqqRecvMsg *recvmsg)
+{
+    LwqqMsg *msg = recvmsg->msg;
+
+    printf("Receive message type: %d\n", msg->type);
+    if (msg->type == LWQQ_MT_BUDDY_MSG) {
+        LwqqMsgMessage *mmsg = msg->opaque;
+        printf("Receive message: %s\n", mmsg->content);
+    } else if (msg->type == LWQQ_MT_GROUP_MSG) {
+        LwqqMsgMessage *mmsg = msg->opaque;
+        printf("Receive group message: %s\n", mmsg->content);
+    } else if (msg->type == LWQQ_MT_STATUS_CHANGE) {
+        LwqqMsgStatusChange *status = msg->opaque;
+        printf("Receive status change: %s - > %s\n", 
+               status->who,
+               status->status);
+    } else {
+        printf("unknow message\n");
+    }
+    
+    lwqq_msg_free(recvmsg->msg);
+    s_free(recvmsg);
+}
+
 static void *recvmsg_thread(void *list)
 {
     LwqqRecvMsgList *l = (LwqqRecvMsgList *)list;
@@ -260,7 +286,7 @@ static void *recvmsg_thread(void *list)
 
     /* Need to wrap those code so look like more nice */
     while (1) {
-        LwqqRecvMsg *msg;
+        LwqqRecvMsg *recvmsg;
         pthread_mutex_lock(&l->mutex);
         if (SIMPLEQ_EMPTY(&l->head)) {
             /* No message now, wait 100ms */
@@ -268,28 +294,10 @@ static void *recvmsg_thread(void *list)
             usleep(100000);
             continue;
         }
-        msg = SIMPLEQ_FIRST(&l->head);
-        char *msg_type = msg->msg->msg_type;
-        printf("Receive message type: %s \n", msg->msg->msg_type);
-
-        if (strcmp(msg_type, MT_MESSAGE) == 0) {
-            LwqqMsgMessage *m = (LwqqMsgMessage *)(msg->msg);
-            printf("Receive message: %s\n", m->content);
-        } else if (strcmp(msg_type, MT_GROUP_MESSAGE) == 0) {
-            printf("Receive group message: %s\n", msg->msg->message.content);
-        } else if (strcmp(msg_type, MT_STATUS_CHANGE) == 0) {
-            printf("Receive status change: %s - > %s\n", 
-                   msg->msg->status.who,
-                   msg->msg->status.status);
-        } else {
-            printf("unknow message\n");
-        }
-
+        recvmsg = SIMPLEQ_FIRST(&l->head);
         SIMPLEQ_REMOVE_HEAD(&l->head, entries);
         pthread_mutex_unlock(&l->mutex);
-
-        lwqq_msg_free(msg->msg);
-        s_free(msg);
+        handle_new_msg(recvmsg);
     }
 
     pthread_exit(NULL);

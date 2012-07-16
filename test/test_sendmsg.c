@@ -66,11 +66,13 @@ static void test_sendmsg(const char *qqnumber, const char *password)
     if (err == LWQQ_EC_OK) {
         LwqqBuddy *buddy;
         LIST_FOREACH(buddy, &lc->friends, entries) {
+#if 0
             LwqqSendMsg *msg;
             if (!strcmp(buddy->nick, "mathslinux")) {
                 msg = lwqq_sendmsg_new(lc, buddy->uin, "message", "Who are you?");
                 msg->send(msg);
             }
+#endif
         }
         
     }

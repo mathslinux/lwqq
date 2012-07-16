@@ -28,7 +28,7 @@ GType qq_chatwindow_get_type();
 //
 // Add messages
 //
-void qq_chatwindow_add_recv_message(GtkWidget *widget, LwqqRecvMsg *msg);
-void qq_chatwindow_add_send_message(GtkWidget *widget, LwqqSendMsg *msg);
+void qq_chatwindow_add_recv_message(GtkWidget *widget, LwqqMsg *msg);
+void qq_chatwindow_add_send_message(GtkWidget *widget, LwqqMsg *msg);
 
 #endif /* __GTKQQ_CHATWINDOW_H */

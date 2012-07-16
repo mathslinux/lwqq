@@ -375,42 +375,38 @@ static void get_vc(QQLoginPanel *panel)
     run_login_state_machine(panel);
 }
 
-static void handle_new_msg(LwqqRecvMsg *msg)
+static void handle_new_msg(LwqqRecvMsg *recvmsg)
 {
-    char *msg_type = msg->msg->msg_type;
-    printf("Receive message type: %s \n", msg->msg->msg_type);
+    LwqqMsg *msg = recvmsg->msg;
 
-    if (strcmp(msg_type, MT_MESSAGE) == 0) {
-        LwqqMsgMessage *m = (LwqqMsgMessage *)(msg->msg);
-        GtkWidget *cw = g_hash_table_lookup(lwqq_chat_window, m->from);
-        printf("Receive message: %s\n", m->content);
+    printf("Receive message type: %d\n", msg->type);
+
+    if (msg->type == LWQQ_MT_BUDDY_MSG) {
+        LwqqMsgMessage *mmsg = msg->opaque;
+        GtkWidget *cw = g_hash_table_lookup(lwqq_chat_window, mmsg->from);
+        printf("Receive message: %s\n", mmsg->content);
         if (!cw) {
-            cw = qq_chatwindow_new(m->from);
+            cw = qq_chatwindow_new(mmsg->from);
             lwqq_log(LOG_DEBUG, "No chat window for uin:%s, create a new:%p\n",
-                     m->from, cw);
+                     mmsg->from, cw);
 #if 0
             // not show it
             gtk_widget_hide(cw);
 #endif
-            g_hash_table_insert(lwqq_chat_window, g_strdup(m->from), cw);
+            g_hash_table_insert(lwqq_chat_window, g_strdup(mmsg->from), cw);
         } else {
-            lwqq_log(LOG_DEBUG, "Found chat window:%p for uin:%s\n", cw, m->from);
+            lwqq_log(LOG_DEBUG, "Found chat window:%p for uin:%s\n", cw, mmsg->from);
         }
-        qq_chatwindow_add_recv_message(cw, msg);
-        qq_tray_blinking_for(tray, m->from);
-        gtk_widget_show(cw);
-    } else if (strcmp(msg_type, MT_GROUP_MESSAGE) == 0) {
-        printf("Receive group message: %s\n", msg->msg->message.content);
-    } else if (strcmp(msg_type, MT_STATUS_CHANGE) == 0) {
-        printf("Receive status change: %s - > %s\n", 
-               msg->msg->status.who,
-               msg->msg->status.status);
+    } else if (msg->type == LWQQ_MT_GROUP_MSG) {
+        
+    } else if (msg->type == LWQQ_MT_STATUS_CHANGE) {
+        
     } else {
         printf("unknow message\n");
     }
-
-    lwqq_msg_free(msg->msg);
-    s_free(msg);
+    
+    lwqq_msg_free(recvmsg->msg);
+    s_free(recvmsg);
 }
 
 static gpointer poll_msg(gpointer data)

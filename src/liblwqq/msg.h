@@ -14,70 +14,49 @@
 #include <pthread.h>
 #include "queue.h"
 
-/**
- * define the strings used for poll_type.
- */
-#define MT_MESSAGE "message"
-#define MT_GROUP_MESSAGE "group_message"
-#define MT_STATUS_CHANGE  "buddies_status_change"
-
-/**
- * Every message will contain these elems.
- */
-typedef struct LwqqMsgAny {
-    char * msg_type; /* must not be changed */
-} LwqqMsgAny;
-
-/**
- * Message object, receiving and sending chat message
- * 
- */
 typedef struct LwqqMsgMessage {
-    char * msg_type;            /**< must not be changed */
+    char *from;
+    char *to;
+    char *time;
 
-    char *from;                 /**< Message sender(qqnumber) */
-    char *to;                   /**< Message receiver(qqnumber) */
+    /* For font  */
+    char *f_name;
+    int f_size;
+    struct {
+        int a, b, c; /* bold , italic , underline */
+    } f_style;
+    char *f_color;
     
-    char *content;              /**< Message content */
-
+    char *content;
 } LwqqMsgMessage;
 
-/**
- * buddies status change message body.
- */
-typedef struct LwqqMsgStatus {
-    char * msg_type; /* must not be changed */
+typedef struct LwqqMsgStatusChange {
+    char *who;
+    char *status;
+    int client_type;
+} LwqqMsgStatusChange;
 
-    char * who;
-    char * status;
-} LwqqMsgStatus;
+typedef enum LwqqMsgType {
+    LWQQ_MT_BUDDY_MSG = 0,
+    LWQQ_MT_GROUP_MSG,
+    LWQQ_MT_STATUS_CHANGE,
+    LWQQ_MT_UNKNOWN,
+} LwqqMsgType;
 
-/**
- * Lwqq Message object. different message type base on msg_type.
- * It can be convert to LwqqMsgMessage or LwqqMsgStatus because
- * they have the same member "char * msg_typ"". Please do NOT change
- * the first member in these struct.
- * 
- */
-typedef union LwqqMsg {
+typedef struct LwqqMsg {
     /* Message type. e.g. buddy message or group message */
-    char *msg_type;
-    LwqqMsgAny any;
-    LwqqMsgMessage message;
-    LwqqMsgStatus status;
+    LwqqMsgType type;
+    void *opaque;               /**< Message details */
 } LwqqMsg;
 
 /** 
  * Create a new LwqqMsg object
  * 
- * @param from 
- * @param to 
  * @param msg_type 
- * @param content 
  * 
  * @return NULL on failure
  */
-LwqqMsg *lwqq_msg_new(const char *msg_type, ...);
+LwqqMsg *lwqq_msg_new(LwqqMsgType type);
 
 /** 
  * Free a LwqqMsg object
@@ -125,32 +104,5 @@ void lwqq_recvmsg_free(LwqqRecvMsgList *list);
 
 /************************************************************************/
 /*  LwqqSendMsg API */
-typedef struct LwqqSendMsg {
-    void *lc;                   /**< Suck Code now */
-    LwqqMsg *msg;
-    int (*send)(struct LwqqSendMsg *msg);
-} LwqqSendMsg;
-
-/** 
- * Create a new LwqqSendMsg object
- * 
- * @param client 
- * @param to
- * @param msg_type 
- * @param content 
- * 
- * @return 
- */
-LwqqSendMsg *lwqq_sendmsg_new(void *client, const char *to,
-                              const char *msg_type, const char *content);
-
-/** 
- * Free a LwqqSendMsg object
- * 
- * @param msg 
- */
-void lwqq_sendmsg_free(LwqqSendMsg *msg);
-
-/*  LwqqSendMsg API End */
 
 #endif  /* LWQQ_MSG_H */
