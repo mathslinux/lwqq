@@ -399,7 +399,7 @@ void qq_chatwidget_add_send_message(GtkWidget *widget, LwqqMsg *msg)
 
     qq_chat_textview_add_send_message(priv -> message_textview, msg);
 }
-void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqMsg *msg)
+void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqMsgMessage *msg)
 {
     if(widget == NULL || msg == NULL){
         return;
@@ -413,10 +413,9 @@ void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqMsg *msg)
 
 GtkWidget * qq_chatwidget_get_message_textview(GtkWidget *widget)
 {
-    QQChatWidgetPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(widget
-                                        , qq_chatwidget_get_type()
-                                        , QQChatWidgetPriv);
-    return priv -> message_textview;
+    QQChatWidgetPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(
+        widget, qq_chatwidget_get_type(), QQChatWidgetPriv);
+    return priv->message_textview;
 }
 
 GtkWidget * qq_chatwidget_get_input_textview(GtkWidget *widget)

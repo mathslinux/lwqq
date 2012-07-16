@@ -279,7 +279,7 @@ void qq_chat_textview_add_send_message(GtkWidget *widget, LwqqMsg *msg)
 #endif
 }
 
-void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqMsg *msg)
+void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqMsgMessage *msg)
 {
     if(widget == NULL || msg == NULL){
         return;
@@ -308,11 +308,10 @@ void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqMsg *msg)
 			
 	} else {
 #endif
-        LwqqMsgMessage *m = (LwqqMsgMessage *)msg->opaque;
-	    LwqqBuddy *bdy = lwqq_buddy_find_buddy_by_uin(lwqq_client, m->from);
+	    LwqqBuddy *bdy = lwqq_buddy_find_buddy_by_uin(lwqq_client, msg->from);
         gchar *name;
 		if (bdy == NULL) {
-        name = m -> from;
+        name = msg -> from;
 		}else{
         /* FIXME */
 //			name = bdy -> markname;

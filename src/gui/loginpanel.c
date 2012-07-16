@@ -397,6 +397,9 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
         } else {
             lwqq_log(LOG_DEBUG, "Found chat window:%p for uin:%s\n", cw, mmsg->from);
         }
+        qq_chatwindow_add_recv_message(cw, mmsg);
+        gtk_widget_show(cw);
+
     } else if (msg->type == LWQQ_MT_GROUP_MSG) {
         
     } else if (msg->type == LWQQ_MT_STATUS_CHANGE) {

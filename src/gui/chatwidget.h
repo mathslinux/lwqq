@@ -50,7 +50,7 @@ GType qq_chatwidget_get_type();
 //
 // Add messages
 //
-void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqMsg *msg);
+void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqMsgMessage *msg);
 void qq_chatwidget_add_send_message(GtkWidget *widget, LwqqMsg *msg);
 
 //

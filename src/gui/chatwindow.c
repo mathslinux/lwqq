@@ -415,7 +415,7 @@ void qq_chatwindow_add_send_message(GtkWidget *widget, LwqqMsg *msg)
 #endif
 }
 
-void qq_chatwindow_add_recv_message(GtkWidget *widget, LwqqMsg *msg)
+void qq_chatwindow_add_recv_message(GtkWidget *widget, LwqqMsgMessage *msg)
 {
     if (!widget || !msg){
         return;
