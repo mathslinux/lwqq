@@ -112,7 +112,14 @@ static void lwqq_msg_message_free(void *opaque)
     s_free(msg->to);
     s_free(msg->f_name);
     s_free(msg->f_color);
-    s_free(msg->content);
+
+    LwqqMsgContent *c;
+    LIST_FOREACH(c, &msg->content, entries) {
+        if (c->type == LWQQ_CONTENT_STRING) {
+            s_free(c->data.str);
+        }
+        s_free(c);
+    }
     
     s_free(msg);
 }
@@ -222,6 +229,7 @@ static int parse_content(json_t *json, void *opaque)
         if (ctent->type == JSON_ARRAY) {
             /* ["font",{"size":10,"color":"000000","style":[0,0,0],"name":"\u5B8B\u4F53"}] */
             char *buf;
+            /* FIXME: ensure NULL access */
             buf = ctent->child->text;
             if (!strcmp(buf, "font")) {
                 const char *name, *color, *size;
@@ -262,16 +270,28 @@ static int parse_content(json_t *json, void *opaque)
                 msg->f_style.b = sb;
                 msg->f_style.b = sb;
             } else if (!strcmp(buf, "face")) {
-                /* FIXME */
-                continue;
+                /* ["face", 107] */
+                /* FIXME: ensure NULL access */
+                int facenum = (int)strtol(ctent->child->next->text, NULL, 10);
+                LwqqMsgContent *c = s_malloc0(sizeof(*c));
+                c->type = LWQQ_CONTENT_FACE;
+                c->data.face = facenum; 
+                LIST_INSERT_HEAD(&msg->content, c, entries);
             }
         } else if (ctent->type == JSON_STRING) {
-            msg->content = ucs4toutf8(ctent->text);
+            LwqqMsgContent *c = s_malloc0(sizeof(*c));
+            c->type = LWQQ_CONTENT_STRING;
+            c->data.str = ucs4toutf8(ctent->text);
+            LIST_INSERT_HEAD(&msg->content, c, entries);
         }
     }
 
-    if (!msg->f_name || !msg->f_color || !msg->content) {
+    /* Make msg valid */
+    if (!msg->f_name || !msg->f_color || LIST_EMPTY(&msg->content)) {
         return -1;
+    }
+    if (msg->f_size < 10) {
+        msg->f_size = 10;
     }
 
     return 0;
@@ -485,6 +505,7 @@ static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list)
 }
 
 /* FIXME: So much hard code */
+#if 0
 char *create_default_content(const char *content)
 {
     char s[2048];
@@ -494,6 +515,7 @@ char *create_default_content(const char *content)
              "\\\"style\\\":[0,0,0],\\\"color\\\":\\\"000000\\\"}]]\"", content);
     return strdup(s);
 }
+#endif
 
 /** 
  * 
@@ -518,7 +540,9 @@ int lwqq_msg_send(LwqqClient *lc, LwqqMsg *msg)
         goto failed;
     }
     mmsg = msg->opaque;
+#if 0
     content = create_default_content(mmsg->content);
+#endif
     snprintf(data, sizeof(data), "{\"to\":%s,\"face\":0,\"content\":%s,"
              "\"msg_id\":%ld,\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
              mmsg->to, content, lc->msg_id, lc->clientid, lc->psessionid);

@@ -40,14 +40,33 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
     LwqqMsg *msg = recvmsg->msg;
 
     printf("Receive message type: %d\n", msg->type);
-
     if (msg->type == LWQQ_MT_BUDDY_MSG) {
+        char buf[1024] = {0};
+        LwqqMsgContent *c;
         LwqqMsgMessage *mmsg = msg->opaque;
-        printf("Receive message: %s\n", mmsg->content);
+        LIST_FOREACH(c, &mmsg->content, entries) {
+            if (c->type == LWQQ_CONTENT_STRING) {
+                strcat(buf, c->data.str);
+            } else {
+                printf ("Receive face msg: %d\n", c->data.face);
+            }
+        }
     } else if (msg->type == LWQQ_MT_GROUP_MSG) {
-        
+        LwqqMsgMessage *mmsg = msg->opaque;
+        char buf[1024] = {0};
+        LwqqMsgContent *c;
+        LIST_FOREACH(c, &mmsg->content, entries) {
+            if (c->type == LWQQ_CONTENT_STRING) {
+                strcat(buf, c->data.str);
+            } else {
+                printf ("Receive face msg: %d\n", c->data.face);
+            }
+        }
     } else if (msg->type == LWQQ_MT_STATUS_CHANGE) {
-        
+        LwqqMsgStatusChange *status = msg->opaque;
+        printf("Receive status change: %s - > %s\n", 
+               status->who,
+               status->status);
     } else {
         printf("unknow message\n");
     }

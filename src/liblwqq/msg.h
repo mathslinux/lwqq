@@ -14,6 +14,18 @@
 #include <pthread.h>
 #include "queue.h"
 
+#define LWQQ_CONTENT_STRING 0
+#define LWQQ_CONTENT_FACE 1
+
+typedef struct LwqqMsgContent {
+    int type;
+    union {
+        int face;
+        char *str;
+    } data;
+    LIST_ENTRY(LwqqMsgContent) entries;
+} LwqqMsgContent ;
+
 typedef struct LwqqMsgMessage {
     char *from;
     char *to;
@@ -26,8 +38,8 @@ typedef struct LwqqMsgMessage {
         int a, b, c; /* bold , italic , underline */
     } f_style;
     char *f_color;
-    
-    char *content;
+
+    LIST_HEAD(, LwqqMsgContent) content;
 } LwqqMsgMessage;
 
 typedef struct LwqqMsgStatusChange {
