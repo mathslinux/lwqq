@@ -110,6 +110,7 @@ static void lwqq_msg_message_free(void *opaque)
 
     s_free(msg->from);
     s_free(msg->to);
+    s_free(msg->send);
     s_free(msg->f_name);
     s_free(msg->f_color);
 
@@ -323,6 +324,11 @@ static int parse_new_msg(json_t *json, void *opaque)
     msg->time = (time_t)strtoll(time, NULL, 10);
 
     msg->to = s_strdup(json_parse_simple_value(json, "to_uin"));
+
+    //if it failed means it is not group message.
+    //so it equ NULL.
+    msg->send = s_strdup(json_parse_simple_value(json, "send_uin"));
+
     if (!msg->to) {
         return -1;
     }
@@ -534,18 +540,27 @@ int lwqq_msg_send(LwqqClient *lc, LwqqMsg *msg)
     char *content = NULL;
     char data[1024];
     LwqqMsgMessage *mmsg;
+    const char *tostr;
+    const char *apistr;
 
     if (!msg || (msg->type != LWQQ_MT_BUDDY_MSG &&
                  msg->type != LWQQ_MT_GROUP_MSG)) {
         goto failed;
     }
+    if(msg->type == LWQQ_MT_BUDDY_MSG){
+        tostr = "to";
+        apistr = "send_buddy_msg2";
+    }else if(msg->type == LWQQ_MT_GROUP_MSG){
+        tostr = "group_uin";
+        apistr = "send_qun_msg2";
+    }
     mmsg = msg->opaque;
 #if 0
     content = create_default_content(mmsg->content);
 #endif
-    snprintf(data, sizeof(data), "{\"to\":%s,\"face\":0,\"content\":%s,"
+    snprintf(data, sizeof(data), "{\"%s\":%s,\"face\":0,\"content\":%s,"
              "\"msg_id\":%ld,\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
-             mmsg->to, content, lc->msg_id, lc->clientid, lc->psessionid);
+             tostr, mmsg->to, content, lc->msg_id, lc->clientid, lc->psessionid);
     s_free(content);
     s = url_encode(data);
     snprintf(data, sizeof(data), "r=%s", s);
@@ -553,7 +568,7 @@ int lwqq_msg_send(LwqqClient *lc, LwqqMsg *msg)
 
     /* Create a POST request */
     char url[512];
-    snprintf(url, sizeof(url), "%s/channel/send_buddy_msg2", "http://d.web2.qq.com");
+    snprintf(url, sizeof(url), "%s/channel/%s", "http://d.web2.qq.com",apistr);
     req = lwqq_http_create_default_request(url, NULL);
     if (!req) {
         goto failed;

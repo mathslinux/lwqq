@@ -29,6 +29,7 @@ typedef struct LwqqMsgContent {
 typedef struct LwqqMsgMessage {
     char *from;
     char *to;
+    char *send; /* only group use it to identify who send the group message */
     time_t time;
 
     /* For font  */
