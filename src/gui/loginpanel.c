@@ -384,7 +384,7 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
     if (msg->type == LWQQ_MT_BUDDY_MSG) {
         LwqqMsgMessage *mmsg = msg->opaque;
         GtkWidget *cw = g_hash_table_lookup(lwqq_chat_window, mmsg->from);
-        printf("Receive message: %s\n", mmsg->content);
+//        printf("Receive message: %s\n", mmsg->content);
         if (!cw) {
             cw = qq_chatwindow_new(mmsg->from);
             lwqq_log(LOG_DEBUG, "No chat window for uin:%s, create a new:%p\n",
