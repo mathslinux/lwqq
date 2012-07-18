@@ -247,9 +247,10 @@ LwdbGlobalDB *lwdb_globaldb_new()
 
     snprintf(sql, sizeof(sql), "SELECT qqnumber,db_name,password,"
              "status,rempwd FROM users;");
+    lwqq_log(LOG_DEBUG, "%s\n", sql);
     ret = sws_query_start(db->db, sql, &stmt, NULL);
     if (ret) {
-        printf ("buffffffffff\n");
+        lwqq_log(LOG_ERROR, "Failed to %s\n", sql);
         goto failed;
     }
 
@@ -266,6 +267,8 @@ LwdbGlobalDB *lwdb_globaldb_new()
         LWDB_GLOBALDB_NEW_MACRO(3, status);
         LWDB_GLOBALDB_NEW_MACRO(4, rempwd);
 #undef LWDB_GLOBALDB_NEW_MACRO
+        lwqq_log(LOG_DEBUG, "qqnumber:%s, db_name:%s, password:%s, status:%s, "
+                 "rempwd:%s\n", e->qqnumber, e->db_name, e->password, e->status);
         LIST_INSERT_HEAD(&db->head, e, entries);
     }
     sws_query_end(stmt, NULL);
@@ -392,6 +395,7 @@ static LwqqErrorCode lwdb_globaldb_update_user_info(
     const char *key, const char *value)
 {
     char sql[256];
+    char *err = NULL;
     
     if (!qqnumber || !key || !value) {
         return LWQQ_EC_NULL_POINTER;
@@ -399,8 +403,12 @@ static LwqqErrorCode lwdb_globaldb_update_user_info(
 
     snprintf(sql, sizeof(sql), "UPDATE users SET %s='%s' WHERE qqnumber='%s';",
              key, value, qqnumber);
-    if (!sws_exec_sql(db->db, sql, NULL)) {
+    if (!sws_exec_sql(db->db, sql, &err)) {
+        lwqq_log(LOG_DEBUG, "%s successfully\n", sql);
         return LWQQ_EC_DB_EXEC_FAIELD;
+    } else {
+        lwqq_log(LOG_ERROR, "Failed to %s: %s\n", sql, err);
+        s_free(err);
     }
     
     return LWQQ_EC_OK;
