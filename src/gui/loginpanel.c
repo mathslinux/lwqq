@@ -39,7 +39,7 @@ extern GHashTable *lwqq_chat_window;
 static void qq_loginpanelclass_init(QQLoginPanelClass *c);
 static void qq_loginpanel_init(QQLoginPanel *obj);
 static void qq_loginpanel_destroy(GtkWidget *obj);
-static void qqnumber_combox_changed(GtkComboBox *widget, gpointer data);
+static void qqnumber_combox_changed(GtkComboBoxText *widget, gpointer data);
 //static void update_face_image(LwqqClient *lc, QQMainPanel *panel);
 static void update_buddy_qq_number(LwqqClient *lc, QQMainPanel *panel);
 static void run_login_state_machine(QQLoginPanel *panel);
@@ -769,21 +769,24 @@ static void qq_loginpanel_init(QQLoginPanel *obj)
 }
 #endif
 
-static void qqnumber_combox_changed(GtkComboBox *widget, gpointer data)
+static void qqnumber_combox_changed(GtkComboBoxText *widget, gpointer data)
 {
-#if 0
-    QQLoginPanel *obj = QQ_LOGINPANEL(data);
-    gint idx = gtk_combo_box_get_active(widget);
-    if(idx < 0 || idx >= login_users -> len){
+    LwdbGlobalUserEntry *e;
+    char *qqnumber = gtk_combo_box_text_get_active_text(widget);
+    if (!qqnumber) {
         return;
     }
-    GQQLoginUser *usr = (GQQLoginUser*)g_ptr_array_index(login_users, idx);
-	if (usr->rempw)
-		gtk_entry_set_text(GTK_ENTRY(obj -> passwd_entry), usr -> passwd);
-    qq_statusbutton_set_status_string(obj -> status_comb, usr -> status);
-    return;
-#endif
+
+    QQLoginPanel *obj = QQ_LOGINPANEL(data);
+    LIST_FOREACH(e, &obj->gdb->head, entries) {
+        if (!strcmp(e->qqnumber, qqnumber)) {
+            gtk_entry_set_text(GTK_ENTRY(obj->passwd_entry), e->password);
+            qq_statusbutton_set_status_string(obj->status_comb, e->status);
+            break;
+        }
+    }
 }
+
 /*
  * Destroy the instance of QQLoginPanel
  */
