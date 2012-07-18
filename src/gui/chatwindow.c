@@ -6,6 +6,8 @@
 #include <msgloop.h>
 #include <gdk/gdkkeysyms.h>
 #include <chatwidget.h>
+#include "logger.h"
+
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -81,12 +83,14 @@ GtkWidget* qq_chatwindow_new(const gchar *uin)
 //
 static void qq_chatwindow_on_close_clicked(GtkWidget *widget, gpointer data)
 {
+
     QQChatWindowPriv *priv;
-    
+
+    lwqq_log(LOG_DEBUG, "Destory chat window: %p\n", data);
     priv = G_TYPE_INSTANCE_GET_PRIVATE(
         data, qq_chatwindow_get_type(), QQChatWindowPriv);
     g_hash_table_remove(lwqq_chat_window, priv->uin);
-    gtk_widget_destroy(data);
+    gtk_widget_destroy(GTK_WIDGET(data));
 }
 
 
@@ -219,6 +223,8 @@ static void qq_chatwindow_init(QQChatWindow *win)
 {
     gchar buf[500];
     QQChatWindowPriv *priv;
+
+    lwqq_log(LOG_DEBUG, "Create chat window: %p\n", win);
 
     priv = G_TYPE_INSTANCE_GET_PRIVATE(
         win, qq_chatwindow_get_type(), QQChatWindowPriv);
