@@ -145,7 +145,6 @@ void lwqq_msg_free(LwqqMsg *msg)
     if (!msg)
         return;
 
-    printf ("type: %d\n", msg->type);
     switch (msg->type) {
     case LWQQ_MT_BUDDY_MSG:
     case LWQQ_MT_GROUP_MSG:
@@ -505,7 +504,6 @@ static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list)
 }
 
 /* FIXME: So much hard code */
-#if 0
 char *create_default_content(const char *content)
 {
     char s[2048];
@@ -515,7 +513,6 @@ char *create_default_content(const char *content)
              "\\\"style\\\":[0,0,0],\\\"color\\\":\\\"000000\\\"}]]\"", content);
     return strdup(s);
 }
-#endif
 
 /** 
  * 
@@ -525,7 +522,7 @@ char *create_default_content(const char *content)
  * 
  * @return 
  */
-int lwqq_msg_send(LwqqClient *lc, LwqqMsg *msg)
+int lwqq_msg_send(void *client, LwqqMsg *msg)
 {
     int ret;
     LwqqHttpRequest *req = NULL;  
@@ -534,15 +531,24 @@ int lwqq_msg_send(LwqqClient *lc, LwqqMsg *msg)
     char *content = NULL;
     char data[1024];
     LwqqMsgMessage *mmsg;
+    LwqqMsgContent *c;
+    char str[1024] = {0};
+    LwqqClient *lc = client;
 
     if (!msg || (msg->type != LWQQ_MT_BUDDY_MSG &&
                  msg->type != LWQQ_MT_GROUP_MSG)) {
         goto failed;
     }
     mmsg = msg->opaque;
-#if 0
-    content = create_default_content(mmsg->content);
-#endif
+    LIST_FOREACH(c, &mmsg->content, entries) {
+        if (c->type == LWQQ_CONTENT_STRING) {
+            strcat(str, c->data.str);
+        }
+    }
+    if (!strlen(str)) {
+        goto failed;
+    }
+    content = create_default_content(str);
     snprintf(data, sizeof(data), "{\"to\":%s,\"face\":0,\"content\":%s,"
              "\"msg_id\":%ld,\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
              mmsg->to, content, lc->msg_id, lc->clientid, lc->psessionid);
@@ -574,5 +580,35 @@ int lwqq_msg_send(LwqqClient *lc, LwqqMsg *msg)
     return 0;
 
 failed:
+    lwqq_http_request_free(req);
     return -1;
+}
+
+int lwqq_msg_send2(void *client, const char *to, const char *content)
+{
+    int ret = 0;
+    LwqqMsg *msg = NULL;
+    LwqqMsgMessage *mmsg = NULL;
+    LwqqMsgContent *c = NULL;
+    LwqqClient *lc = client;
+    
+    if (!lc || !to || !content) {
+        return -1;
+    }
+    
+    msg = lwqq_msg_new(LWQQ_MT_BUDDY_MSG);
+    if (!msg) {
+        return -1;
+    }
+
+    mmsg = msg->opaque;
+    mmsg->to = s_strdup(to);
+    c = s_malloc0(sizeof(*c));
+    c->type = LWQQ_CONTENT_STRING;
+    c->data.str = s_strdup(content);
+    LIST_INSERT_HEAD(&mmsg->content, c, entries);
+
+    ret = lwqq_msg_send(lc, msg);
+    lwqq_msg_free(msg);
+    return ret;
 }

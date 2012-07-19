@@ -115,6 +115,8 @@ void lwqq_recvmsg_free(LwqqRecvMsgList *list);
 /* LwqqRecvMsg API end */
 
 /************************************************************************/
+int lwqq_msg_send(void *client, LwqqMsg *msg);
+int lwqq_msg_send2(void *client, const char *to, const char *content);
 /*  LwqqSendMsg API */
 
 #endif  /* LWQQ_MSG_H */

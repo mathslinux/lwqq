@@ -130,22 +130,13 @@ static int list_f(int argc, char **argv)
 
 static int send_f(int argc, char **argv)
 {
-#if 0
-    LwqqSendMsg *msg;
-
     /* argv look like: {"send", "74357485" "hello"} */
     if (argc != 3) {
         return 0;
     }
     
-    msg = lwqq_sendmsg_new(lc, argv[1], "message", argv[2]);
-    if (!msg) {
-        return 0;
-    }
+    lwqq_msg_send2(lc, argv[1], argv[2]);
     
-    msg->send(msg);
-
-#endif
     return 0;
 }
 
