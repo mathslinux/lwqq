@@ -110,6 +110,7 @@ static void lwqq_msg_message_free(void *opaque)
 
     s_free(msg->from);
     s_free(msg->to);
+    s_free(msg->send);
     s_free(msg->f_name);
     s_free(msg->f_color);
 
@@ -266,9 +267,9 @@ static int parse_content(json_t *json, void *opaque)
                     sb = 0;
                     sc = 0;
                 }
-                msg->f_style.a = sa;
-                msg->f_style.b = sb;
-                msg->f_style.b = sb;
+                msg->f_style.b = sa;
+                msg->f_style.i = sb;
+                msg->f_style.u = sc;
             } else if (!strcmp(buf, "face")) {
                 /* ["face", 107] */
                 /* FIXME: ensure NULL access */
@@ -323,6 +324,11 @@ static int parse_new_msg(json_t *json, void *opaque)
     msg->time = (time_t)strtoll(time, NULL, 10);
 
     msg->to = s_strdup(json_parse_simple_value(json, "to_uin"));
+
+    //if it failed means it is not group message.
+    //so it equ NULL.
+    msg->send = s_strdup(json_parse_simple_value(json, "send_uin"));
+
     if (!msg->to) {
         return -1;
     }
@@ -504,18 +510,51 @@ static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list)
     pthread_create(&tid, &attr, start_poll_msg, list);
 }
 
-/* FIXME: So much hard code */
-#if 0
-char *create_default_content(const char *content)
-{
-    char s[2048];
+#define LEFT "\\\""
+#define RIGHT "\\\""
+#define KEY(key) "\\\""key"\\\""
 
-    snprintf(s, sizeof(s), "\"[\\\"%s\\\\n\\\",[\\\"font\\\","
-             "{\\\"name\\\":\\\"宋体\\\",\\\"size\\\":\\\"10\\\","
-             "\\\"style\\\":[0,0,0],\\\"color\\\":\\\"000000\\\"}]]\"", content);
-    return strdup(s);
+static char* content_parse_string_r(LwqqMsgMessage* msg,char* buf)
+{
+    strcpy(buf,"\"[");
+    LwqqMsgContent* c;
+    static char piece[10];
+
+    LIST_FOREACH(c,&msg->content,entries){
+        switch(c->type){
+            case LWQQ_CONTENT_FACE:
+                strcat(buf,"["KEY("face")",");
+                snprintf(piece,sizeof(piece),"%d",c->data.face);
+                strcat(buf,piece);
+                strcat(buf,"],");
+                break;
+            case LWQQ_CONTENT_STRING:
+                strcat(buf,LEFT);
+                strcat(buf,c->data.str);
+                strcat(buf,RIGHT",");
+                break;
+        }
+    }
+    snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),
+            "["KEY("font")",{"
+            KEY("name")":"KEY("%s")","
+            KEY("size")":"KEY("%d")","
+            KEY("style")":[%d,%d,%d],"
+            KEY("color")":"KEY("%s")
+            "}]]\"",
+            msg->f_name,msg->f_size,
+            msg->f_style.b,msg->f_style.i,msg->f_style.u,
+            msg->f_color);
+    return buf;
 }
-#endif
+static char* content_parse_string(LwqqMsgMessage* msg)
+{
+    //not thread safe. 
+    //you need ensure only one thread send msg in one time.
+    static char buf[2048];
+    return content_parse_string_r(msg,buf);
+}
+
 
 /** 
  * 
@@ -523,37 +562,45 @@ char *create_default_content(const char *content)
  * @param lc 
  * @param sendmsg 
  * 
- * @return 
+ * @return 1 means ok
+ *         0 means failed or send failed
  */
 int lwqq_msg_send(LwqqClient *lc, LwqqMsg *msg)
 {
     int ret;
     LwqqHttpRequest *req = NULL;  
     char *cookies;
-    char *s;
     char *content = NULL;
     char data[1024];
     LwqqMsgMessage *mmsg;
+    const char *tonam;
+    const char *apistr;
 
     if (!msg || (msg->type != LWQQ_MT_BUDDY_MSG &&
                  msg->type != LWQQ_MT_GROUP_MSG)) {
         goto failed;
     }
+    if(msg->type == LWQQ_MT_BUDDY_MSG){
+        tonam = "to";
+        apistr = "send_buddy_msg2";
+    }else if(msg->type == LWQQ_MT_GROUP_MSG){
+        tonam = "group_uin";
+        apistr = "send_qun_msg2";
+    }
     mmsg = msg->opaque;
-#if 0
-    content = create_default_content(mmsg->content);
-#endif
-    snprintf(data, sizeof(data), "{\"to\":%s,\"face\":0,\"content\":%s,"
-             "\"msg_id\":%ld,\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
-             mmsg->to, content, lc->msg_id, lc->clientid, lc->psessionid);
-    s_free(content);
-    s = url_encode(data);
-    snprintf(data, sizeof(data), "r=%s", s);
-    s_free(s);
+    content = content_parse_string(mmsg);
+    snprintf(data,sizeof(data),"r={"
+            "\"%s\":%s,"
+            "\"face\":0,"
+            "\"content\":%s,"
+            "\"msg_id\":%ld,"
+            "\"clientid\":\"%s\","
+            "\"psessionid\":\"%s\"}",
+            tonam,mmsg->to,content,lc->msg_id,lc->clientid,lc->psessionid);
 
     /* Create a POST request */
     char url[512];
-    snprintf(url, sizeof(url), "%s/channel/send_buddy_msg2", "http://d.web2.qq.com");
+    snprintf(url, sizeof(url), "%s/channel/%s", "http://d.web2.qq.com",apistr);
     req = lwqq_http_create_default_request(url, NULL);
     if (!req) {
         goto failed;
@@ -571,8 +618,47 @@ int lwqq_msg_send(LwqqClient *lc, LwqqMsg *msg)
     if (ret || req->http_code != 200) {
         goto failed;
     }
-    return 0;
+
+
+    //we check result if ok return 1,fail return 0;
+    json_t *root = NULL;
+    json_t *res;
+    json_parse_document(&root,req->response);
+    res = get_result_json_object(root);
+    if(!res){
+        goto failed;
+    }
+    return 1;
 
 failed:
-    return -1;
+    if(root)
+        json_free_value(&root);
+    return 0;
+}
+
+int lwqq_msg_send_simple(LwqqClient* lc,int type,const char* to,const char* message)
+{
+    if(!lc||!to||!message)
+        return 0;
+    int ret;
+    LwqqMsg *msg = lwqq_msg_new(LWQQ_MT_BUDDY_MSG);
+    LwqqMsgMessage *mmsg = msg->opaque;
+    mmsg->to = s_strdup(to);
+    mmsg->f_name = "songti";
+    mmsg->f_size = 13;
+    mmsg->f_style.b = 0,mmsg->f_style.i = 0,mmsg->f_style.u = 0;
+    mmsg->f_color = "000000";
+    LwqqMsgContent * c = s_malloc(sizeof(*c));
+    c->type = LWQQ_CONTENT_STRING;
+    c->data.str = s_strdup(message);
+    LIST_INSERT_HEAD(&mmsg->content,c,entries);
+
+    ret = lwqq_msg_send(lc,msg);
+
+    mmsg->f_name = NULL;
+    mmsg->f_color = NULL;
+
+    lwqq_msg_free(msg);
+
+    return ret;
 }
