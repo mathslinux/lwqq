@@ -98,64 +98,55 @@ static void qq_chatwindow_on_close_clicked(GtkWidget *widget, gpointer data)
 // Send message
 // Run in the send_loop
 //
-#if 0
-static void qq_chatwindow_send_msg_cb(GtkWidget *widget, LwqqSendMsg *msg)
+static void qq_chatwindow_send_msg_cb(GtkWidget *widget, LwqqMsg *msg)
 {
-    if(widget == NULL || msg == NULL){
+    if (widget == NULL || msg == NULL) {
         return;
     }
-    GError *err = NULL;
-    gint ret = qq_send_message(info, msg, &err);
-    if(ret != 0){
-        // send error
-        g_warning("Send message error!! %s (%s, %d)"
-                            , err == NULL ? "" : err -> message
-                            , __FILE__, __LINE__);
-        if (err)
-            g_error_free(err);
+    gint ret = lwqq_msg_send(lwqq_client, msg);
+    if (ret != 0) {
     }
-    qq_sendmsg_free(msg);
+    lwqq_msg_free(msg);
 }
-#endif
 
 //
 // Send button clicked handler
 //
 static void qq_chatwindow_on_send_clicked(GtkWidget *widget, gpointer  data)
 {
-#if 0
-    QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(data
-                                        , qq_chatwindow_get_type()
-                                        , QQChatWindowPriv);
-    GPtrArray *cs = g_ptr_array_new();
+    QQChatWindowPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(
+        data, qq_chatwindow_get_type(), QQChatWindowPriv);
+    LwqqMsg *msg = lwqq_msg_new(LWQQ_MT_BUDDY_MSG);
+    LwqqMsgMessage *mmsg = msg->opaque;
     qq_chat_textview_get_msg_contents(qq_chatwidget_get_input_textview(
-                                            priv -> chat_widget), cs);
-    if(cs -> len <= 0){
+                                          priv->chat_widget), mmsg);
+    if (LIST_EMPTY(&mmsg->content)) {
         // empty input text view
         //
         // Show warning message...
         //
-        g_ptr_array_free(cs, TRUE);
         return;
     }
-    qq_chat_textview_clear(qq_chatwidget_get_input_textview(
-                                            priv -> chat_widget));
+    qq_chat_textview_clear(qq_chatwidget_get_input_textview(priv->chat_widget));
 
-    QQSendMsg *msg = qq_sendmsg_new(info, MSG_BUDDY_T, priv -> uin);
-    gint i;
-    for(i = 0; i < cs -> len; ++i){
-        qq_sendmsg_add_content(msg, g_ptr_array_index(cs, i));
-    }
-    g_ptr_array_free(cs, TRUE);
-
+    mmsg->from = g_strdup(lwqq_client->myself->qqnumber);
+    mmsg->to = g_strdup(priv->uin);
+    mmsg->time = time(NULL);
+    /* FIXME */
+    mmsg->f_name = g_strdup("Arial");
+    mmsg->f_color = g_strdup("000000");
+    mmsg->f_size = 12;
+    mmsg->f_style.a = 0;
+    mmsg->f_style.b = 0;
+    mmsg->f_style.b = 0;
+#if 0
     QQMsgContent *font = qq_chatwidget_get_font(priv -> chat_widget);
     qq_sendmsg_add_content(msg, font);
-
-    qq_chatwidget_add_send_message(priv -> chat_widget, msg);
-    gqq_mainloop_attach(send_loop, qq_chatwindow_send_msg_cb
-                                , 2, data, msg);
-    return;
 #endif
+
+    qq_chatwidget_add_send_message(priv->chat_widget, msg);
+    gqq_mainloop_attach(send_loop, qq_chatwindow_send_msg_cb, 2, data, msg);
+    return;
 }
 
 static gboolean qq_chatwindow_delete_event(GtkWidget *widget, GdkEvent *event
@@ -185,18 +176,16 @@ static gboolean qq_chatwindow_focus_in_event(GtkWidget *widget, GdkEvent *event,
 static gboolean qq_input_textview_key_press(GtkWidget *widget, GdkEvent *e
                                             , gpointer data)
 {
-#if 0
     GdkEventKey *event = (GdkEventKey*)e;
-    if(event -> keyval == GDK_KEY_Return || event -> keyval == GDK_KEY_KP_Enter
-       || event -> keyval == GDK_KEY_ISO_Enter){
-        if((event -> state & GDK_CONTROL_MASK) != 0 
-           || (event -> state & GDK_SHIFT_MASK) != 0){
+    if (event->keyval == GDK_KEY_Return || event -> keyval == GDK_KEY_KP_Enter ||
+        event->keyval == GDK_KEY_ISO_Enter) {
+        if ((event->state & GDK_CONTROL_MASK) != 0 ||
+            (event -> state & GDK_SHIFT_MASK) != 0) {
             return FALSE;
         }
         qq_chatwindow_on_send_clicked(NULL, data);
         return TRUE;
     }
-#endif
     return FALSE;
 }
 

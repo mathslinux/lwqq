@@ -92,5 +92,6 @@ void qq_chat_textview_set_default_font(GtkWidget *widget, const gchar *name
 // Save them in the contents.
 // Return the number of the contents
 //
-gint qq_chat_textview_get_msg_contents(GtkWidget *widget, GPtrArray *contents);
+gint qq_chat_textview_get_msg_contents(GtkWidget *widget, LwqqMsgMessage *mmsg);
+
 #endif

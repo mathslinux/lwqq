@@ -2,9 +2,7 @@
 #include <buddytree.h>
 #include <string.h>
 #include <logger.h>
-#if 0
 #include <chatwindow.h>
-#endif
 
 extern LwqqClient *lwqq_client;
 extern LwqqClient *lwqq_client;
@@ -226,15 +224,13 @@ static gboolean buddy_tree_on_show_tooltip(GtkWidget* widget
     return TRUE;
 }
 
-static void buddy_tree_on_double_click(GtkTreeView *tree
-                                    , GtkTreePath *path 
-                                    , GtkTreeViewColumn  *col 
-                                    , gpointer data)
+static void buddy_tree_on_double_click(
+    GtkTreeView *tree, GtkTreePath *path,
+    GtkTreeViewColumn  *col, gpointer data)
 {
-#if 0
     gchar *uin;
     GtkTreeModel *model = gtk_tree_view_get_model(tree); 
-    if(gtk_tree_path_get_depth(path) < 2){
+    if (gtk_tree_path_get_depth(path) < 2) {
         return;
     }
 
@@ -242,9 +238,9 @@ static void buddy_tree_on_double_click(GtkTreeView *tree
     gtk_tree_model_get_iter(model, &iter, path);
     gtk_tree_model_get(model, &iter, BDY_UIN, &uin, -1);
 
-    GtkWidget *cw = gqq_config_lookup_ht(cfg, "chat_window_map", uin); 
-    if(cw != NULL){
-        // We have open a window for this uin
+    GtkWidget *cw = g_hash_table_lookup(lwqq_chat_window, uin);
+    if (cw) {
+        /* We have open a window for this uin */
         g_object_set(cw, "uin", uin, NULL);
         gtk_widget_show(cw);
         g_free(uin);
@@ -254,9 +250,7 @@ static void buddy_tree_on_double_click(GtkTreeView *tree
     g_debug("Create chat window for %s(%s, %d)", uin, __FILE__, __LINE__);
     cw = qq_chatwindow_new(uin);
     gtk_widget_show(cw);
-    gqq_config_insert_ht(cfg, "chat_window_map", uin, cw);
-    g_free(uin);
-#endif
+    g_hash_table_insert(lwqq_chat_window, uin, cw);
 }
 
 static gboolean buddy_tree_on_rightbutton_click(GtkWidget* tree

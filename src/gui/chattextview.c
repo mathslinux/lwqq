@@ -229,18 +229,12 @@ static void qq_chat_textviewclass_init(QQChatTextviewClass *klass)
 
 void qq_chat_textview_add_send_message(GtkWidget *widget, LwqqMsg *msg)
 {
-    if(widget == NULL || msg == NULL){
+    if (widget == NULL || msg == NULL) {
         return;
     }
-    gchar buf[100];
-    GTimeVal now;
-    g_get_current_time(&now);
-    g_snprintf(buf, 100, "%ld", now.tv_sec);
-#if 0
-    qq_chat_textview_add_message(QQ_CHAT_TEXTVIEW(widget)
-                                , info -> me -> nick -> str
-                                , msg -> contents, buf, "green");
-#endif
+    
+    LwqqMsgMessage *mmsg = msg->opaque;
+    qq_chat_textview_add_message(QQ_CHAT_TEXTVIEW(widget), mmsg);
 }
 
 void qq_chat_textview_add_recv_message(GtkWidget *widget, LwqqMsgMessage *msg)
@@ -474,18 +468,16 @@ void qq_chat_textview_clear(GtkWidget *widget)
     return;
 }
 
-gint qq_chat_textview_get_msg_contents(GtkWidget *widget, GPtrArray *contents)
+gint qq_chat_textview_get_msg_contents(GtkWidget *widget, LwqqMsgMessage *mmsg)
 {
-#if 0
-    if(widget == NULL || contents == NULL){
+    if (widget == NULL || mmsg == NULL) {
         return 0;
     }
 
     QQChatTextviewPriv *priv  = G_TYPE_INSTANCE_GET_PRIVATE(
-                                    widget, qq_chat_textview_get_type()
-                                    , QQChatTextviewPriv);
+        widget, qq_chat_textview_get_type(), QQChatTextviewPriv);
     GtkTextBuffer *textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
-    if(gtk_text_buffer_get_char_count(textbuf) <= 0){
+    if (gtk_text_buffer_get_char_count(textbuf) <= 0) {
         // no input message
         return 0;
     }
@@ -494,27 +486,30 @@ gint qq_chat_textview_get_msg_contents(GtkWidget *widget, GPtrArray *contents)
     gint i;
     QQWidgetMark *mark;
     gchar *text;
-    QQMsgContent *cent;
-    for(i = 0; i < priv -> widget_marks -> len; ++i){
-        mark = g_ptr_array_index(priv -> widget_marks, i);
-        if(mark == NULL){
+    LwqqMsgContent *c;
+    for (i = 0; i < priv->widget_marks->len; ++i) {
+        mark = g_ptr_array_index(priv->widget_marks, i);
+        if (mark == NULL) {
             continue;
         }
-        gtk_text_buffer_get_iter_at_mark(textbuf, &end_iter, mark -> begin);
+        gtk_text_buffer_get_iter_at_mark(textbuf, &end_iter, mark->begin);
         // get text between two widgets
         text = gtk_text_buffer_get_text(textbuf, &start_iter, &end_iter, FALSE);
-        cent = qq_msgcontent_new(QQ_MSG_CONTENT_STRING_T, text);
-        g_ptr_array_add(contents, cent);
+        c = g_malloc0(sizeof(*c));
+        c->type = LWQQ_CONTENT_STRING;
+        c->data.str = g_strdup(text);
+        LIST_INSERT_HEAD(&mmsg->content, c, entries);
         g_free(text);
-        switch(mark -> type)
-        {
+        switch (mark->type) {
         case QQ_WIDGET_FACE_T:
-            cent = qq_msgcontent_new(QQ_MSG_CONTENT_FACE_T, mark -> data.face);
-            g_ptr_array_add(contents, cent);
+            c = g_malloc0(sizeof(*c));
+            c->type = LWQQ_CONTENT_FACE;
+            c->data.face = mark->data.face;
+            LIST_INSERT_HEAD(&mmsg->content, c, entries);
             break;
         default:
             g_warning("Unknown chat text view widget type! %d (%s, %d)"
-                            , mark -> type, __FILE__, __LINE__);
+                      , mark -> type, __FILE__, __LINE__);
             break;
         }
         gtk_text_buffer_get_iter_at_mark(textbuf, &start_iter, mark -> end);
@@ -523,10 +518,10 @@ gint qq_chat_textview_get_msg_contents(GtkWidget *widget, GPtrArray *contents)
     // add the last text
     gtk_text_buffer_get_end_iter(textbuf, &end_iter);
     text = gtk_text_buffer_get_text(textbuf, &start_iter, &end_iter, FALSE);
-    cent = qq_msgcontent_new(QQ_MSG_CONTENT_STRING_T, text);
-    g_ptr_array_add(contents, cent);
+    c = g_malloc0(sizeof(*c));
+    c->type = LWQQ_CONTENT_STRING;
+    c->data.str = g_strdup(text);
+    LIST_INSERT_HEAD(&mmsg->content, c, entries);
     g_free(text);
-    return contents -> len;
-#endif
     return 0;
 }

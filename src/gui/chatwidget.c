@@ -389,15 +389,14 @@ static void qq_chatwidgetclass_init(QQChatWidgetClass *wc)
 
 void qq_chatwidget_add_send_message(GtkWidget *widget, LwqqMsg *msg)
 {
-    if(widget == NULL || msg == NULL){
+    if (widget == NULL || msg == NULL) {
         return;
     }
 
-    QQChatWidgetPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(widget
-                                        , qq_chatwidget_get_type()
-                                        , QQChatWidgetPriv);
+    QQChatWidgetPriv *priv = G_TYPE_INSTANCE_GET_PRIVATE(
+        widget, qq_chatwidget_get_type(), QQChatWidgetPriv);
 
-    qq_chat_textview_add_send_message(priv -> message_textview, msg);
+    qq_chat_textview_add_send_message(priv->message_textview, msg);
 }
 void qq_chatwidget_add_recv_message(GtkWidget *widget, LwqqMsgMessage *msg)
 {
