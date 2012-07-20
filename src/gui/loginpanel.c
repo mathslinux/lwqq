@@ -343,7 +343,11 @@ static void handle_login(QQLoginPanel *panel)
         lwqq_info_get_friends_info(lc, NULL);
 
         /* Start poll message */
+#if GLIB_CHECK_VERSION(2,31,0)
         g_thread_new("Poll message", poll_msg, lc->msg_list);
+#else
+        g_thread_create(poll_msg, lc->msg_list, FALSE, &err);
+#endif
 
         /* update main panel */
         gqq_mainloop_attach(&gtkloop, qq_mainpanel_update, 1,

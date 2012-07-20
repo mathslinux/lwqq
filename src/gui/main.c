@@ -66,7 +66,9 @@ static GOptionEntry entries[] =
 static void gui_init()
 {
     if (g_thread_get_initialized() == FALSE) {
+#if !GLIB_CHECK_VERSION(2,31,0)
         g_thread_init(NULL);
+#endif
         lwqq_log(LOG_DEBUG, "Init the gthread system\n");
     }
 
