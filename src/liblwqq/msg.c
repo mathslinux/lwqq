@@ -267,7 +267,7 @@ static int parse_content(json_t *json, void *opaque)
                 }
                 msg->f_style.a = sa;
                 msg->f_style.b = sb;
-                msg->f_style.b = sb;
+                msg->f_style.b = sc;
             } else if (!strcmp(buf, "face")) {
                 /* ["face", 107] */
                 /* FIXME: ensure NULL access */
