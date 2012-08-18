@@ -346,7 +346,7 @@ static void handle_login(QQLoginPanel *panel)
 #if GLIB_CHECK_VERSION(2,31,0)
         g_thread_new("Poll message", poll_msg, lc->msg_list);
 #else
-        g_thread_create(poll_msg, lc->msg_list, FALSE, &err);
+        g_thread_create(poll_msg, lc->msg_list, FALSE, NULL);
 #endif
 
         /* update main panel */
