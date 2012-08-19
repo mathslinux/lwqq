@@ -70,7 +70,7 @@ PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.30], [
             ],
             )
 
- checks for libsqlite3
+# checks for libsqlite3
 PKG_CHECK_MODULES(SQLITE3, [sqlite3 > 3.3], [
             AC_DEFINE(USE_SQLITE3, 1, [Use sqlite3])
             AC_SUBST(SQLITE3_CFLAGS)
@@ -104,6 +104,27 @@ AC_ARG_ENABLE([werror],
     ])
 ######################################################################
 
+AC_ARG_ENABLE(async-http,
+        [AS_HELP_STRING([--enable-async-http], [Use asynchronous http translation])],
+        enable_async_http="$enableval", enable_async_http="no")
+
+if test "x$enable_async_http" != "xno" ; then
+   PKG_CHECK_MODULES(CURL, [libcurl], [
+            AC_DEFINE(USE_CURL, 1, [Use CURL])
+            AC_SUBST(CURL_CFLAGS)
+            AC_SUBST(CURL_LIBS)
+        ] , [
+            echo ""
+            echo "configure: error: "
+            echo "libcurl development headers not found."
+            echo ""
+            exit -1
+             ])
+   		CFLAGS="$CFLAGS $CURL_CFLAGS -DUSE_ASYNC_HTTP"
+		LDFLAGS="$LDFLAGS $CURL_LIBS"
+else
+        $enable_async_http="no"
+fi
 AC_CONFIG_FILES([Makefile
         src/Makefile
         src/include/Makefile
@@ -122,4 +143,5 @@ AC_OUTPUT
 
 echo ============================== OPTIONS ==============================
 echo Build CFLAGS: $CFLAGS
+echo Build LDFLAGS: $LDFLAGS
 echo =====================================================================
