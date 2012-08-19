@@ -70,7 +70,7 @@ PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.30], [
             ],
             )
 
- checks for libsqlite3
+# checks for libsqlite3
 PKG_CHECK_MODULES(SQLITE3, [sqlite3 > 3.3], [
             AC_DEFINE(USE_SQLITE3, 1, [Use sqlite3])
             AC_SUBST(SQLITE3_CFLAGS)
@@ -79,6 +79,18 @@ PKG_CHECK_MODULES(SQLITE3, [sqlite3 > 3.3], [
             echo ""
             echo "configure: error: "
             echo "libsqlite3 development headers not found."
+            echo ""
+            exit -1
+             ])
+# checks for curl
+PKG_CHECK_MODULES(CURL, [libcurl], [
+            AC_DEFINE(USE_CURL, 1, [Use CURL])
+            AC_SUBST(CURL_CFLAGS)
+            AC_SUBST(CURL_LIBS)
+        ] , [
+            echo ""
+            echo "configure: error: "
+            echo "libcurl development headers not found."
             echo ""
             exit -1
              ])
