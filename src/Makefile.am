@@ -1,1 +1,1 @@
-SUBDIRS=liblwqq lwdb gui cli
+SUBDIRS=include liblwqq lwdb gui cli

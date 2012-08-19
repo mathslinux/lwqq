@@ -1,4 +1,4 @@
-AM_CFLAGS=-I${srcdir}/../src/liblwqq -I${srcdir}/../src/liblwqq/libghttp \
+AM_CFLAGS=-I${srcdir}/../src/include/lwqq -I${srcdir}/../src/liblwqq/libghttp \
 		-I${srcdir}/../src/lwdb
 noinst_PROGRAMS=testlogin testlwdb testsendmsg
 

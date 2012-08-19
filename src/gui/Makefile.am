@@ -1,4 +1,4 @@
-AM_CFLAGS=-I$(srcdir)/../liblwqq -I$(srcdir)/../lwdb -I$(srcdir) \
+AM_CFLAGS=-I$(srcdir)/../include/lwqq -I$(srcdir)/../lwdb -I$(srcdir) \
 	$(GTK_CFLAGS) -DLWQQ_INSTALL_DIR=\"$(pkgdatadir)\"
 
 bin_PROGRAMS=lwqq
