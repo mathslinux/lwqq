@@ -224,6 +224,8 @@ void lwqq_buddy_free(LwqqBuddy *buddy)
     s_free(buddy->client_type);
     
     s_free(buddy->status);
+
+    s_free(buddy->avatar);
     
     s_free(buddy);
 }
@@ -290,6 +292,8 @@ void lwqq_group_free(LwqqGroup *group)
     s_free(group->owner);
     s_free(group->flag);
     s_free(group->option);
+
+    s_free(group->avatar);
 
     /* Free Group members list */
     LIST_FOREACH_SAFE(m_entry, &group->members, entries, m_next) {

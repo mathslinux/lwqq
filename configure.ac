@@ -55,6 +55,20 @@ PKG_CHECK_MODULES([LIBEV], [libev], [], [
 AC_SUBST([LIBEV_CFLAGS])
 AC_SUBST([LIBEV_LIBS])
 			
+# checks for curl
+PKG_CHECK_MODULES(CURL, [libcurl], [
+            AC_DEFINE(USE_CURL, 1, [Use CURL])
+            AC_SUBST(CURL_CFLAGS)
+            AC_SUBST(CURL_LIBS)
+            ],
+            )
+# checks for gthread
+PKG_CHECK_MODULES(GTHREAD, [gthread-2.0], [
+            AC_DEFINE(USE_GTHREAD, 1, [Use GTHREAD])
+            AC_SUBST(GTHREAD_CFLAGS)
+            AC_SUBST(GTHREAD_LIBS)
+            ],
+            )
 # checks for gtk+3.0
 PKG_CHECK_MODULES(GTK, [gtk+-3.0 >= 3.0], [
             AC_DEFINE(USE_GTK, 1, [Use GTK])

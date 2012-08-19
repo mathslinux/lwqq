@@ -2,10 +2,10 @@
  * @file   type.h
  * @author mathslinux <riegamaths@gmail.com>
  * @date   Sun May 20 22:24:30 2012
- * 
+ *
  * @brief  Linux WebQQ Data Struct API
- * 
- * 
+ *
+ *
  */
 
 #ifndef LWQQ_TYPE_H
@@ -53,6 +53,8 @@ typedef struct LwqqBuddy {
     char *markname;
 
     char *flag;
+    char *avatar;               /**< This store avatar(face) raw jpeg data*/
+    size_t avatar_len;
 
     char *cate_index;           /**< Index of the category */
 
@@ -72,7 +74,7 @@ typedef struct LwqqBuddy {
 typedef struct LwqqGroup {
     char *name;                  /**< QQ Group name */
     char *gid;
-    char *code;    
+    char *code;
     char *account;               /** < QQ Group number */
     char *markname;              /** < QQ Group mark name */
 
@@ -86,6 +88,9 @@ typedef struct LwqqGroup {
     char *owner;                 /** < owner's QQ number  */
     char *flag;
     char *option;
+
+    char *avatar;
+    size_t avatar_len;
 
     LIST_ENTRY(LwqqGroup) entries;
     LIST_HEAD(, LwqqBuddy) members; /** < QQ Group members */
@@ -151,35 +156,35 @@ typedef enum {
 
 /************************************************************************/
 /* LwqqClient API */
-/** 
+/**
  * Create a new lwqq client
- * 
+ *
  * @param username QQ username
  * @param password QQ password
- * 
+ *
  * @return A new LwqqClient instance, or NULL failed
  */
 LwqqClient *lwqq_client_new(const char *username, const char *password);
 
-/** 
+/**
  * Get cookies needby by webqq server
- * 
- * @param lc 
- * 
+ *
+ * @param lc
+ *
  * @return Cookies string on success, or null on failure
  */
 char *lwqq_get_cookies(LwqqClient *lc);
 
-/** 
+/**
  * Free LwqqVerifyCode object
- * 
- * @param vc 
+ *
+ * @param vc
  */
 void lwqq_vc_free(LwqqVerifyCode *vc);
 
-/** 
+/**
  * Free LwqqClient instance
- * 
+ *
  * @param client LwqqClient instance
  */
 void lwqq_client_free(LwqqClient *client);
@@ -188,66 +193,66 @@ void lwqq_client_free(LwqqClient *client);
 
 /************************************************************************/
 /* LwqqBuddy API  */
-/** 
- * 
+/**
+ *
  * Create a new buddy
- * 
+ *
  * @return A LwqqBuddy instance
  */
 LwqqBuddy *lwqq_buddy_new();
 
-/** 
+/**
  * Free a LwqqBuddy instance
- * 
- * @param buddy 
+ *
+ * @param buddy
  */
 void lwqq_buddy_free(LwqqBuddy *buddy);
 
-/** 
+/**
  * Find buddy object by buddy's uin member
- * 
+ *
  * @param lc Our Lwqq client object
  * @param uin The uin of buddy which we want to find
- * 
- * @return 
+ *
+ * @return
  */
 LwqqBuddy *lwqq_buddy_find_buddy_by_uin(LwqqClient *lc, const char *uin);
 
 /* LwqqBuddy API END*/
 
 
-/** 
+/**
  * Free a LwqqGroup instance
- * 
+ *
  * @param group
  */
 void lwqq_group_free(LwqqGroup *group);
 
-/** 
- * 
+/**
+ *
  * Create a new group
- * 
+ *
  * @return A LwqqGroup instance
  */
 LwqqGroup *lwqq_group_new();
 
-/** 
+/**
  * Find group object by group's gid member
- * 
+ *
  * @param lc Our Lwqq client object
  * @param uin The gid of group which we want to find
- * 
+ *
  * @return A LwqqGroup instance
  */
 LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid);
 
-/** 
+/**
  * Find group member object by member's uin
- * 
+ *
  * @param group Our Lwqq group object
  * @param uin The uin of group member which we want to find
- * 
- * @return A LwqqBuddy instance 
+ *
+ * @return A LwqqBuddy instance
  */
 LwqqBuddy *lwqq_group_find_group_member_by_uin(LwqqGroup *group, const char *uin);
 
