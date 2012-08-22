@@ -131,12 +131,28 @@ char *ucs4toutf8(const char *from)
     
     for (c = from; *c != '\0'; ++c) {
         char *s;
-        if (*c == '\\' && *(c + 1) == 'u') {
-            s = do_ucs4toutf8(c);
-            snprintf(out + outlen, strlen(s) + 1, "%s", s);
-            outlen += strlen(s);
-            s_free(s);
-            c += 5;
+        if (*c == '\\') {
+            switch (*(c + 1)) {
+            case 'u':
+                s = do_ucs4toutf8(c);
+                snprintf(out + outlen, strlen(s) + 1, "%s", s);
+                outlen += strlen(s);
+                s_free(s);
+                c += 5;
+                break;
+            case 'n':
+                /* treat "\\n \0" as only "\0" */
+                out[outlen++] = (*(c+3) == '\0') ? '\0' : '\n';
+                c += 1;
+                break;
+            case '\\':
+                c += 1;
+                /* fall through */
+            default:
+                /* XXX: unknown escape, keep the content */
+                out[outlen++] = '\\';
+                break;
+            }
         } else {
             out[outlen++] = *c;
         }
