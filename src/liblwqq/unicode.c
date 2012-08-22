@@ -116,7 +116,16 @@ char *ucs4toutf8(const char *from)
         return NULL;
     }
     
-    char *out = NULL;
+    /* Assuming *from at least contains a single byte of '\0', in that case
+     * we return the same.
+     * As strlen("\uXXXX") = 6 >= strlen(utf8("\uXXXX")), the converted
+     * string would never be longer than the original one, thus
+     * (strlen(from) + 1) could be a proper size to be initially allocated. */
+    char *out = s_realloc(NULL, strlen(from) + 1);
+    if (!out) {
+        /* allocation failed */
+        return NULL;
+    }
     int outlen = 0;
     const char *c;
     
@@ -124,19 +133,17 @@ char *ucs4toutf8(const char *from)
         char *s;
         if (*c == '\\' && *(c + 1) == 'u') {
             s = do_ucs4toutf8(c);
-            out = s_realloc(out, outlen + strlen(s) + 1);
             snprintf(out + outlen, strlen(s) + 1, "%s", s);
-            outlen = strlen(out);
+            outlen += strlen(s);
             s_free(s);
             c += 5;
         } else {
-            out = s_realloc(out, outlen + 2);
-            out[outlen] = *c;
-            out[outlen + 1] = '\0';
-            outlen++;
-            continue;
+            out[outlen++] = *c;
         }
     }
 
+    /* always end a string even if it's empty */
+    out[outlen++] = '\0';
+    out = s_realloc(out, outlen);
     return out;
 }
