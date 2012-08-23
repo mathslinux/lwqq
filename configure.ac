@@ -123,7 +123,7 @@ if test "x$enable_async_http" != "xno" ; then
    		CFLAGS="$CFLAGS $CURL_CFLAGS -DUSE_ASYNC_HTTP"
 		LDFLAGS="$LDFLAGS $CURL_LIBS"
 else
-        $enable_async_http="no"
+        enable_async_http="no"
 fi
 AC_CONFIG_FILES([Makefile
         src/Makefile
