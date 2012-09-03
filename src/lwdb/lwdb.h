@@ -58,7 +58,7 @@ typedef struct LwdbGlobalDB {
  * @return A new global DB object, or NULL if somethins wrong, and store
  * error code in err
  */
-LwdbGlobalDB *lwdb_globaldb_new();
+LwdbGlobalDB *lwdb_globaldb_new(void);
 
 /** 
  * Free a LwdbGlobalDb object

@@ -222,7 +222,7 @@ invalid:
  * error code in err
  */
 
-LwdbGlobalDB *lwdb_globaldb_new()
+LwdbGlobalDB *lwdb_globaldb_new(void)
 {
     LwdbGlobalDB *db = NULL;
     int ret;
@@ -427,7 +427,7 @@ LwdbUserDB *lwdb_userdb_new(const char *qqnumber)
     }
 
     /* Get user's db name */
-    gdb = lwdb_globaldb_new(global_database_name);
+    gdb = lwdb_globaldb_new();
     if (!gdb) {
         goto failed;
     }
