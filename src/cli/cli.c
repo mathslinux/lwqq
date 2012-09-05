@@ -208,7 +208,7 @@ failed:
     return LWQQ_EC_ERROR;
 }
 
-static void cli_logout()
+static void cli_logout(LwqqClient *lc)
 {
     LwqqErrorCode err;
     
