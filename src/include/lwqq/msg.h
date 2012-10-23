@@ -23,7 +23,7 @@ typedef struct LwqqMsgContent {
         int face;
         char *str;
     } data;
-    LIST_ENTRY(LwqqMsgContent) entries;
+    TAILQ_ENTRY(LwqqMsgContent) entries;
 } LwqqMsgContent ;
 
 typedef struct LwqqMsgMessage {
@@ -39,7 +39,7 @@ typedef struct LwqqMsgMessage {
     } f_style;
     char *f_color;
 
-    LIST_HEAD(, LwqqMsgContent) content;
+    TAILQ_HEAD(, LwqqMsgContent) content;
 } LwqqMsgMessage;
 
 typedef struct LwqqMsgStatusChange {

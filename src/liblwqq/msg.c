@@ -85,6 +85,7 @@ LwqqMsg *lwqq_msg_new(LwqqMsgType type)
     case LWQQ_MT_BUDDY_MSG:
     case LWQQ_MT_GROUP_MSG:
         msg->opaque = s_malloc0(sizeof(LwqqMsgMessage));
+        TAILQ_INIT(&((LwqqMsgMessage*)msg->opaque)->content);
         break;
     case LWQQ_MT_STATUS_CHANGE:
         msg->opaque = s_malloc0(sizeof(LwqqMsgStatusChange));
@@ -117,7 +118,7 @@ static void lwqq_msg_message_free(void *opaque)
     s_free(msg->f_color);
 
     LwqqMsgContent *c;
-    LIST_FOREACH(c, &msg->content, entries) {
+    TAILQ_FOREACH(c, &msg->content, entries) {
         if (c->type == LWQQ_CONTENT_STRING) {
             s_free(c->data.str);
         }
@@ -289,18 +290,18 @@ static int parse_content(json_t *json, void *opaque)
                 LwqqMsgContent *c = s_malloc0(sizeof(*c));
                 c->type = LWQQ_CONTENT_FACE;
                 c->data.face = facenum; 
-                LIST_INSERT_HEAD(&msg->content, c, entries);
+                TAILQ_INSERT_TAIL(&msg->content, c, entries);
             }
         } else if (ctent->type == JSON_STRING) {
             LwqqMsgContent *c = s_malloc0(sizeof(*c));
             c->type = LWQQ_CONTENT_STRING;
             c->data.str = ucs4toutf8(ctent->text);
-            LIST_INSERT_HEAD(&msg->content, c, entries);
+            TAILQ_INSERT_TAIL(&msg->content, c, entries);
         }
     }
 
     /* Make msg valid */
-    if (!msg->f_name || !msg->f_color || LIST_EMPTY(&msg->content)) {
+    if (!msg->f_name || !msg->f_color || TAILQ_EMPTY(&msg->content)) {
         return -1;
     }
     if (msg->f_size < 10) {
@@ -580,7 +581,7 @@ int lwqq_msg_send(void *client, LwqqMsg *msg)
         goto failed;
     }
     mmsg = msg->opaque;
-    LIST_FOREACH(c, &mmsg->content, entries) {
+    TAILQ_FOREACH(c, &mmsg->content, entries) {
         if (c->type == LWQQ_CONTENT_STRING) {
             strcat(str, c->data.str);
         }
@@ -646,7 +647,7 @@ int lwqq_msg_send2(void *client, const char *to, const char *content)
     c = s_malloc0(sizeof(*c));
     c->type = LWQQ_CONTENT_STRING;
     c->data.str = s_strdup(content);
-    LIST_INSERT_HEAD(&mmsg->content, c, entries);
+    TAILQ_INSERT_HEAD(&mmsg->content, c, entries);
 
     ret = lwqq_msg_send(lc, msg);
     lwqq_msg_free(msg);

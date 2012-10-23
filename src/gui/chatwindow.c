@@ -120,7 +120,7 @@ static void qq_chatwindow_on_send_clicked(GtkWidget *widget, gpointer  data)
     LwqqMsgMessage *mmsg = msg->opaque;
     qq_chat_textview_get_msg_contents(qq_chatwidget_get_input_textview(
                                           priv->chat_widget), mmsg);
-    if (LIST_EMPTY(&mmsg->content)) {
+    if (TAILQ_EMPTY(&mmsg->content)) {
         // empty input text view
         //
         // Show warning message...

@@ -171,7 +171,7 @@ static void qq_chat_textview_add_message(QQChatTextview *view, LwqqMsgMessage *m
                               msg->f_style.c);
 
     LwqqMsgContent *c;
-    LIST_FOREACH(c, &msg->content, entries) {
+    TAILQ_FOREACH(c, &msg->content, entries) {
         if (c->type == LWQQ_CONTENT_STRING) {
             qq_chat_textview_add_string(GTK_WIDGET(view),
                                         c->data.str, strlen(c->data.str));
@@ -498,14 +498,14 @@ gint qq_chat_textview_get_msg_contents(GtkWidget *widget, LwqqMsgMessage *mmsg)
         c = g_malloc0(sizeof(*c));
         c->type = LWQQ_CONTENT_STRING;
         c->data.str = g_strdup(text);
-        LIST_INSERT_HEAD(&mmsg->content, c, entries);
+        TAILQ_INSERT_HEAD(&mmsg->content, c, entries);
         g_free(text);
         switch (mark->type) {
         case QQ_WIDGET_FACE_T:
             c = g_malloc0(sizeof(*c));
             c->type = LWQQ_CONTENT_FACE;
             c->data.face = mark->data.face;
-            LIST_INSERT_HEAD(&mmsg->content, c, entries);
+            TAILQ_INSERT_HEAD(&mmsg->content, c, entries);
             break;
         default:
             g_warning("Unknown chat text view widget type! %d (%s, %d)"
@@ -521,7 +521,7 @@ gint qq_chat_textview_get_msg_contents(GtkWidget *widget, LwqqMsgMessage *mmsg)
     c = g_malloc0(sizeof(*c));
     c->type = LWQQ_CONTENT_STRING;
     c->data.str = g_strdup(text);
-    LIST_INSERT_HEAD(&mmsg->content, c, entries);
+    TAILQ_INSERT_HEAD(&mmsg->content, c, entries);
     g_free(text);
     return 0;
 }

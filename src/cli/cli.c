@@ -253,7 +253,7 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
         char buf[1024] = {0};
         LwqqMsgContent *c;
         LwqqMsgMessage *mmsg = msg->opaque;
-        LIST_FOREACH(c, &mmsg->content, entries) {
+        TAILQ_FOREACH(c, &mmsg->content, entries) {
             if (c->type == LWQQ_CONTENT_STRING) {
                 strcat(buf, c->data.str);
             } else {
@@ -265,7 +265,7 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
         LwqqMsgMessage *mmsg = msg->opaque;
         char buf[1024] = {0};
         LwqqMsgContent *c;
-        LIST_FOREACH(c, &mmsg->content, entries) {
+        TAILQ_FOREACH(c, &mmsg->content, entries) {
             if (c->type == LWQQ_CONTENT_STRING) {
                 strcat(buf, c->data.str);
             } else {
