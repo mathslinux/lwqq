@@ -1,1 +1,10 @@
-test
+lwqq -- A Linux WebQQ Client
+====================================================================
+
+This Project is based on kernelhcy's gtkqq project, i rewrite the qq
+library to impove its stability
+
+Current Developers:
+-------------------
+mathslinux <riegamaths@gmail.com>
+xiehuc     <xiehuc@gmail.com>
