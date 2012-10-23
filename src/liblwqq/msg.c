@@ -89,6 +89,9 @@ LwqqMsg *lwqq_msg_new(LwqqMsgType type)
     case LWQQ_MT_STATUS_CHANGE:
         msg->opaque = s_malloc0(sizeof(LwqqMsgStatusChange));
         break;
+    case LWQQ_MT_KICK_MESSAGE:
+        msg->opaque = s_malloc0(sizeof(LwqqMsgKickMessage));
+        break;
     default:
         lwqq_log(LOG_ERROR, "No such message type\n");
         goto failed;
@@ -153,6 +156,15 @@ void lwqq_msg_free(LwqqMsg *msg)
     case LWQQ_MT_STATUS_CHANGE:
         lwqq_msg_status_free(msg->opaque);
         break;
+    case LWQQ_MT_KICK_MESSAGE:
+        {
+            LwqqMsgKickMessage* kick;
+            kick = msg->opaque;
+            if(kick)
+                s_free(kick->reason);
+            s_free(kick);
+        }
+        break;
     default:
         lwqq_log(LOG_ERROR, "No such message type\n");
         break;
@@ -210,6 +222,8 @@ static LwqqMsgType parse_recvmsg_type(json_t *json)
     } else if (!strncmp(msg_type, "buddies_status_change",
                         strlen("buddies_status_change"))) {
         type = LWQQ_MT_STATUS_CHANGE;
+    } else if (!strncmp(msg_type,"kick_message",strlen("kick_message"))){
+        type = LWQQ_MT_KICK_MESSAGE;
     }
     return type;
 }
@@ -361,6 +375,29 @@ static int parse_status_change(json_t *json, void *opaque)
 
     return 0;
 }
+/**
+ * {"poll_type":"kick_message","value":
+ * {"way":"do_poll","show_reason":1,"reason":
+"\u60A8\u7684\u8D26\u53F7\u5728\u53E6\u4E00\u5730\u70B9\u767B\u5F55\uFF0C\u60A8\u5DF2\u88AB\u8FEB\u4E0B\u7EBF\u3002\u5982\u6709\u7591\u95EE\uFF0C\u8BF7\u767B\u5F55 safe.qq.com \u4E86\u89E3\u66F4\u591A\u3002"}
+ * 
+ * @param json
+ * @param opaque
+ * 
+ * @return 
+ */
+static int parse_kick_message(json_t *json,void *opaque)
+{
+    LwqqMsgKickMessage *msg = opaque;
+    char* show;
+    show = json_parse_simple_value(json,"show_reason");
+    if(show)msg->show_reason = atoi(show);
+    msg->reason = ucs4toutf8(json_parse_simple_value(json,"reason"));
+    if(!msg->reason){
+        if(!show) msg->show_reason = 0;
+        else return -1;
+    }
+    return 0;
+}
 
 /**
  * Parse message received from server
@@ -415,6 +452,9 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
             break;
         case LWQQ_MT_STATUS_CHANGE:
             ret = parse_status_change(cur, msg->opaque);
+            break;
+        case LWQQ_MT_KICK_MESSAGE:
+            ret = parse_kick_message(cur,msg->opaque);
             break;
         default:
             ret = -1;
