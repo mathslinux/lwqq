@@ -139,6 +139,19 @@ static void lwqq_msg_status_free(void *opaque)
     s_free(s);
 }
 
+static void lwqq_msg_kick_free(void *opaque)
+{
+    LwqqMsgKickMessage *kick = opaque;
+
+    if (!kick) {
+        return ;
+    }
+
+    s_free(kick->reason);
+    s_free(kick->way);
+    s_free(kick);
+}
+
 /**
  * Free a LwqqMsg object
  * 
@@ -158,13 +171,7 @@ void lwqq_msg_free(LwqqMsg *msg)
         lwqq_msg_status_free(msg->opaque);
         break;
     case LWQQ_MT_KICK_MESSAGE:
-        {
-            LwqqMsgKickMessage* kick;
-            kick = msg->opaque;
-            if(kick)
-                s_free(kick->reason);
-            s_free(kick);
-        }
+        lwqq_msg_kick_free(msg->opaque);
         break;
     default:
         lwqq_log(LOG_ERROR, "No such message type\n");
