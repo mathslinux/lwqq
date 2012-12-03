@@ -14,7 +14,17 @@
 #include "smemory.h"
 #include "logger.h"
 #include "msg.h"
+#include "async.h"
 
+static int null_action(LwqqClient* lc,void* param)
+{
+    return 0;
+}
+
+static LwqqAsyncOption default_async_opt = {
+    .poll_msg = null_action,
+    .poll_lost = null_action,
+};
 /** 
  * Create a new lwqq client
  * 
@@ -53,6 +63,9 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     v = (v - v % 1000) / 1000;
     v = v % 10000 * 10000;
     lc->msg_id = v;
+
+    lc->async_opt = &default_async_opt;
+    lwqq_async_init(lc);
 
     lwqq_log(LOG_DEBUG, "Create a new client with username:%s, password:%s "
              "successfully\n", lc->username, lc->password);

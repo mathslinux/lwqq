@@ -14,6 +14,15 @@
 #include "queue.h"
 #include "msg.h"
 
+
+
+typedef struct _LwqqAsyncEvent LwqqAsyncEvent;
+typedef struct _LwqqAsyncEvset LwqqAsyncEvset;
+typedef struct _LwqqAsyncOption LwqqAsyncOption;
+typedef struct _LwqqClient LwqqClient;
+typedef int (*DISPATCH_FUNC)(LwqqClient* lc,void* data);
+//return zero means continue.>1 means abort
+typedef int (*LWQQ_PROGRESS)(void* data,size_t now,size_t total);
 /************************************************************************/
 /* Struct defination */
 
@@ -112,7 +121,7 @@ typedef struct LwqqCookies {
 } LwqqCookies;
 
 /* LwqqClient API */
-typedef struct LwqqClient {
+struct _LwqqClient {
     char *username;             /**< Username */
     char *password;             /**< Password */
     LwqqBuddy *myself;          /**< Myself */
@@ -127,12 +136,14 @@ typedef struct LwqqClient {
     char *vfwebqq;
     char *psessionid;
     LwqqCookies *cookies;
+    const LwqqAsyncOption* async_opt;
     LIST_HEAD(, LwqqBuddy) friends; /**< QQ friends */
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
     LIST_HEAD(, LwqqGroup) groups; /**< QQ groups */
     LwqqRecvMsgList *msg_list;
     long msg_id;            /**< Used to send message */
-} LwqqClient;
+    void (*dispatch)(LwqqClient* lc,DISPATCH_FUNC func,void* param);
+} ;
 
 /* Lwqq Error Code */
 typedef enum {
