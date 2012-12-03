@@ -142,7 +142,7 @@ void lwqq_async_add_evset_listener(LwqqAsyncEvset* evset,EVSET_CALLBACK callback
 
 void lwqq_async_event_set_progress(LwqqAsyncEvent* event,LWQQ_PROGRESS callback,void* data)
 {
-//    lwqq_http_on_progress(event->req,callback,data);
+    lwqq_http_on_progress(event->req,callback,data);
 }
 typedef struct {
     LwqqAsyncIoCallback callback;

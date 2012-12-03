@@ -108,23 +108,21 @@ AC_ARG_ENABLE(async-http,
         [AS_HELP_STRING([--enable-async-http], [Use asynchronous http translation])],
         enable_async_http="$enableval", enable_async_http="no")
 
-if test "x$enable_async_http" != "xno" ; then
-   PKG_CHECK_MODULES(CURL, [libcurl], [
-            AC_DEFINE(USE_CURL, 1, [Use CURL])
-            AC_SUBST(CURL_CFLAGS)
-            AC_SUBST(CURL_LIBS)
-        ] , [
-            echo ""
-            echo "configure: error: "
-            echo "libcurl development headers not found."
-            echo ""
-            exit -1
-             ])
-   		CFLAGS="$CFLAGS $CURL_CFLAGS -DUSE_ASYNC_HTTP"
-		LDFLAGS="$LDFLAGS $CURL_LIBS"
-else
-        enable_async_http="no"
-fi
+PKG_CHECK_MODULES(CURL, [libcurl], [
+                         AC_DEFINE(USE_CURL, 1, [Use CURL])
+                         AC_SUBST(CURL_CFLAGS)
+                         AC_SUBST(CURL_LIBS)
+                         ] , [
+                              echo ""
+                              echo "configure: error: "
+                              echo "libcurl development headers not found."
+                              echo ""
+                              exit -1
+                              ])
+
+CFLAGS="$CFLAGS $CURL_CFLAGS "
+LDFLAGS="$LDFLAGS $CURL_LIBS"
+
 AC_CONFIG_FILES([Makefile
         src/Makefile
         src/include/Makefile
