@@ -21,6 +21,7 @@
 #include "msg.h"
 #include "queue.h"
 #include "unicode.h"
+#include "async.h"
 
 static void *start_poll_msg(void *msg_list);
 static void lwqq_recvmsg_poll_msg(struct LwqqRecvMsgList *list);
@@ -119,8 +120,17 @@ static void lwqq_msg_message_free(void *opaque)
 
     LwqqMsgContent *c;
     TAILQ_FOREACH(c, &msg->content, entries) {
-        if (c->type == LWQQ_CONTENT_STRING) {
-            s_free(c->data.str);
+        switch(c->type){
+            case LWQQ_CONTENT_STRING:
+                s_free(c->data.str);
+                break;
+            case LWQQ_CONTENT_OFFPIC:
+                s_free(c->data.img.file_path);
+                s_free(c->data.img.name);
+                s_free(c->data.img.data);
+                break;
+            default:
+                break;
         }
         s_free(c);
     }
@@ -298,6 +308,13 @@ static int parse_content(json_t *json, void *opaque)
                 c->type = LWQQ_CONTENT_FACE;
                 c->data.face = facenum; 
                 TAILQ_INSERT_TAIL(&msg->content, c, entries);
+            } else if(!strcmp(buf, "offpic")) {
+                //["offpic",{"success":1,"file_path":"/d65c58ae-faa6-44f3-980e-272fb44a507f"}]
+                LwqqMsgContent *c = s_malloc0(sizeof(*c));
+                c->type = LWQQ_CONTENT_OFFPIC;
+                c->data.img.success = atoi(json_parse_simple_value(ctent,"success"));
+                c->data.img.file_path = s_strdup(json_parse_simple_value(ctent,"file_path"));
+                TAILQ_INSERT_TAIL(&msg->content,c,entries);
             }
         } else if (ctent->type == JSON_STRING) {
             LwqqMsgContent *c = s_malloc0(sizeof(*c));
@@ -407,6 +424,88 @@ static int parse_kick_message(json_t *json,void *opaque)
     return 0;
 }
 
+static int set_content_picture_data(LwqqHttpRequest* req,void* data)
+{
+    LwqqMsgContent* c = data;
+    int errno = 0;
+    if((req->http_code!=200)){
+        errno = LWQQ_EC_HTTP_ERROR;
+        goto done;
+    }
+    switch(c->type){
+        case LWQQ_CONTENT_OFFPIC:
+            c->data.img.data = req->response;
+            c->data.img.size = req->resp_len;
+        break;
+        default:
+        break;
+    }
+    req->response = NULL;
+done:
+    lwqq_http_request_free(req);
+    return errno;
+}
+static LwqqAsyncEvent* request_content_offpic(LwqqClient* lc,const char* f_uin,LwqqMsgContent* c)
+{
+    LwqqHttpRequest* req;
+    LwqqErrorCode error;
+    LwqqErrorCode *err = &error;
+    char url[512];
+    char *file_path = url_encode(c->data.img.file_path);
+    //there are face 1 to face 10 server to accelerate speed.
+    snprintf(url, sizeof(url),
+             "%s/get_offpic2?file_path=%s&f_uin=%s&clientid=%s&psessionid=%s",
+             "http://d.web2.qq.com/channel",
+             file_path,f_uin,lc->clientid,lc->psessionid);
+    s_free(file_path);
+    req = lwqq_http_create_default_request(url, err);
+    if (!req) {
+        goto done;
+    }
+    req->set_header(req, "Referer", "http://web2.qq.com/");
+    req->set_header(req,"Host","d.web2.qq.com");
+    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
+
+    return req->do_request_async(req, 0, NULL,set_content_picture_data,c);
+done:
+    lwqq_http_request_free(req);
+    return NULL;
+}
+
+static LwqqAsyncEvset* lwqq_msg_request_picture(LwqqClient* lc,int type,LwqqMsgMessage* msg)
+{
+    LwqqMsgContent* c;
+    LwqqAsyncEvset* ret = NULL;
+    LwqqAsyncEvent* event;
+    TAILQ_FOREACH(c,&msg->content,entries){
+        if(c->type == LWQQ_CONTENT_OFFPIC){
+            if(ret == NULL) ret = lwqq_async_evset_new();
+            event = request_content_offpic(lc,msg->from,c);
+            lwqq_async_evset_add_event(ret,event);
+        }
+    }
+    return ret;
+}
+
+static void insert_recv_msg_with_order(LwqqRecvMsgList* list,LwqqMsg* msg)
+{
+    LwqqRecvMsg *rmsg = s_malloc0(sizeof(*rmsg));
+    rmsg->msg = msg;
+    /* Parse a new message successfully, link it to our list */
+    pthread_mutex_lock(&list->mutex);
+    SIMPLEQ_INSERT_TAIL(&list->head, rmsg, entries);
+    pthread_mutex_unlock(&list->mutex);
+}
+static void insert_msg_delay_by_request_content(LwqqAsyncEvset* ev,void* data)
+{
+    void **d = data;
+    LwqqRecvMsgList* list = d[0];
+    LwqqMsg* msg = d[1];
+    s_free(data);
+    insert_recv_msg_with_order(list,msg);
+    LwqqClient* lc = list->lc;
+    lc->dispatch(list->lc,lc->async_opt->poll_msg,NULL);
+}
 /**
  * Parse message received from server
  * Buddy message:
@@ -447,6 +546,7 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
         LwqqMsgType msg_type;
         int ret;
         
+        LwqqAsyncEvset* ev = NULL;
         msg_type = parse_recvmsg_type(cur);
         msg = lwqq_msg_new(msg_type);
         if (!msg) {
@@ -457,6 +557,16 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
         case LWQQ_MT_BUDDY_MSG:
         case LWQQ_MT_GROUP_MSG:
             ret = parse_new_msg(cur, msg->opaque);
+            ev = lwqq_msg_request_picture(list->lc, msg->type, msg->opaque);
+            if(ev){
+                ret = -1;
+                void **d = s_malloc0(sizeof(void*)*2);
+                d[0] = list;
+                d[1] = msg;
+                lwqq_async_add_evset_listener(ev,insert_msg_delay_by_request_content,d);
+                //this jump the case
+                continue;
+            }
             break;
         case LWQQ_MT_STATUS_CHANGE:
             ret = parse_status_change(cur, msg->opaque);
@@ -471,12 +581,7 @@ static void parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
         }
 
         if (ret == 0) {
-            LwqqRecvMsg *rmsg = s_malloc0(sizeof(*rmsg));
-            rmsg->msg = msg;
-            /* Parse a new message successfully, link it to our list */
-            pthread_mutex_lock(&list->mutex);
-            SIMPLEQ_INSERT_TAIL(&list->head, rmsg, entries);
-            pthread_mutex_unlock(&list->mutex);
+            insert_recv_msg_with_order(list, msg);
         } else {
             lwqq_msg_free(msg);
         }
