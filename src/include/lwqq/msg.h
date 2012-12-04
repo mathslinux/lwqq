@@ -14,6 +14,14 @@
 #include <pthread.h>
 #include "queue.h"
 
+typedef enum LwqqMsgType {
+    LWQQ_MT_BUDDY_MSG = 0,
+    LWQQ_MT_GROUP_MSG,
+    LWQQ_MT_STATUS_CHANGE,
+    LWQQ_MT_KICK_MESSAGE,
+    LWQQ_MT_UNKNOWN,
+} LwqqMsgType;
+
 typedef struct LwqqMsgContent {
     enum {
         LWQQ_CONTENT_STRING,
@@ -34,15 +42,33 @@ typedef struct LwqqMsgContent {
             int success;
             char* file_path;
         }img;
+        struct {
+            char* name;
+            char* data;
+            size_t size;
+            char* file_id;
+            char* key;
+            char serv_ip[24];
+            char serv_port[8];
+        }cface;
     } data;
     TAILQ_ENTRY(LwqqMsgContent) entries;
 } LwqqMsgContent ;
 
 typedef struct LwqqMsgMessage {
+    LwqqMsgType type;
     char *from;
     char *to;
+    char *msg_id;
+    int msg_id2;
     time_t time;
 
+    union{
+        struct {
+            char *send; /* only group use it to identify who send the group message */
+            char *group_code; /* only avaliable in group message */
+        }group;
+    };
     /* For font  */
     char *f_name;
     int f_size;
@@ -66,13 +92,6 @@ typedef struct LwqqMsgKickMessage {
     char *way;
 } LwqqMsgKickMessage;
 
-typedef enum LwqqMsgType {
-    LWQQ_MT_BUDDY_MSG = 0,
-    LWQQ_MT_GROUP_MSG,
-    LWQQ_MT_STATUS_CHANGE,
-    LWQQ_MT_KICK_MESSAGE,
-    LWQQ_MT_UNKNOWN,
-} LwqqMsgType;
 
 typedef struct LwqqMsg {
     /* Message type. e.g. buddy message or group message */
