@@ -65,7 +65,11 @@ GQQMessageLoop* gqq_msgloop_start(const gchar *name)
     ml->name = g_strdup(name);
 
     GError *err = NULL;
+#if !GLIB_CHECK_VERSION(2,32,0)
     if (g_thread_create(thread_main, ml, FALSE, &err) == NULL) {
+#else
+    if (g_thread_new("main", thread_main, ml) == NULL) {
+#endif
         lwqq_log(LOG_WARNING, "Create main loop thread failed\n", err->message);
         g_error_free(err);
         g_free(ml->name);
