@@ -163,11 +163,15 @@ static void qq_chat_widget_font_changed(GtkWidget *widget, gpointer data)
         return;
     }
     
-    GdkColor gc;
-    gtk_color_button_get_color(GTK_COLOR_BUTTON(priv -> color_btn), &gc);
+    GdkRGBA gc;
+#if !GTK_CHECK_VERSION(3,4,0)
+    gtk_color_button_get_rgba(GTK_COLOR_CHOOSER(priv -> color_btn), &gc);
+#else
+    gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(priv -> color_btn), &gc);
+#endif
     g_snprintf(color, 20, "#%02X%02X%02X", scale_255(gc.red), scale_255(gc.green)
                                     , scale_255(gc.blue));
-    g_debug("Set text view color %s (%u,%u,%u)(%s, %d)", color, gc.red
+    g_debug("Set text view color %s (%f,%f,%f)(%s, %d)", color, gc.red
                                 , gc.green, gc.blue, __FILE__, __LINE__);
 
     sizestr = gtk_combo_box_text_get_active_text(
