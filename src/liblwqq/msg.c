@@ -8,9 +8,12 @@
  * 
  */
 
+#define _GNU_SOURCE         /* See feature_test_macros(7) */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
+
 
 #include "type.h"
 #include "smemory.h"
@@ -551,15 +554,29 @@ static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list)
     pthread_create(&tid, &attr, start_poll_msg, list);
 }
 
-/* FIXME: So much hard code */
-char *create_default_content(const char *content)
+static char *strdup_printf(const char *format, ...)
 {
-    char s[2048];
+  char *buffer = NULL;
+  va_list args;
+  int ret;
 
-    snprintf(s, sizeof(s), "\"[\\\"%s\\\\n\\\",[\\\"font\\\","
-             "{\\\"name\\\":\\\"宋体\\\",\\\"size\\\":\\\"10\\\","
-             "\\\"style\\\":[0,0,0],\\\"color\\\":\\\"000000\\\"}]]\"", content);
-    return strdup(s);
+  va_start(args, format);
+  ret = vasprintf(&buffer, format, args);
+  va_end(args);
+
+  return (ret != -1) ? buffer: NULL;
+}
+
+/* FIXME: So much hard code */
+static char *create_default_content(const char *content)
+{
+    char *s;
+
+    s = strdup_printf("\"[\\\"%s\\\\n\\\",[\\\"font\\\","
+                      "{\\\"name\\\":\\\"宋体\\\",\\\"size\\\":\\\"10\\\","
+                      "\\\"style\\\":[0,0,0],\\\"color\\\":\\\"000000\\\"}]]\"",
+                      content);
+    return s;
 }
 
 /** 
@@ -577,10 +594,10 @@ int lwqq_msg_send(void *client, LwqqMsg *msg)
     char *cookies;
     char *s;
     char *content = NULL;
-    char data[1024];
+    char *data = NULL;
     LwqqMsgMessage *mmsg;
-    LwqqMsgContent *c;
-    char str[1024] = {0};
+    LwqqMsgContent *c = NULL;
+    int find = 0;
     LwqqClient *lc = client;
 
     if (!msg || (msg->type != LWQQ_MT_BUDDY_MSG &&
@@ -590,19 +607,22 @@ int lwqq_msg_send(void *client, LwqqMsg *msg)
     mmsg = msg->opaque;
     TAILQ_FOREACH(c, &mmsg->content, entries) {
         if (c->type == LWQQ_CONTENT_STRING) {
-            strcat(str, c->data.str);
+            find = 1;
+            break;
         }
     }
-    if (!strlen(str)) {
+    if (!find) {
         goto failed;
     }
-    content = create_default_content(str);
-    snprintf(data, sizeof(data), "{\"to\":%s,\"face\":0,\"content\":%s,"
-             "\"msg_id\":%ld,\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
-             mmsg->to, content, lc->msg_id, lc->clientid, lc->psessionid);
+    /* Ugly code, will be fixed future */
+    content = create_default_content(c->data.str);
+    data = strdup_printf("{\"to\":%s,\"face\":0,\"content\":%s,"
+                         "\"msg_id\":%ld,\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
+                         mmsg->to, content, lc->msg_id, lc->clientid, lc->psessionid);
     s_free(content);
     s = url_encode(data);
-    snprintf(data, sizeof(data), "r=%s", s);
+    s_free(data);
+    data = strdup_printf("r=%s", s);
     s_free(s);
 
     /* Create a POST request */
@@ -625,9 +645,11 @@ int lwqq_msg_send(void *client, LwqqMsg *msg)
     if (ret || req->http_code != 200) {
         goto failed;
     }
+    s_free(data);
     return 0;
 
 failed:
+    s_free(data);
     lwqq_http_request_free(req);
     return -1;
 }
