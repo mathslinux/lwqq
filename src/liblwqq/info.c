@@ -57,6 +57,37 @@ failed:
     return NULL;
 }
 
+static char* hashO(const char* uin,const char* ptwebqq)
+{
+    char* a = s_malloc0(strlen(ptwebqq)+strlen("password error")+3);
+    const char* b = uin;
+    strcat(strcpy(a,ptwebqq),"password error");
+    size_t alen = strlen(a);
+    char* s = s_malloc0(2048);
+    int *j = malloc(sizeof(int)*alen);
+    for(;;){
+        if(strlen(s)<=alen){
+            if(strcat(s,b),strlen(s)==alen) break;
+        }else{
+            s[alen]='\0';
+            break;
+        }
+    }
+    int d;
+    for(d=0;d<strlen(s);d++){
+        j[d]=s[d]^a[d];
+    }
+    const char* ch = "0123456789ABCDEF";
+    s[0]=0;
+    for(d=0;d<alen;d++){
+        s[2*d]=ch[j[d]>>4&15];
+        s[2*d+1]=ch[j[d]&15];
+    }
+    s_free(a);
+    s_free(j);
+    return s;
+}
+
 /** 
  * Just a utility function
  * 
@@ -67,9 +98,11 @@ failed:
 static void create_post_data(LwqqClient *lc, char *buf, int buflen)
 {
     char *s;
-    char m[256];
-    snprintf(m, sizeof(m), "{\"h\":\"hello\",\"vfwebqq\":\"%s\"}",
-             lc->vfwebqq);
+    char m[512];
+    char* hash = hashO(lc->myself->uin,lc->cookies->ptwebqq);
+    snprintf(m, sizeof(m), "{\"h\":\"hello\",\"hash\":\"%s\",\"vfwebqq\":\"%s\"}",
+             hash,lc->vfwebqq);
+    s_free(hash);
     s = url_encode(m);
     snprintf(buf, buflen, "r=%s", s);
     s_free(s);
@@ -255,7 +288,7 @@ static void parse_friends_child(LwqqClient *lc, json_t *json)
  */
 void lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
 {
-    char msg[256] ={0};
+    char msg[512] ={0};
     LwqqHttpRequest *req = NULL;  
     int ret;
     json_t *json = NULL, *json_tmp;
