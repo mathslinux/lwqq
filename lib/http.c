@@ -947,7 +947,7 @@ void lwqq_http_global_free()
         close(global.pipe_fd[0]);
         close(global.pipe_fd[1]);
         lwqq_async_timer_stop(&global.timer_event);
-        memset(&global.timer_event,sizeof(LwqqAsyncTimer),0);
+        memset(&global.timer_event,0,sizeof(LwqqAsyncTimer));
         curl_global_cleanup();
     }
     if(global.share){

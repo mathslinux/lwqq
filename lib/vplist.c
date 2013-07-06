@@ -70,7 +70,7 @@ void vp_link(vp_command* head,vp_command* elem)
         cmd = cmd->next;
     vp_command* item = malloc(sizeof(vp_command));
     memcpy(item,elem,sizeof(vp_command));
-    memset(elem,sizeof(vp_command),0);
+    memset(elem,0,sizeof(vp_command));
     cmd->next = item;
 }
 

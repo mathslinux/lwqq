@@ -8,3 +8,5 @@ target_link_libraries(lwqq-cli
     lwqq
     pthread
     )
+
+INSTALL(TARGETS lwqq-cli DESTINATION bin)

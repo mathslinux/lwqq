@@ -17,13 +17,7 @@
 #include <libgen.h>
 #include <pthread.h>
 
-#include "login.h"
-#include "logger.h"
-#include "info.h"
-#include "smemory.h"
-#include "msg.h"
-#include "http.h"
-#include "async.h"
+#include "lwqq.h"
 
 #define LWQQ_CLI_VERSION "0.0.1"
 

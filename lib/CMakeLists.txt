@@ -16,19 +16,29 @@ set(LWQQ_LIST
   async.c
   http.c
   )
+set(LWQQ_HEADER
+    async.h
+    http.h
+    info.h
+    logger.h
+    login.h
+    lwdb.h
+    msg.h
+    smemory.h
+    type.h
+    utility.h
+    )
 
 add_definitions(-Wall)
 
-ADD_LIBRARY(lwqq SHARED
+add_library(lwqq SHARED
     ${LWQQ_LIST}
     )
 include_directories(
   ${ZLIB_INCLUDE_DIRS}
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${EV_INCLUDE_DIRS}
   )
-
-include_directories(${EV_INCLUDE_DIRS})
-target_link_libraries(lwqq ${EV_LIBRARIES})
 
 if(SSL)
     add_definitions(-DLWQQ_ENABLE_SSL=1)
@@ -38,9 +48,11 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fno-strict-aliasing")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DUSE_DEBUG=1 -Wno-unused-function")
 
 target_link_libraries(lwqq
+  ${EV_LIBRARIES}
   ${SQLITE_LIBRARIES}
   ${CURL_LIBRARIES}
   ${ZLIB_LIBRARIES}
   )
 
-#INSTALL(TARGETS webqq DESTINATION ${LIB_INSTALL_DIR})
+INSTALL(TARGETS lwqq DESTINATION lib)
+INSTALL(FILES ${LWQQ_HEADER} DESTINATION include/lwqq)
