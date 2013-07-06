@@ -15,6 +15,9 @@
 #include <stdarg.h>
 #include "queue.h"
 #include "vplist.h"
+#ifdef WIN32
+#include "win32.h"
+#endif
 #define LWQQ_MAGIC 0x4153
 
 #define USE_MSG_THREAD 1

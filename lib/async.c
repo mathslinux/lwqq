@@ -218,7 +218,7 @@ static enum{
 } ev_thread_status;
 //### global data area ###//
 pthread_cond_t ev_thread_cond = PTHREAD_COND_INITIALIZER;
-pthread_t pid = 0;
+pthread_t pid;
 static struct ev_loop* ev_default = NULL;
 static int global_quit_lock = 0;
 static ev_timer bomb;
@@ -327,7 +327,6 @@ void lwqq_async_global_quit()
     pthread_join(pid,NULL);
     ev_loop_destroy(ev_default);
     ev_default = NULL;
-    pid = 0;
     global_quit_lock = 0;
 }
 void lwqq_async_timer_repeat(LwqqAsyncTimerHandle timer)

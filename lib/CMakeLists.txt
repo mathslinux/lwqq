@@ -28,30 +28,43 @@ set(LWQQ_HEADER
     type.h
     utility.h
     )
-
-add_definitions(-Wall)
-
-add_library(lwqq SHARED
-    ${LWQQ_LIST}
+set(OTHER_LIB 
     )
+add_definitions(-Wall )
+
 include_directories(
   ${ZLIB_INCLUDE_DIRS}
+  ${CURL_INCLUDE_DIRS}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${EV_INCLUDE_DIRS}
+  ${SQLITE_INCLUDE_DIRS}
   )
 
 if(SSL)
     add_definitions(-DLWQQ_ENABLE_SSL=1)
 endif(SSL)
 
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fno-strict-aliasing")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DUSE_DEBUG=1 -Wno-unused-function")
+if(UNIX)
+  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fno-strict-aliasing")
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DUSE_DEBUG=1 -Wno-unused-function")
 
+endif(UNIX)
+
+if(WIN32)
+  set(LWQQ_LIST ${LWQQ_LIST} win32.c)
+  set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} ws2_32)
+endif(WIN32)
+
+add_library(lwqq SHARED
+    ${LWQQ_LIST}
+    )
 target_link_libraries(lwqq
   ${EV_LIBRARIES}
   ${SQLITE_LIBRARIES}
   ${CURL_LIBRARIES}
   ${ZLIB_LIBRARIES}
+  ${LWQQ_OTHER_LIBS}
+  pthread
   )
 
 INSTALL(TARGETS lwqq DESTINATION lib)

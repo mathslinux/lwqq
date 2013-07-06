@@ -48,6 +48,28 @@ static CmdInfo cmdtab[] = {
     {"send", "s", send_f},
     {NULL, NULL, NULL},
 };
+#ifdef WIN32
+char *strtok_r(char *str, const char *delim, char **save)
+{
+    char *res, *last;
+
+    if( !save )
+        return strtok(str, delim);
+    if( !str && !(str = *save) )
+        return NULL;
+    last = str + strlen(str);
+    if( (*save = res = strtok(str, delim)) )
+    {
+        *save += strlen(res);
+        if( *save < last )
+            (*save)++;
+        else
+            *save = NULL;
+    }
+    return res;
+}
+#endif
+
 
 static int help_f(int argc, char **argv)
 {
@@ -184,10 +206,10 @@ static LwqqErrorCode cli_login()
                  vc_image, vc_file);
         while (1) {
             if (!access(vc_file, F_OK)) {
-                sleep(1);
+                _sleep(1);
                 break;
             }
-            sleep(1);
+            _sleep(1);
         }
         lc->vc->str = get_vc();
         if (!lc->vc->str) {

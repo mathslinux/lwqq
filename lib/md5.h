@@ -1,69 +1,303 @@
 /*
- * luau (Lib Update/Auto-Update): Simple Update Library
- * Copyright (C) 2003  David Eklund
+ * Declaration of functions and data types used for MD5 sum computing
+ * library functions.  Copyright (C) 1995, 1996 Free Software
+ * Foundation, Inc.  NOTE: The canonical source of this file is
+ * maintained with the GNU C Library.  Bugs can be reported to
+ * bug-glibc@prep.ai.mit.edu.
  *
- * - This library is free software; you can redistribute it and/or             -
- * - modify it under the terms of the GNU Lesser General Public                -
- * - License as published by the Free Software Foundation; either              -
- * - version 2.1 of the License, or (at your option) any later version.        -
- * -                                                                           -
- * - This library is distributed in the hope that it will be useful,           -
- * - but WITHOUT ANY WARRANTY; without even the implied warranty of            -
- * - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU         -
- * - Lesser General Public License for more details.                           -
- * -                                                                           -
- * - You should have received a copy of the GNU Lesser General Public          -
- * - License along with this library; if not, write to the Free Software       -
- * - Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA -
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+ * 02111-1307, USA.
+ *
+ * $Id: md5.h,v 1.4 2000/03/09 04:06:41 gray Exp $
  */
 
 /*
- * md5.h and md5.c are based off of md5hl.c, md5c.c, and md5.h from libmd, which in turn are
- * based off the FreeBSD libmd library.  Their respective copyright notices follow:
+ * NOTE: during quick performance tests on a sun ultra and an alpha
+ * 255 300, the md5 libraries performed upwards of 3mb/sec.  That
+ * included disk i/o on bobcat and panther.
  */
+
+#ifndef __MD5_H__
+#define __MD5_H__
 
 /*
- * This code implements the MD5 message-digest algorithm.
- * The algorithm is due to Ron Rivest.  This code was
- * written by Colin Plumb in 1993, no copyright is claimed.
- * This code is in the public domain; do with it what you wish.
- *
- * Equivalent code is available from RSA Data Security, Inc.
- * This code has been tested against that, and is equivalent,
- * except that you don't need to include two pages of legalese
- * with every copy.
+ * Set to 1 if the first byte in a word is the "high" order byte.  Traditionally, Intel boxes
+ * are "little" endian where the first byte is the "low" order byte.  Sparc and power-pc are
+ * big endian.
  */
+#define MD5_BIG_ENDIAN 1
 
-/* ----------------------------------------------------------------------------
- * "THE BEER-WARE LICENSE" (Revision 42):
- * <phk@login.dkuug.dk> wrote this file.  As long as you retain this notice you
- * can do whatever you want with this stuff. If we meet some day, and you think
- * this stuff is worth it, you can buy me a beer in return.   Poul-Henning Kamp
- * ----------------------------------------------------------------------------
- *
- * $Id: md5.h,v 1.1.1.1 2004/04/02 05:11:38 deklund2 Exp $
- *
+/*
+ * Size of a standard MD5 signature in bytes.  This definition is for
+ * external programs only.  The MD5 routines themselves reference the
+ * signature as 4 unsigned 32-bit integers.
  */
+#define MD5_SIZE	16
 
-#ifndef MD5_H
-#define MD5_H
+/*
+ * NOTE: the following is assumed to generate a 32-bit unsigned data
+ * type.
+ */
+typedef unsigned int		md5_uint32;
+#define MAX_MD5_UINT32		((md5_uint32)4294967295U)
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
+/*
+ * The MD5 algorithm works on blocks of characters of 64 bytes.  This
+ * is an internal value only and is not necessary for external use.
+ */
+#define MD5_BLOCK_SIZE		64
+
+/*
+ * Structure to save state of computation between the single steps.
+ */
+typedef struct
+{
+  md5_uint32	md_A;			/* accumulater 1 */
+  md5_uint32	md_B;			/* accumulater 2 */
+  md5_uint32	md_C;			/* accumulater 3 */
+  md5_uint32	md_D;			/* accumulater 4 */
+
+  md5_uint32	md_total[2];		/* totaling storage */
+  md5_uint32	md_buf_len;		/* length of the storage buffer */
+  char		md_buffer[MD5_BLOCK_SIZE * 2];	/* character storage buffer */
+} md5_t;
+
+/*<<<<<<<<<<  The below prototypes are auto-generated by fillproto */
+
+/*
+ * md5_init
+ *
+ * DESCRIPTION:
+ *
+ * Initialize structure containing state of MD5 computation. (RFC 1321,
+ * 3.3: Step 3).  This is for progressive MD5 calculations only.  If
+ * you have the complete string available, md5_buffer should be used.
+ * md5_process should be called for each bunch of bytes and after the
+ * last process call, md5_finish should be called to get the
+ * signature.
+ *
+ * RETURNS:
+ *
+ * None.
+ *
+ * ARGUMENTS:
+ *
+ * md5_p - Pointer to md5 structure that we are initializing.
+ */
+extern
+void	md5_init(md5_t *md5_p);
+
+/*
+ * md5_process
+ *
+ * DESCRIPTION:
+ *
+ * This function is used to progressively calculate a MD5 signature some
+ * number of bytes at a time.  If you have the complete string
+ * available, md5_buffer should be used.  The MD5 structure should
+ * have been initialized with md5_init and after the last process
+ * call, md5_finish should be called to get the results.
+ *
+ * RETURNS:
+ *
+ * None.
+ *
+ * ARGUMENTS:
+ *
+ * md5_p - Pointer to MD5 structure which we are progressively updating.
+ *
+ * buffer - A buffer of bytes whose MD5 signature we are calculating.
+ *
+ * buf_len - The length of the buffer.
+ */
+extern
+void	md5_process(md5_t *md5_p, const void *buffer,
+		    const unsigned int buf_len);
+
+/*
+ * md5_finish
+ *
+ * DESCRIPTION:
+ *
+ * Finish a progressing MD5 calculation and copy the resulting MD5
+ * signature into the result buffer which should be 16 bytes
+ * (MD5_SIZE).  After this call, the MD5 structure is invalid.
+ *
+ * RETURNS:
+ *
+ * None.
+ *
+ * ARGUMENTS:
+ *
+ * md5_p - Pointer to MD5 structure which we are finishing.
+ *
+ * signature - A 16 byte buffer that will contain the MD5 signature.
+ */
+extern
+void	md5_finish(md5_t *md5_p, void *signature);
+
+/*
+ * md5_buffer
+ *
+ * DESCRIPTION:
+ *
+ * This function is used to calculate a MD5 signature for a buffer of
+ * bytes.  If you only have part of a buffer that you want to process
+ * then md5_init, md5_process, and md5_finish should be used.
+ *
+ * RETURNS:
+ *
+ * None.
+ *
+ * ARGUMENTS:
+ *
+ * buffer - A buffer of bytes whose MD5 signature we are calculating.
+ *
+ * buf_len - The length of the buffer.
+ *
+ * signature - A 16 byte buffer that will contain the MD5 signature.
+ */
+extern
+void	md5_buffer(const char *buffer, const unsigned int buf_len,
+		   void *signature);
+
+/*
+ * md5_sig_to_string
+ *
+ * DESCRIPTION:
+ *
+ * Convert a MD5 signature in a 16 byte buffer into a hexadecimal string
+ * representation.
+ *
+ * RETURNS:
+ *
+ * None.
+ *
+ * ARGUMENTS:
+ *
+ * signature - a 16 byte buffer that contains the MD5 signature.
+ *
+ * str - a string of charactes which should be at least 33 bytes long (2
+ * characters per MD5 byte and 1 for the \0).
+ *
+ * str_len - the length of the string.
+ */
+extern
+void	md5_sig_to_string(void *signature, char *str, const int str_len);
+
+/*
+ * md5_sig_from_string
+ *
+ * DESCRIPTION:
+ *
+ * Convert a MD5 signature from a hexadecimal string representation into
+ * a 16 byte buffer.
+ *
+ * RETURNS:
+ *
+ * None.
+ *
+ * ARGUMENTS:
+ *
+ * signature - A 16 byte buffer that will contain the MD5 signature.
+ *
+ * str - A string of charactes which _must_ be at least 32 bytes long (2
+ * characters per MD5 byte).
+ */
+extern
+void	md5_sig_from_string(void *signature, const char *str);
+
+/*<<<<<<<<<<   This is end of the auto-generated output from fillproto. */
+
+#endif /* ! __MD5_H__ */
+
+#ifndef __MD5_LOC_H__
+#define __MD5_LOC_H__
+
+#define HEX_STRING	"0123456789abcdef"	/* to convert to hex */
+#define BLOCK_SIZE_MASK	(MD5_BLOCK_SIZE - 1)
+
+/*
+ * Define my endian-ness.  Could not do in a portable manner using the
+ * include files -- grumble.
+ */
+#if MD5_BIG_ENDIAN
+
+/*
+ * big endian - big is better
+ */
+#define SWAP(n)	(((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+
+#else
+
+/*
+ * little endian
+ */
+#define SWAP(n)	(n)
+
 #endif
 
-#include <sys/types.h>
+/*
+ * These are the four functions used in the four steps of the MD5
+ * algorithm and defined in the RFC 1321.  The first function is a
+ * little bit optimized (as found in Colin Plumbs public domain
+ * implementation).
+ */
+/* #define FF(b, c, d) ((b & c) | (~b & d)) */
+#define FF(b, c, d)	(d ^ (b & (c ^ d)))
+#define FG(b, c, d)	FF(d, b, c)
+#define FH(b, c, d)	(b ^ c ^ d)
+#define FI(b, c, d)	(c ^ (b | ~d))
 
-#define MD5_HASHBYTES 16
+/*
+ * It is unfortunate that C does not provide an operator for cyclic
+ * rotation.  Hope the C compiler is smart enough.  -- Modified to
+ * remove the w = at the front - Gray 2/97
+ */
+#define CYCLIC(w, s)	((w << s) | (w >> (32 - s)))
 
-typedef struct MD5Context {
-    u_int32_t buf[4];
-    u_int32_t bits[2];
-    unsigned char in[64];
-} MD5_CTX;
+/*
+ * First Round: using the given function, the context and a constant
+ * the next context is computed.  Because the algorithms processing
+ * unit is a 32-bit word and it is determined to work on words in
+ * little endian byte order we perhaps have to change the byte order
+ * before the computation.  To reduce the work for the next steps we
+ * store the swapped words in the array CORRECT_WORDS. -- Modified to
+ * fix the handling of unaligned buffer spaces - Gray 7/97
+ */
+#define OP1(a, b, c, d, b_p, c_p, s, T)				\
+     do {							\
+       memcpy(c_p, b_p, sizeof(md5_uint32));       		\
+       *c_p = SWAP(*c_p);					\
+       a += FF (b, c, d) + *c_p + T;				\
+       a = CYCLIC (a, s);					\
+       a += b;							\
+       b_p = (char *)b_p + sizeof(md5_uint32);			\
+       c_p++;							\
+    } while (0)
 
-char* lutil_md5_file(const char *filename, char *buf);
-char * lutil_md5_digest(const unsigned char * data, unsigned int len , char *buf);
-char* lutil_md5_data(const unsigned char *data, unsigned int len, char *buf);
+/*
+ * Second to Fourth Round: we have the possibly swapped words in
+ * CORRECT_WORDS.  Redefine the macro to take an additional first
+ * argument specifying the function to use.
+ */
+#define OP234(FUNC, a, b, c, d, k, s, T)		\
+    do { 						\
+      a += FUNC (b, c, d) + k + T;			\
+      a = CYCLIC (a, s);				\
+      a += b;						\
+    } while (0)
 
-#endif /* MD5_H */
+#endif /* ! __MD5_LOC_H__ */

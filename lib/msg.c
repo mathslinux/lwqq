@@ -49,7 +49,7 @@ typedef struct LwqqRecvMsgList_{
     LwqqHttpRequest* req;
     int last_id2;
     pthread_t tid;
-    int on_quit;
+    int running;
 } LwqqRecvMsgList_;
 #define RET_WELLFORM_MSG 0
 #define RET_DELAYINS_MSG 1
@@ -1137,9 +1137,9 @@ const char* get_host_of_url(const char* url,char* buffer)
 }
 static int set_content_picture_data(LwqqHttpRequest* req,LwqqMsgContent* c)
 {
-    int errno = 0;
+    int err = 0;
     if((req->http_code!=200)){
-        errno = LWQQ_EC_HTTP_ERROR;
+        err = LWQQ_EC_HTTP_ERROR;
         goto done;
     }
     switch(c->type){
@@ -1157,7 +1157,7 @@ static int set_content_picture_data(LwqqHttpRequest* req,LwqqMsgContent* c)
     req->response = NULL;
 done:
     lwqq_http_request_free(req);
-    return errno;
+    return err;
 }
 static LwqqAsyncEvent* request_content_offpic(LwqqClient* lc,const char* f_uin,LwqqMsgContent* c)
 {
@@ -1617,6 +1617,7 @@ static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list,LwqqPollOption flags)
 {
     LwqqRecvMsgList_* internal = (LwqqRecvMsgList_*)list;
     internal->flags = flags;
+    internal->running = 1;
 #if USE_MSG_THREAD
     pthread_create(&internal->tid, NULL/*&list->attr*/, start_poll_msg, list);
 #else
@@ -1628,12 +1629,10 @@ static void lwqq_recvmsg_poll_close(LwqqRecvMsgList* list)
 {
     if(!list) return;
     LwqqRecvMsgList_* list_= (LwqqRecvMsgList_*)list;
-    if(list_->tid == 0) return;
-    list_->on_quit = 1;
+    if(list_->running == 0) return;
     lwqq_http_cancel(list_->req);
     pthread_join(list_->tid,NULL);
-    list_->on_quit = 0;
-    list_->tid = 0;
+    list_->running = 0;
 }
 
 ///low level special char mapping
@@ -1691,7 +1690,7 @@ static char* content_parse_string(LwqqMsgMessage* msg,int msg_type,int *has_cfac
                 format_append(buf,"["KEY("face")",%d],",c->data.face);
                 break;
             case LWQQ_CONTENT_OFFPIC:
-                format_append(buf,"["KEY("offpic")","KEY("%s")","KEY("%s")",%ld],",
+                format_append(buf,"["KEY("offpic")","KEY("%s")","KEY("%s")",%lu],",
                         c->data.img.file_path,
                         c->data.img.name,
                         c->data.img.size);
@@ -1837,26 +1836,26 @@ static LwqqAsyncEvent* query_gface_sig(LwqqClient* lc)
 static int upload_cface_back(LwqqHttpRequest *req,LwqqMsgContent* c,const char* to)
 {
     int ret;
-    int errno = 0;
+    int err = 0;
     char msg[256];
 
     lwqq_verbose(3,"%s\n",req->response);
     if(req->http_code!=200){
-        errno = 1;
+        err = 1;
         goto done;
     }
     char* ptr = strstr(req->response,"({");
     if(ptr==NULL){
-        errno = 1;
+        err = 1;
         goto done;
     }
     sscanf(ptr,"({'ret':%d,'msg':'%[^\']'",&ret,msg);
     if(ret == 2){
-        errno = LWQQ_EC_UPLOAD_OVERSIZE;
+        err = LWQQ_EC_UPLOAD_OVERSIZE;
         goto done;
     }
     if(ret !=0 && ret !=4){
-        errno = 1;
+        err = 1;
         goto done;
     }
     c->type = LWQQ_CONTENT_CFACE;
@@ -1870,15 +1869,15 @@ static int upload_cface_back(LwqqHttpRequest *req,LwqqMsgContent* c,const char* 
     c->data.cface.name = s_strdup(file);
 
 done:
-    if(errno){
+    if(err){
         LwqqClient* lc = req->lc;
-        lc->action->upload_fail(lc,to,c,errno);
+        lc->action->upload_fail(lc,to,c,err);
         s_free(c->data.cface.name);
     }
     s_free(c->data.cface.data);
     c->data.cface.size = 0;
     lwqq_http_request_free(req);
-    return errno;
+    return err;
 }
 static LwqqAsyncEvent* lwqq_msg_upload_cface(
         LwqqClient* lc,LwqqMsgContent* c,LwqqMsgType type,const char* to)
@@ -2042,11 +2041,11 @@ static int msg_send_back(LwqqHttpRequest* req,void* data)
 {
     json_t *root = NULL;
     int ret;
-    int errno = 0;
+    int err = 0;
 
-    if(req->failcode>0) {errno = 1;goto failed;}
+    if(req->failcode>0) {err = 1;goto failed;}
     if (req->http_code != 200) {
-        errno = 1;
+        err = 1;
         goto failed;
     }
 
@@ -2057,15 +2056,15 @@ static int msg_send_back(LwqqHttpRequest* req,void* data)
     if(ret != JSON_OK) goto failed;
     const char* retcode = json_parse_simple_value(root,"retcode");
     if(!retcode){
-        errno = 1;
+        err = 1;
         goto failed;
     }
-    errno = atoi(retcode);
+    err = atoi(retcode);
 failed:
     if(root)
         json_free_value(&root);
     lwqq_http_request_free(req);
-    return errno;
+    return err;
 }
 
 int lwqq_msg_send_simple(LwqqClient* lc,int type,const char* to,const char* message)
@@ -2230,9 +2229,9 @@ static int upload_offline_file_back(LwqqHttpRequest* req,void* data)
 {
     LwqqMsgOffFile* file = data;
     json_t* json = NULL;
-    int errno = 0;
+    int err = 0;
     if(req->http_code!=200){
-        errno = 1;
+        err = 1;
         goto done;
     }
     lwqq_verbose(3,"%s\n",req->response);
@@ -2241,7 +2240,7 @@ static int upload_offline_file_back(LwqqHttpRequest* req,void* data)
     *(end+1) = '\0';
     json_parse_document(&json,strchr(req->response,'{'));
     if(strcmp(json_parse_simple_value(json,"retcode"),"0")!=0){
-        errno = 1;
+        err = 1;
         goto done;
     }
     s_free(file->name);
@@ -2252,7 +2251,7 @@ done:
         json_free_value(&json);
     lwqq_http_request_free(req);
     file->req = NULL;
-    return errno;
+    return err;
 }
 
 LwqqAsyncEvent* lwqq_msg_send_offfile(LwqqClient* lc,LwqqMsgOffFile* file)
@@ -2275,20 +2274,20 @@ LwqqAsyncEvent* lwqq_msg_send_offfile(LwqqClient* lc,LwqqMsgOffFile* file)
 static int send_offfile_back(LwqqHttpRequest* req,void* data)
 {
     json_t* json = NULL;
-    int errno = 0;
+    int err = 0;
     if(req->http_code != 200){
-        errno = 1;
+        err = 1;
         goto done;
     }
     lwqq_verbose(3,"%s\n",req->response);
     json_parse_document(&json, req->response);
-    errno = atoi(json_parse_simple_value(json, "retcode"));
+    err = atoi(json_parse_simple_value(json, "retcode"));
 done:
     if(json){
         json_free_value(&json);
     }
     lwqq_http_request_free(req);
-    return errno;
+    return err;
 }
 #define rand(n) (rand()%9000+1000)
 LwqqAsyncEvent* lwqq_msg_upload_file(LwqqClient* lc,LwqqMsgOffFile* file,

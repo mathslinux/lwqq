@@ -14,7 +14,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <alloca.h>
+//#include <alloca.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -214,7 +214,6 @@ static void upcase_string(char *str, int len)
             str[i]= toupper(str[i]);
     }
 }
-
 /**
  * I hacked the javascript file named comm.js, which received from tencent
  * server, and find that fuck tencent has changed encryption algorithm
@@ -237,6 +236,7 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
     int i;
     int uin_byte_length;
     char buf[128] = {0};
+    char sig[32];
     char _uin[9] = {0};
 
     if (!pwd || !vc || !uin) {
@@ -264,19 +264,22 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
         }
         _uin[i] = tmp;
     }
-
     /* Equal to "var I=hexchar2bin(md5(M));" */
-    lutil_md5_digest((unsigned char *)pwd, strlen(pwd), (char *)buf);
+    //lutil_md5_digest((unsigned char *)pwd, strlen(pwd), (char *)buf);
+    md5_buffer(pwd,strlen(pwd),sig);
+    md5_sig_to_string(sig,buf,sizeof(buf));
 
     /* Equal to "var H=md5(I+pt.uin);" */
     memcpy(buf + 16, _uin, uin_byte_length);
-    lutil_md5_data((unsigned char *)buf, 16 + uin_byte_length, (char *)buf);
+    md5_buffer(buf, 16 + uin_byte_length, sig);
+    md5_sig_to_string(sig,buf,sizeof(buf));
     
     /* Equal to var G=md5(H+C.verifycode.value.toUpperCase()); */
     snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "%s", vc);
     upcase_string(buf, strlen(buf));
 
-    lutil_md5_data((unsigned char *)buf, strlen(buf), (char *)buf);
+    md5_buffer(buf, strlen(buf), sig);
+    md5_sig_to_string(sig,buf,sizeof(buf));
     upcase_string(buf, strlen(buf));
 
     /* OK, seems like every is OK */
@@ -460,12 +463,13 @@ static int get_version_back(LwqqHttpRequest* req)
             goto done;
         }
         s++;
-        v = alloca(t - s + 1);
+        v = malloc(t - s + 1);
         memset(v, 0, t - s + 1);
         strncpy(v, s, t - s);
         s_free(lc->version);
         lc->version = s_strdup(v);
         err = LWQQ_EC_OK;
+        s_free(v);
     }
 
 done:

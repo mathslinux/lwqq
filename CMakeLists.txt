@@ -6,12 +6,25 @@ set(VERSION_PATCH "f")
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(CURL REQUIRED libcurl)
-pkg_check_modules(SQLITE REQUIRED sqlite3)
-pkg_check_modules(ZLIB REQUIRED zlib)
-#recommand libcurl>=7.22.0
-find_package(EV REQUIRED)
+if(UNIX)
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(CURL REQUIRED libcurl)
+	pkg_check_modules(SQLITE REQUIRED sqlite3)
+	pkg_check_modules(ZLIB REQUIRED zlib)
+	#recommand libcurl>=7.22.0
+	find_package(EV REQUIRED)
+endif(UNIX)
+
+if(WIN32)
+	set(CMAKE_PREFIX_PATH "../win32-dev/libcurl-7.18.0-win32-msvc")
+	find_package(CURL REQUIRED)
+	set(CMAKE_PREFIX_PATH "../win32-dev/sqlite3")
+	find_package(Sqlite3 REQUIRED)
+	set(CMAKE_PREFIX_PATH "../win32-dev/zlib-1.28/include" "../win32-dev/zlib-1.28/lib")
+	find_package(ZLIB REQUIRED)
+	set(CMAKE_PREFIX_PATH "../win32-dev/libev" "../win32-dev/libev/build/Release")
+	find_package(EV REQUIRED)
+endif(WIN32)
 
 add_definitions(-Wall)
 add_definitions(-DINST_PREFIX="${CMAKE_INSTALL_PREFIX}")
@@ -20,6 +33,5 @@ option(SSL "Enable SSL Support " On)
 #set(package pidgin-lwqq)
 #set(localedir ${CMAKE_INSTALL_PREFIX}/share/locale)
 #configure_file(${PROJECT_SOURCE_DIR}/config.h.in ${PROJECT_BINARY_DIR}/src/config.h)
-
 add_subdirectory(lib)
 add_subdirectory(src)

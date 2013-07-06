@@ -45,7 +45,14 @@ char *s_strdup(const char *s1)
 {
     return s1?strdup(s1):NULL;
 }
-
+long s_atol(const char* s,long init)
+{
+    char* end;
+    if(!s) return init;
+    long ret = strtol(s,&end,10);
+    return (end==s)?init:ret;
+}
+#if 0
 char *s_strndup(const char *s1, size_t n)
 {
     return s1?strndup(s1, n):NULL;
@@ -68,10 +75,5 @@ int s_asprintf(char **buf, const char *format, ...)
 
     return rv;
 }
-long s_atol(const char* s,long init)
-{
-    char* end;
-    if(!s) return init;
-    long ret = strtol(s,&end,10);
-    return (end==s)?init:ret;
-}
+#endif 
+

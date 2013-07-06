@@ -891,7 +891,7 @@ void lwqq_http_global_init()
         curl_multi_setopt(global.multi,CURLMOPT_SOCKETDATA,&global);
         curl_multi_setopt(global.multi, CURLMOPT_TIMERFUNCTION, multi_timer_cb);
         curl_multi_setopt(global.multi, CURLMOPT_TIMERDATA, &global);
-        pipe(global.pipe_fd);
+        _pipe(global.pipe_fd);
         lwqq_async_io_watch(&global.add_listener, global.pipe_fd[0], LWQQ_ASYNC_READ, delay_add_handle, NULL);
     }
     if(global.share==NULL){
@@ -1121,6 +1121,7 @@ void lwqq_http_handle_remove(LwqqHttpHandle* http)
 }
 void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req)
 {
+    #ifndef WIN32
     CURL* c = req->req;
     char* v;
     long l;
@@ -1141,4 +1142,5 @@ void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req)
         if(l) curl_easy_setopt(c, CURLOPT_PROXYPORT, l);
     }
     curl_easy_setopt(c, CURLOPT_PROXYTYPE,handle->proxy.type);
+    #endif
 }
