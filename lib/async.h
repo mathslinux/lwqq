@@ -12,7 +12,6 @@
 #include "type.h"
 #include "msg.h"
 #include <assert.h>
- #include <ev.h>
 
 /**======================EVSET API=====================================**/
 /** 
@@ -163,17 +162,16 @@ void lwqq_async_global_quit();
  * @param action combination of LWQQ_ASYNC_READ and LWQQ_ASYNC_WRITE
  */
 
-typedef struct LwqqAsyncTimer{
-    ev_timer h;
-    void (*func)(struct LwqqAsyncTimer* timer,void* data);
-    void* data;
-    int on_call;
-}LwqqAsyncTimer;
-typedef ev_io     LwqqAsyncIo;
+typedef struct LwqqAsyncTimer LwqqAsyncTimer;
+typedef struct LwqqAsyncIo    LwqqAsyncIo;
 typedef LwqqAsyncTimer* LwqqAsyncTimerHandle;
-typedef ev_io*    LwqqAsyncIoHandle;
-#define LWQQ_ASYNC_READ EV_READ
-#define LWQQ_ASYNC_WRITE EV_WRITE
+typedef LwqqAsyncIo*    LwqqAsyncIoHandle;
+#define LWQQ_ASYNC_READ 0x01
+#define LWQQ_ASYNC_WRITE 0x02
+LwqqAsyncTimerHandle lwqq_async_timer_new();
+void lwqq_async_timer_free(LwqqAsyncTimerHandle);
+LwqqAsyncIoHandle lwqq_async_io_new();
+void lwqq_async_io_free(LwqqAsyncIoHandle);
 /** the call back of io watch 
  * @param data user defined data
  * @param fd the socket

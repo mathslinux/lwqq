@@ -36,10 +36,10 @@ typedef struct GLOBAL {
     CURLSH* share;
     pthread_mutex_t share_lock[3];
     int still_running;
-    LwqqAsyncTimer timer_event;
     LIST_HEAD(,D_ITEM) conn_link;
     int pipe_fd[2];
-    LwqqAsyncIo add_listener;
+    LwqqAsyncTimerHandle timer_event;
+    LwqqAsyncIoHandle add_listener;
     LIST_HEAD(,D_ITEM) add_link;
 }GLOBAL;
 
@@ -85,14 +85,13 @@ typedef struct S_ITEM {
     CURL *easy;
     /**@brief ev重用标志,一直为1 */
     int evset;
-    LwqqAsyncIo ev;
+    LwqqAsyncIoHandle ev;
 }S_ITEM;
 typedef struct D_ITEM{
     LwqqCommand cmd;
     LwqqHttpRequest* req;
     LwqqAsyncEvent* event;
     //void* data;
-    LwqqAsyncTimer delay;
     LIST_ENTRY(D_ITEM) entries;
 }D_ITEM;
 /* For async request */
@@ -645,7 +644,7 @@ static int multi_timer_cb(CURLM *multi, long timeout_ms, void *userp)
     //called by curl
     GLOBAL* g = userp;
     //printf("timer_cb:%ld\n",timeout_ms);
-    lwqq_async_timer_stop(&g->timer_event);
+    lwqq_async_timer_stop(g->timer_event);
 #if USE_DEBUG
    if(LWQQ_VERBOSE_LEVEL>=5&&g->still_running>1){
         lwqq_gdb_whats_running();
@@ -653,10 +652,10 @@ static int multi_timer_cb(CURLM *multi, long timeout_ms, void *userp)
 #endif
     if (timeout_ms > 0) {
         //change time clock
-        lwqq_async_timer_watch(&g->timer_event,timeout_ms,timer_cb,g);
+        lwqq_async_timer_watch(g->timer_event,timeout_ms,timer_cb,g);
     } else{
         //keep time clock
-        timer_cb(&g->timer_event,g);
+        timer_cb(g->timer_event,g);
     }
     //close time clock
     //this should always return 0 this is curl!!
@@ -671,7 +670,7 @@ static void event_cb(void* data,int fd,int revents)
     curl_multi_socket_action(g->multi, fd, action, &g->still_running);
     check_multi_info(g);
     if ( g->still_running <= 0 ) {
-        lwqq_async_timer_stop(&g->timer_event);
+        lwqq_async_timer_stop(g->timer_event);
     }
 }
 static void setsock(S_ITEM*f, curl_socket_t s, CURL*e, int act,GLOBAL* g)
@@ -682,11 +681,11 @@ static void setsock(S_ITEM*f, curl_socket_t s, CURL*e, int act,GLOBAL* g)
     f->action = act;
     f->easy = e;
     if ( f->evset )
-        lwqq_async_io_stop(&f->ev);
+        lwqq_async_io_stop(f->ev);
     //since read+write works fine. we find out 'kind' not worked when have time
     //lwqq_async_io_watch(&f->ev,f->sockfd,LWQQ_ASYNC_READ|LWQQ_ASYNC_WRITE,event_cb,g);
     //set both direction may cause upload file failed.so we restore it.
-    lwqq_async_io_watch(&f->ev,f->sockfd,kind,event_cb,g);
+    lwqq_async_io_watch(f->ev,f->sockfd,kind,event_cb,g);
 
     f->evset=1;
 }
@@ -699,13 +698,15 @@ static int sock_cb(CURL* e,curl_socket_t s,int what,void* cbp,void* sockp)
         //清除socket关联对象
         if ( si ) {
             if ( si->evset )
-                lwqq_async_io_stop(&si->ev);
+                lwqq_async_io_stop(si->ev);
+            lwqq_async_io_free(si->ev);
             s_free(si);
         }
     } else {
         if(si == NULL) {
             //关联socket;
             si = s_malloc0(sizeof(*si));
+            si->ev = lwqq_async_io_new();
             setsock(si,s,e,what,g);
             curl_multi_assign(g->multi, s, si);
         } else {
@@ -778,8 +779,6 @@ static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int 
     LIST_INSERT_HEAD(&global.add_link,di,entries);
     write(global.pipe_fd[1],"ok",3);
     pthread_mutex_unlock(&add_lock);
-    //LIST_INSERT_HEAD(&global.conn_link,di,entries);
-    //lwqq_async_timer_watch(&di->delay,10,delay_add_handle,di);
     return di->event;
 
 failed:
@@ -892,7 +891,9 @@ void lwqq_http_global_init()
         curl_multi_setopt(global.multi, CURLMOPT_TIMERFUNCTION, multi_timer_cb);
         curl_multi_setopt(global.multi, CURLMOPT_TIMERDATA, &global);
         pipe(global.pipe_fd);
-        lwqq_async_io_watch(&global.add_listener, global.pipe_fd[0], LWQQ_ASYNC_READ, delay_add_handle, NULL);
+        global.timer_event = lwqq_async_timer_new();
+        global.add_listener = lwqq_async_io_new();
+        lwqq_async_io_watch(global.add_listener, global.pipe_fd[0], LWQQ_ASYNC_READ, delay_add_handle, NULL);
     }
     if(global.share==NULL){
         global.share = curl_share_init();
@@ -943,11 +944,12 @@ void lwqq_http_global_free()
 
         curl_multi_cleanup(global.multi);
         global.multi = NULL;
-        lwqq_async_io_stop(&global.add_listener);
+        lwqq_async_io_stop(global.add_listener);
+        lwqq_async_io_free(global.add_listener);
         close(global.pipe_fd[0]);
         close(global.pipe_fd[1]);
-        lwqq_async_timer_stop(&global.timer_event);
-        memset(&global.timer_event,0,sizeof(LwqqAsyncTimer));
+        lwqq_async_timer_stop(global.timer_event);
+        lwqq_async_timer_free(global.timer_event);
         curl_global_cleanup();
     }
     if(global.share){

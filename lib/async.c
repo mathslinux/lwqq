@@ -10,10 +10,19 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ev.h>
 #include "async.h"
 #include "smemory.h"
 #include "http.h"
 #include "logger.h"
+typedef ev_io LwqqAsyncIo_;
+typedef struct LwqqAsyncTimer{
+    ev_timer h;
+    void (*func)(struct LwqqAsyncTimer* timer,void* data);
+    void* data;
+    int on_call;
+}LwqqAsyncTimer;
+typedef LwqqAsyncTimer LwqqAsyncTimer_;
 typedef struct LwqqAsyncEntry {
     void* func;
     LwqqAsyncEvent* ev;
@@ -265,23 +274,42 @@ static void event_cb_wrap(EV_P_ ev_io *w,int action)
     if(wrap->callback)
         wrap->callback(wrap->data,w->fd,action);
 }
+
+LwqqAsyncTimerHandle lwqq_async_timer_new()
+{
+    return s_malloc0(sizeof(LwqqAsyncTimer_));
+}
+LwqqAsyncIoHandle lwqq_async_io_new()
+{
+    return s_malloc0(sizeof(LwqqAsyncIo_));
+}
+void lwqq_async_timer_free(LwqqAsyncTimerHandle timer)
+{
+    s_free(timer);
+}
+void lwqq_async_io_free(LwqqAsyncIoHandle io)
+{
+    s_free(io);
+}
 void lwqq_async_io_watch(LwqqAsyncIoHandle io,int fd,int action,LwqqAsyncIoCallback fun,void* data)
 {
+    LwqqAsyncIo_* io_ = (LwqqAsyncIo_*) io;
     if(global_quit_lock) return;
-    ev_io_init(io,event_cb_wrap,fd,action);
+    ev_io_init(io_,event_cb_wrap,fd,action);
     LwqqAsyncIoWrap* wrap = s_malloc0(sizeof(*wrap));
     wrap->callback = fun;
     wrap->data = data;
-    io->data = wrap;
+    io_->data = wrap;
     if(!ev_default) build_global_loop();
-    ev_io_start(ev_default,io);
+    ev_io_start(ev_default,io_);
     if(ev_thread_status!=THREAD_NOW_RUNNING) 
         start_ev_thread();
 }
 void lwqq_async_io_stop(LwqqAsyncIoHandle io)
 {
-    ev_io_stop(ev_default,io);
-    s_free(io->data);
+    LwqqAsyncIo_* io_ = (LwqqAsyncIo_*) io;
+    ev_io_stop(ev_default,io_);
+    s_free(io_->data);
 }
 static void timer_cb_wrap(EV_P_ ev_timer* w,int revents)
 {
