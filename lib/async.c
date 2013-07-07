@@ -226,7 +226,7 @@ static ev_timer bomb;
 static void build_global_loop()
 {
     if(ev_default) return;
-    ev_default = ev_loop_new(EVBACKEND_POLL);
+    ev_default = ev_loop_new(0);
     ev_set_timeout_collect_interval(ev_default, 0.1);
     ev_set_io_collect_interval(ev_default, 0.05);
 }

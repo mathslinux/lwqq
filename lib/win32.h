@@ -4,4 +4,6 @@
 char *  strsep(char **stringp, const char* delim);
 double drand48(void);
 
+int pipe (int filedes [2]);
+
 #endif

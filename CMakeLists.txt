@@ -22,8 +22,6 @@ if(WIN32)
 	find_package(Sqlite3 REQUIRED)
 	set(CMAKE_PREFIX_PATH "../win32-dev/zlib-1.28/include" "../win32-dev/zlib-1.28/lib")
 	find_package(ZLIB REQUIRED)
-	set(CMAKE_PREFIX_PATH "../win32-dev/libev" "../win32-dev/libev/build/Release")
-	find_package(EV REQUIRED)
 endif(WIN32)
 
 add_definitions(-Wall)
