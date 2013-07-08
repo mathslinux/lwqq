@@ -20,6 +20,9 @@
 #include "lwqq.h"
 
 #define LWQQ_CLI_VERSION "0.0.1"
+#ifdef WIN32
+#define sleep(t) Sleep(t*1000);
+#endif
 
 static int help_f(int argc, char **argv);
 static int quit_f(int argc, char **argv);
@@ -206,10 +209,10 @@ static LwqqErrorCode cli_login()
                  vc_image, vc_file);
         while (1) {
             if (!access(vc_file, F_OK)) {
-                _sleep(1);
+                sleep(1);
                 break;
             }
-            _sleep(1);
+            sleep(1);
         }
         lc->vc->str = get_vc();
         if (!lc->vc->str) {

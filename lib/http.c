@@ -744,7 +744,7 @@ static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int 
     if(LWQQ_SYNC_ENABLED(lc)){
         LwqqAsyncEvent* ev = lwqq_async_event_new(request);
         int err = lwqq_http_do_request(request,method,body);
-        vp_do(command,NULL);
+        vp_do(command,&err);
         ev->result = err;
         ev->failcode = LWQQ_CALLBACK_SYNCED;
         return ev;

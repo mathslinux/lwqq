@@ -37,7 +37,7 @@
  * are "little" endian where the first byte is the "low" order byte.  Sparc and power-pc are
  * big endian.
  */
-#define MD5_BIG_ENDIAN 1
+#define MD5_BIG_ENDIAN 0
 
 /*
  * Size of a standard MD5 signature in bytes.  This definition is for

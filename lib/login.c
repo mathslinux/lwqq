@@ -42,11 +42,11 @@ static int get_version_back(LwqqHttpRequest* req);
 static int get_verify_code_back(LwqqHttpRequest* req);
 static int do_login_back(LwqqHttpRequest* req);
 static int set_online_status_back(LwqqHttpRequest* req);
-static void login_stage_2(LwqqClient* lc);
-static void login_stage_3(LwqqAsyncEvent* ev);
-static void login_stage_4(LwqqClient* lc);
-static void login_stage_5(LwqqAsyncEvent* ev);
-static void login_stage_f(LwqqAsyncEvent* ev);
+static void login_stage_2(LwqqClient* lc,LwqqErrorCode* err);
+static void login_stage_3(LwqqAsyncEvent* ev,LwqqErrorCode* ec);
+static void login_stage_4(LwqqClient* lc,LwqqErrorCode* ec);
+static void login_stage_5(LwqqAsyncEvent* ev,LwqqErrorCode* ec);
+static void login_stage_f(LwqqAsyncEvent* ev,LwqqErrorCode* ec);
 
 // ptui_checkVC('0','!IJG, ptui_checkVC('0','!IJG', '\x00\x00\x00\x00\x54\xb3\x3c\x53');
 static char *parse_verify_uin(const char *str)
@@ -236,7 +236,7 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
     int i;
     int uin_byte_length;
     char buf[128] = {0};
-    char sig[32];
+    unsigned char sig[32];
     char _uin[9] = {0};
 
     if (!pwd || !vc || !uin) {
@@ -265,9 +265,8 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
         _uin[i] = tmp;
     }
     /* Equal to "var I=hexchar2bin(md5(M));" */
-    //lutil_md5_digest((unsigned char *)pwd, strlen(pwd), (char *)buf);
     md5_buffer(pwd,strlen(pwd),sig);
-    md5_sig_to_string(sig,buf,sizeof(buf));
+    memcpy(buf,sig,sizeof(sig));
 
     /* Equal to "var H=md5(I+pt.uin);" */
     memcpy(buf + 16, _uin, uin_byte_length);
@@ -622,12 +621,12 @@ void lwqq_login(LwqqClient *client, LwqqStatus status,LwqqErrorCode *err)
     lwqq_puts("[login stage 1:get webqq version]\n");
     /* optional: get webqq version */
     //get_version(client, err);
-    login_stage_2(client);
+    login_stage_2(client,err);
 }
 
-static void login_stage_2(LwqqClient* lc)
+static void login_stage_2(LwqqClient* lc,LwqqErrorCode* err)
 {
-    if(!lwqq_client_valid(lc)) return;
+    if(!lwqq_client_valid(lc)) err&&(*err=LWQQ_EC_ERROR);
 
     /**
      * Second, we get the verify code from server.
@@ -640,17 +639,18 @@ static void login_stage_2(LwqqClient* lc)
      */
     if (!lc->vc) {
         LwqqAsyncEvent* ev = get_verify_code(lc,APPID);
-        lwqq_async_add_event_listener(ev,_C_(p,login_stage_3,ev));
+        lwqq_async_add_event_listener(ev,_C_(2p,login_stage_3,ev,err));
         return;
     }
 
-    login_stage_4(lc);
+    login_stage_4(lc,err);
 }
 
-static void login_stage_3(LwqqAsyncEvent* ev)
+static void login_stage_3(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
 {
     if(lwqq_async_event_get_code(ev) == LWQQ_CALLBACK_FAILED) return;
     int err = lwqq_async_event_get_result(ev);
+    if(ec) *ec=err;
     LwqqClient* lc = lwqq_async_event_get_owner(ev);
     if(!lwqq_client_valid(lc)) return;
     switch (err) {
@@ -677,10 +677,10 @@ static void login_stage_3(LwqqAsyncEvent* ev)
             return ;
     }
 
-    login_stage_4(lc);
+    login_stage_4(lc,ec);
 }
 
-static void login_stage_4(LwqqClient* lc)
+static void login_stage_4(LwqqClient* lc,LwqqErrorCode* ec)
 {
     if(!lwqq_client_valid(lc)) return;
     if(!lc->vc) return;
@@ -690,13 +690,14 @@ static void login_stage_4(LwqqClient* lc)
     /* Last: do real login */
     LwqqAsyncEvent* ev = do_login(lc, md5, NULL);
     s_free(md5);
-    lwqq_async_add_event_listener(ev,_C_(p,login_stage_5,ev));
+    lwqq_async_add_event_listener(ev,_C_(2p,login_stage_5,ev,ec));
 
 }
-static void login_stage_5(LwqqAsyncEvent* ev)
+static void login_stage_5(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
 {
     if(lwqq_async_event_get_code(ev) == LWQQ_CALLBACK_FAILED) return;
     int err = lwqq_async_event_get_result(ev);
+    if(ec)(*ec=err);
     LwqqClient* lc = lwqq_async_event_get_owner(ev);
     if(!lwqq_client_valid(lc)) return;
     /* Free old value */
@@ -707,12 +708,13 @@ static void login_stage_5(LwqqAsyncEvent* ev)
         return;
     }
     LwqqAsyncEvent* event = set_online_status(lc, lwqq_status_to_str(lc->stat));
-    lwqq_async_add_event_listener(event,_C_(p,login_stage_f,event));
+    lwqq_async_add_event_listener(event,_C_(2p,login_stage_f,event,ec));
 }
-static void login_stage_f(LwqqAsyncEvent* ev)
+static void login_stage_f(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
 {
     if(lwqq_async_event_get_code(ev) == LWQQ_CALLBACK_FAILED) return;
     int err = lwqq_async_event_get_result(ev);
+    if(ec)(*ec=err);
     LwqqClient* lc = lwqq_async_event_get_owner(ev);
     if(!lwqq_client_valid(lc)) return;
     lwqq_vc_free(lc->vc);

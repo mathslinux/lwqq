@@ -9,7 +9,8 @@
 int lwqq__map_to_type_(const struct LwqqStrMapEntry_* maps,const char* key)
 {
     while(maps->str != NULL){
-        if(!strncmp(maps->str,key,strlen(maps->str))) return maps->type;
+        if(key&&!strncmp(maps->str,key,strlen(maps->str))) return maps->type;
+        else if(key == NULL && maps->str == NULL) return maps->type;
         maps++;
     }
     return maps->type;
@@ -154,3 +155,4 @@ struct str_list_* str_list_prepend(struct str_list_* list,const char* str)
     ret->next = list;
     return ret;
 }
+
