@@ -27,6 +27,7 @@ endif(WIN32)
 add_definitions(-Wall)
 add_definitions(-DINST_PREFIX="${CMAKE_INSTALL_PREFIX}")
 option(SSL "Enable SSL Support " On)
+option(WITHOUT_LIBEV "Disable Async " Off)
 
 #set(package pidgin-lwqq)
 #set(localedir ${CMAKE_INSTALL_PREFIX}/share/locale)

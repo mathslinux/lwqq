@@ -115,7 +115,11 @@ LwqqHttpRequest* lwqq_async_event_get_conn(LwqqAsyncEvent* ev);
 #define LWQQ_SYNC_BEGIN(lc) ((LwqqHttpHandle*)lwqq_get_http_handle(lc))->synced=1;
 #define LWQQ_SYNC_END(lc) ((LwqqHttpHandle*)lwqq_get_http_handle(lc))->synced=0;
 /*check client is set to synced*/
+#ifndef WITHOUT_LIBEV
 #define LWQQ_SYNC_ENABLED(lc) (((LwqqHttpHandle*)lwqq_get_http_handle(lc))->synced==1)
+#else
+#define LWQQ_SYNC_ENABLED(lc) 1
+#endif
 /**======================EVSET API END==================================**/
 
 /**======================  QUEUE API  ==================================**/
