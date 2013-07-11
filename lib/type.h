@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file   type.h
  * @author mathslinux <riegamaths@gmail.com>
  * @date   Sun May 20 22:24:30 2012
@@ -15,9 +15,7 @@
 #include <stdarg.h>
 #include "queue.h"
 #include "vplist.h"
-#ifdef WIN32
-#include "win32.h"
-#endif
+
 #define LWQQ_MAGIC 0x4153
 
 #define USE_MSG_THREAD 1

@@ -6,4 +6,6 @@ double drand48(void);
 
 int pipe (int filedes [2]);
 
+#define mkdir(a,b) mkdir(a)
+
 #endif

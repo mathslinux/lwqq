@@ -26,6 +26,7 @@
 #include "logger.h"
 #include "swsqlite.h"
 #include "lwdb.h"
+#include "internal.h"
 
 #define DB_PATH "/tmp/lwqq"
 

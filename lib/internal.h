@@ -2,6 +2,9 @@
 #define LWQQ_INTERNAL_H_H
 #include "type.h"
 #include "json.h"
+#ifdef WIN32
+#include "win32.h"
+#endif
 
 #ifndef LWQQ_ENABLE_SSL
 #define LWQQ_ENABLE_SSL 0

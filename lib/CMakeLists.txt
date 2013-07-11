@@ -28,8 +28,6 @@ set(LWQQ_HEADER
     type.h
     utility.h
     )
-set(OTHER_LIB 
-    )
 add_definitions(-Wall )
 
 include_directories(
@@ -53,10 +51,10 @@ if(UNIX)
 endif(UNIX)
 
 if(WIN32)
-  set(LWQQ_LIST ${LWQQ_LIST} win32.c libev/ev.c libev/event.c)
+  set(LWQQ_LIST ${LWQQ_LIST} win32.c ../libev/ev.c ../libev/event.c)
   set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} ws2_32)
   add_definitions(-DEV_STANDALONE)
-  include_directories(libev)
+  include_directories(../libev)
 endif(WIN32)
 
 add_library(lwqq SHARED
