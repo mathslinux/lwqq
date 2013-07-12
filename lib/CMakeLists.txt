@@ -1,21 +1,21 @@
 set(LWQQ_LIST
-  url.c
-  md5.c
-  unicode.c
-  logger.c
-  login.c
-  json.c
-  msg.c
-  type.c
-  smemory.c
-  info.c
-  swsqlite.c
-  vplist.c
-  utility.c
-  internal.c
-  async.c
-  http.c
-  )
+    url.c
+    md5.c
+    unicode.c
+    logger.c
+    login.c
+    json.c
+    msg.c
+    type.c
+    smemory.c
+    info.c
+    swsqlite.c
+    vplist.c
+    utility.c
+    internal.c
+    async.c
+    http.c
+    )
 set(LWQQ_HEADER
     async.h
     http.h
