@@ -12,6 +12,7 @@ option(SSL "Enable SSL Support " On)
 option(WITHOUT_ASYNC "Disable Async " Off)
 option(WITH_LIBEV "Use Libev To Provide Async " On)
 option(WITH_LIBUV "Use Libuv To Provide Async " Off)
+option(STATIC_LIBRARY "Compile Static Library " Off)
 
 if(WITH_LIBUV)
     if(WITH_LIBEV)

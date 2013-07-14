@@ -15,6 +15,7 @@ set(LWQQ_LIST
     internal.c
     async.c
     http.c
+    lwdb.c
     )
 set(LWQQ_HEADER
     async.h
@@ -52,10 +53,16 @@ endif(WIN32)
 if(SSL)
     add_definitions(-DLWQQ_ENABLE_SSL=1)
 endif(SSL)
-
+if(STATIC_LIBRARY)
 add_library(lwqq SHARED
     ${LWQQ_LIST}
     )
+else()
+add_library(lwqq STATIC
+    ${LWQQ_LIST}
+    )
+endif()
+
 target_link_libraries(lwqq
   ${SQLITE_LIBRARIES}
   ${CURL_LIBRARIES}
