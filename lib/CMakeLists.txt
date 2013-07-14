@@ -33,17 +33,9 @@ add_definitions(-Wall )
 include_directories(
   ${ZLIB_INCLUDE_DIRS}
   ${CURL_INCLUDE_DIRS}
-  ${CMAKE_CURRENT_BINARY_DIR}
-  ${EV_INCLUDE_DIRS}
   ${SQLITE_INCLUDE_DIRS}
+  ${PROJECT_BINARY_DIR}
   )
-
-if(SSL)
-    add_definitions(-DLWQQ_ENABLE_SSL=1)
-endif(SSL)
-if(WITHOUT_LIBEV)
-    add_definitions(-DWITHOUT_LIBEV=1)
-endif(WITHOUT_LIBEV)
 
 if(UNIX)
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fno-strict-aliasing")
@@ -57,17 +49,29 @@ if(WIN32)
   include_directories(../libev)
 endif(WIN32)
 
+if(SSL)
+    add_definitions(-DLWQQ_ENABLE_SSL=1)
+endif(SSL)
+
 add_library(lwqq SHARED
     ${LWQQ_LIST}
     )
 target_link_libraries(lwqq
-  ${EV_LIBRARIES}
   ${SQLITE_LIBRARIES}
   ${CURL_LIBRARIES}
   ${ZLIB_LIBRARIES}
   ${LWQQ_OTHER_LIBS}
   pthread
   )
+
+if(WITH_LIBEV)
+    include_directories(${EV_INCLUDE_DIRS})
+    target_link_libraries(lwqq ${EV_LIBRARIES})
+endif()
+if(WITH_LIBUV)
+    include_directories(${UV_INCLUDE_DIRS})
+    target_link_libraries(lwqq ${UV_LIBRARIES})
+endif()
 
 INSTALL(TARGETS lwqq DESTINATION lib)
 INSTALL(FILES ${LWQQ_HEADER} DESTINATION include/lwqq)
