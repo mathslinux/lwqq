@@ -661,7 +661,7 @@ static int multi_timer_cb(CURLM *multi, long timeout_ms, void *userp)
     //this should always return 0 this is curl!!
     return 0;
 }
-static void event_cb(void* data,int fd,int revents)
+static void event_cb(LwqqAsyncIoHandle io,int fd,int revents,void* data)
 {
     GLOBAL* g = data;
 
@@ -701,6 +701,7 @@ static int sock_cb(CURL* e,curl_socket_t s,int what,void* cbp,void* sockp)
                 lwqq_async_io_stop(si->ev);
             lwqq_async_io_free(si->ev);
             s_free(si);
+            si = NULL;
         }
     } else {
         if(si == NULL) {
@@ -716,7 +717,7 @@ static int sock_cb(CURL* e,curl_socket_t s,int what,void* cbp,void* sockp)
     }
     return 0;
 }
-static void delay_add_handle(void* data,int fd,int act)
+static void delay_add_handle(LwqqAsyncIoHandle io,int fd,int act,void* data)
 {
     pthread_mutex_lock(&add_lock);
     char buf[16];

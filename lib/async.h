@@ -181,7 +181,7 @@ void lwqq_async_io_free(LwqqAsyncIoHandle);
  * @param fd the socket
  * @param action read/write enum value
  */
-typedef void (*LwqqAsyncIoCallback)(void* data,int fd,int action);
+typedef void (*LwqqAsyncIoCallback)(LwqqAsyncIo* io,int fd,int action,void* data);
 /** the call back of timer watch
  * @param data user defined data
  * return 1 to continue timer 0 to stop timer.

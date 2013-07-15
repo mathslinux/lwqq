@@ -19,6 +19,7 @@ set(LWQQ_LIST
     )
 set(LWQQ_HEADER
     async.h
+    async_impl.h
     http.h
     info.h
     logger.h
@@ -52,11 +53,20 @@ if(SSL)
     add_definitions(-DLWQQ_ENABLE_SSL=1)
 endif(SSL)
 
+if(WITH_LIBEV)
+    include_directories(${EV_INCLUDE_DIRS})
+    set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} ${EV_LIBRARIES})
+endif()
+if(WITH_LIBUV)
+    include_directories(${UV_INCLUDE_DIRS})
+    set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} ${UV_LIBRARIES})
+endif()
+
 if(STATIC_LIBRARY)
-    add_library(lwqq SHARED ${LWQQ_LIST} )
-else()
     add_library(lwqq STATIC ${LWQQ_LIST} )
     add_definitions(-fPIC)
+else()
+    add_library(lwqq SHARED ${LWQQ_LIST} )
 endif()
 
 target_link_libraries(lwqq
@@ -66,15 +76,6 @@ target_link_libraries(lwqq
   ${LWQQ_OTHER_LIBS}
   pthread
   )
-
-if(WITH_LIBEV)
-    include_directories(${EV_INCLUDE_DIRS})
-    target_link_libraries(lwqq ${EV_LIBRARIES})
-endif()
-if(WITH_LIBUV)
-    include_directories(${UV_INCLUDE_DIRS})
-    target_link_libraries(lwqq ${UV_LIBRARIES})
-endif()
 
 INSTALL(TARGETS lwqq DESTINATION lib)
 INSTALL(FILES ${LWQQ_HEADER} DESTINATION include/lwqq)

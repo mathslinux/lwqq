@@ -15,13 +15,13 @@
 #include "http.h"
 #include "logger.h"
 #include "internal.h"
+#include "async_impl.h"
 
 #ifdef WITH_LIBEV
-#include "async-libev.c"
+#include "async_libev.c"
 #endif
-
 #ifdef WITH_LIBUV
-#include "async-libuv.c"
+#include "async_libuv.c"
 #endif
 
 typedef struct LwqqAsyncEntry {
@@ -31,7 +31,7 @@ typedef struct LwqqAsyncEntry {
 }LwqqAsyncEntry;
 typedef struct async_dispatch_data {
     LwqqCommand cmd;
-    LwqqAsyncTimer timer;
+    LwqqAsyncTimerHandle timer;
 } async_dispatch_data; 
 typedef struct LwqqAsyncEvset_ {
     LwqqAsyncEvset parent;
@@ -54,6 +54,7 @@ static void dispatch_wrap(LwqqAsyncTimerHandle timer,void* p)
     async_dispatch_data* data = (async_dispatch_data*)p;
     vp_do(data->cmd,NULL);
     lwqq_async_timer_stop(timer);
+    lwqq_async_timer_free(timer);
 
     //!!! should we stop first delete later?
     s_free(data);
@@ -63,7 +64,8 @@ void lwqq_async_dispatch(LwqqCommand cmd)
 #ifndef WITHOUT_ASYNC
     async_dispatch_data* data = s_malloc0(sizeof(*data));
     data->cmd = cmd;
-    lwqq_async_timer_watch(&data->timer, 10, dispatch_wrap, data);
+    data->timer = lwqq_async_timer_new();
+    lwqq_async_timer_watch(data->timer, 10, dispatch_wrap, data);
 #else
     vp_do(cmd,NULL);
 #endif
@@ -72,6 +74,12 @@ void lwqq_async_dispatch(LwqqCommand cmd)
 void lwqq_async_init(LwqqClient* lc)
 {
     lc->dispatch = lwqq_async_dispatch;
+#ifdef WITH_LIBEV
+    LWQQ_ASYNC_IMPLEMENT(impl_libev);
+#endif
+#ifdef WITH_LIBUV
+    LWQQ_ASYNC_IMPLEMENT(impl_libuv);
+#endif
 }
 
 LwqqAsyncEvent* lwqq_async_event_new(void* req)
@@ -218,4 +226,137 @@ void lwqq_async_queue_rm(LwqqAsyncQueue* queue,void* func)
             return;
         }
     }
+}
+
+//### global data area ###//
+static enum{
+    THREAD_NOT_CREATED,
+    THREAD_NOW_WAITING,
+    THREAD_NOW_RUNNING,
+} ev_thread_status;
+static pthread_cond_t ev_thread_cond = PTHREAD_COND_INITIALIZER;
+static pthread_t pid;
+static LwqqAsyncTimerHandle bomb;
+static int global_quit_lock = 0;
+//### global data area ###//
+
+LwqqAsyncTimerHandle lwqq_async_timer_new()
+{
+    return LWQQ__ASYNC_IMPL(timer_new)();
+}
+LwqqAsyncIoHandle lwqq_async_io_new()
+{
+    return LWQQ__ASYNC_IMPL(io_new)();
+}
+void lwqq_async_timer_free(LwqqAsyncTimerHandle timer)
+{
+    LWQQ__ASYNC_IMPL(timer_free)(timer);
+}
+void lwqq_async_io_free(LwqqAsyncIoHandle io)
+{
+    LWQQ__ASYNC_IMPL(io_free)(io);
+}
+
+static void *ev_run_thread(void* data)
+{
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    //signal(SIGPIPE,SIG_IGN);
+    while(1){
+        ev_thread_status = THREAD_NOW_RUNNING;
+        LWQQ__ASYNC_IMPL(loop_run)();
+        //if(ev_thread_status == THREAD_NOT_CREATED) return NULL;
+        if(global_quit_lock) return NULL;
+        ev_thread_status = THREAD_NOW_WAITING;
+        pthread_mutex_lock(&mutex);
+        pthread_cond_wait(&ev_thread_cond,&mutex);
+        pthread_mutex_unlock(&mutex);
+        //if(ev_thread_status == THREAD_NOT_CREATED) return NULL;
+        if(global_quit_lock) return NULL;
+    }
+    return NULL;
+}
+static void start_ev_thread()
+{
+    if(global_quit_lock) return;
+    if(ev_thread_status == THREAD_NOW_WAITING){
+        pthread_cond_signal(&ev_thread_cond);
+    }else if(ev_thread_status == THREAD_NOT_CREATED){
+        ev_thread_status = THREAD_NOW_RUNNING;
+        pthread_create(&pid,NULL,ev_run_thread,NULL);
+    }
+}
+
+static void ev_bomb(LwqqAsyncTimerHandle timer,void* data)
+{
+    lwqq_puts("boom!!");
+    lwqq_async_timer_stop(timer);
+    lwqq_async_timer_free(bomb);
+    LWQQ__ASYNC_IMPL(loop_stop)();
+}
+
+void lwqq_async_global_quit()
+{
+    //no need to destroy thread
+    if(ev_thread_status == THREAD_NOT_CREATED) return ;
+    global_quit_lock = 1;
+
+    if(ev_thread_status == THREAD_NOW_WAITING){
+        pthread_cond_signal(&ev_thread_cond);
+    }else if(ev_thread_status == THREAD_NOW_RUNNING){
+        bomb = lwqq_async_timer_new();
+        lwqq_async_timer_watch(bomb, 50, ev_bomb, NULL);
+    }
+    ev_thread_status = THREAD_NOT_CREATED;
+    pthread_join(pid,NULL);
+    LWQQ__ASYNC_IMPL(loop_free)();
+    global_quit_lock = 0;
+}
+
+void lwqq_async_io_watch(LwqqAsyncIoHandle io,int fd,int action,LwqqAsyncIoCallback func,void* data)
+{
+    if(global_quit_lock) return;
+    LWQQ__ASYNC_IMPL(loop_create)();
+    io->func = func;
+    io->data = data;
+    io->fd = fd;
+    io->action = action;
+    LWQQ__ASYNC_IMPL(io_start)(io,fd,action);
+    if(ev_thread_status!=THREAD_NOW_RUNNING) 
+        start_ev_thread();
+}
+void lwqq_async_io_stop(LwqqAsyncIoHandle io)
+{
+    LWQQ__ASYNC_IMPL(io_stop)(io);
+}
+
+void lwqq_async_timer_watch(LwqqAsyncTimerHandle timer,unsigned int timeout_ms,LwqqAsyncTimerCallback func,void* data)
+{
+    if(global_quit_lock) return;
+    LWQQ__ASYNC_IMPL(loop_create)();
+    timer->func = func;
+    timer->data = data;
+    LWQQ__ASYNC_IMPL(timer_start)(timer,timeout_ms);
+    if(ev_thread_status!=THREAD_NOW_RUNNING) 
+        start_ev_thread();
+}
+void lwqq_async_timer_stop(LwqqAsyncTimerHandle timer)
+{
+    LWQQ__ASYNC_IMPL(timer_stop)(timer);
+}
+void lwqq_async_timer_repeat(LwqqAsyncTimerHandle timer)
+{
+    LWQQ__ASYNC_IMPL(timer_again)(timer);
+}
+#if 0
+static void print_loop_no_impl()
+{
+    fprintf(stderr,"Need A Async Loop Implemention\n");
+    assert(0);
+}
+#endif
+LwqqAsyncImpl lwqq__async_impl_ = {0};
+
+void lwqq_async_implement(LwqqAsyncImpl* i)
+{
+    lwqq__async_impl_ = *i;
 }
