@@ -24,6 +24,7 @@ static char *levels[] = {
 };
 
 static int LWQQ_VERBOSE_LEVEL_ = 0;
+static LwqqLogRedirectFunc redirect_func_ = NULL;
 
 /** 
  * This is standard logger function
@@ -69,11 +70,14 @@ const char* lwqq_log_time()
 
 void lwqq_verbose(int l,const char* str,...)
 {
+    static char buffer[81920];
     if(l<=LWQQ_VERBOSE_LEVEL_){
         va_list args;
         va_start(args,str);
-        vfprintf(stderr,str,args);
+        vsnprintf(buffer,sizeof(buffer),str,args);
         va_end(args);
+        fprintf(stderr,"%s",buffer);
+        if(redirect_func_) redirect_func_(l,buffer);
     }
 }
 void lwqq_log_set_level(int level)
@@ -83,4 +87,9 @@ void lwqq_log_set_level(int level)
 int lwqq_log_get_level()
 {
     return LWQQ_VERBOSE_LEVEL_;
+}
+
+void lwqq_log_redirect(LwqqLogRedirectFunc func)
+{
+    redirect_func_ = func;
 }

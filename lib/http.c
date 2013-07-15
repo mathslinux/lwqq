@@ -335,6 +335,15 @@ static size_t write_content(const char* ptr,size_t size,size_t nmemb,void* userd
     req->resp_len+=sz_;
     return sz_;
 }
+static int curl_debug_redirect(CURL* h,curl_infotype t,char* msg,size_t len,void* data)
+{
+    static char buffer[8192*10];
+    size_t sz = sizeof(buffer)-1;
+    sz = sz>len?sz:len;
+    strncpy(buffer,msg,sz);
+    buffer[sz] = 0;
+    lwqq_verbose(3,"%s",buffer);
+}
 /** 
  * Create a new Http request instance
  *
@@ -379,6 +388,7 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
     curl_easy_setopt(request->req,CURLOPT_LOW_SPEED_LIMIT,8*5);
     curl_easy_setopt(request->req,CURLOPT_LOW_SPEED_TIME,30);
     curl_easy_setopt(request->req,CURLOPT_SSL_VERIFYPEER,0);
+    curl_easy_setopt(request->req,CURLOPT_DEBUGFUNCTION,curl_debug_redirect);
     request->do_request = lwqq_http_do_request;
     request->do_request_async = lwqq_http_do_request_async;
     request->set_header = lwqq_http_set_header;
@@ -735,6 +745,23 @@ static void delay_add_handle(LwqqAsyncIoHandle io,int fd,int act,void* data)
     }
     pthread_mutex_unlock(&add_lock);
 }
+static void delay_add_handle2(void* noused)
+{
+    pthread_mutex_lock(&add_lock);
+    char buf[16];
+    //remove from pipe
+    D_ITEM* di,*tvar;
+    LIST_FOREACH_SAFE(di,&global.add_link,entries,tvar){
+        LIST_REMOVE(di,entries);
+        LIST_INSERT_HEAD(&global.conn_link,di,entries);
+        CURLMcode rc = curl_multi_add_handle(global.multi,di->req->req);
+
+        if(rc != CURLM_OK){
+            lwqq_puts(curl_multi_strerror(rc));
+        }
+    }
+    pthread_mutex_unlock(&add_lock);
+}
 static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int method,
                                       char *body, LwqqCommand command)
 {
@@ -779,6 +806,7 @@ static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int 
     pthread_mutex_lock(&add_lock);
     LIST_INSERT_HEAD(&global.add_link,di,entries);
     write(global.pipe_fd[1],"ok",3);
+    lwqq_async_dispatch(_C_(p,delay_add_handle2,NULL));
     pthread_mutex_unlock(&add_lock);
     return di->event;
 

@@ -27,6 +27,8 @@
 #define __LOG_ERROR		3
 #define LOG_ERROR		__LOG_ERROR, _A_
 
+typedef void (*LwqqLogRedirectFunc)(int l,const char* str);
+
 /** 
  * This is standard logger function
  * 
@@ -54,6 +56,8 @@ void lwqq_verbose(int l,const char* str,...);
 
 void lwqq_log_set_level(int level);
 int lwqq_log_get_level();
+
+void lwqq_log_redirect(LwqqLogRedirectFunc func);
 #define LWQQ_VERBOSE_LEVEL lwqq_log_get_level()
 
 
