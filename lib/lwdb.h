@@ -23,7 +23,7 @@
  * LWDB initialization
  * 
  */
-void lwdb_global_init();
+const char* lwdb_get_config_dir();
 void lwdb_global_free();
 
 /** 

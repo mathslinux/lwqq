@@ -28,6 +28,13 @@
 #include "lwdb.h"
 #include "internal.h"
 
+#ifdef WIN32
+#include <shlobj.h>
+#define SEP "\\"
+#else
+#define SEP "/"
+#endif
+
 #define DB_PATH "/tmp/lwqq"
 
 static LwqqErrorCode lwdb_globaldb_add_new_user(
@@ -165,19 +172,27 @@ static LwqqOpCode clear_cache(LwdbUserDB* db)
  * LWDB initialization
  * 
  */
-void lwdb_global_init()
+const char* lwdb_get_config_dir()
 {
-    char buf[256];
+    static char buf[256];
+#ifdef WIN32
+    char home[256];
+    SHGetFolderPath(NULL,CSIDL_APPDATA,NULL,0,home);
+    snprintf(buf,sizeof(buf),"%s"SEP"lwqq",home);
+#else
     char *home;
-
     home = getenv("HOME");
     if (!home) {
         lwqq_log(LOG_ERROR, "Cant get $HOME, exit\n");
         exit(1);
     }
-    
-    snprintf(buf, sizeof(buf), "%s/.config/lwqq", home);
+    snprintf(buf, sizeof(buf), "%s"SEP".config"SEP"lwqq", home);
+#endif
+    return buf;
+    #if 0
     database_path = s_strdup(buf);
+
+    
     if (access(database_path, F_OK)) {
         /* Create a new config directory if we dont have */
         mkdir(database_path, 0777);
@@ -185,6 +200,7 @@ void lwdb_global_init()
     
     snprintf(buf, sizeof(buf), "%s/lwqq.db", database_path);
     global_database_name = s_strdup(buf);
+    #endif
 }
 
 void lwdb_global_free()
@@ -226,7 +242,7 @@ static int lwdb_create_db(const char *filename, int db_type)
     }else{
         //create parent dir
 	char* dir = s_strdup(filename);
-	char* end = strrchr(dir,'/');
+	char* end = strrchr(dir,SEP[0]);
 	if(end){
 	   *end = '\0';
 	   mkdir(dir,0755);
@@ -518,17 +534,16 @@ LwdbUserDB *lwdb_userdb_new(const char *qqnumber,const char* dir,int flags)
 {
     LwdbUserDB *udb = NULL;
     int ret;
-    char db_name[64];
+    char db_name[256];
     
     if (!qqnumber) {
         return NULL;
     }
 
     if(dir == NULL){
-        char* home = getenv("HOME");
-        snprintf(db_name,sizeof(db_name),"%s/.config/lwqq/%s.db",home,qqnumber);
+        snprintf(db_name,sizeof(db_name),"%s"SEP"%s.db",lwdb_get_config_dir(),qqnumber);
     }else{
-        snprintf(db_name,sizeof(db_name),"%s/%s.db",dir,qqnumber);
+        snprintf(db_name,sizeof(db_name),"%s"SEP"%s.db",dir,qqnumber);
     }
 
     /* If there is no db named "db_name", create it */

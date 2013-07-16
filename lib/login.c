@@ -656,7 +656,7 @@ static void login_stage_3(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
     switch (err) {
         case LWQQ_EC_LOGIN_NEED_VC:
             lwqq_log(LOG_WARNING, "Need to enter verify code\n");
-            lc->vc->cmd = _C_(p,login_stage_4,lc);
+            lc->vc->cmd = _C_(2p,login_stage_4,lc,ec);
             get_verify_image(lc);
             return ;
 
