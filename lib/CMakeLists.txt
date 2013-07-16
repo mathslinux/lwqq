@@ -42,11 +42,13 @@ include_directories(
 if(UNIX)
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fno-strict-aliasing")
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DUSE_DEBUG=1 -Wno-unused-function")
+  add_definitions(-fPIC)
 endif(UNIX)
 
 if(WIN32)
   set(LWQQ_LIST ${LWQQ_LIST} win32.c )
   set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} ws2_32)
+  add_definitions(-D_GNU_SOURCE=1)
 endif(WIN32)
 
 if(SSL)
@@ -64,7 +66,6 @@ endif()
 
 if(STATIC_LIBRARY)
     add_library(lwqq STATIC ${LWQQ_LIST} )
-    add_definitions(-fPIC)
 else()
     add_library(lwqq SHARED ${LWQQ_LIST} )
 endif()

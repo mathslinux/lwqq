@@ -4,6 +4,8 @@
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "async.h"
 #include "smemory.h"
 #include "http.h"
@@ -343,6 +345,7 @@ static int curl_debug_redirect(CURL* h,curl_infotype t,char* msg,size_t len,void
     strncpy(buffer,msg,sz);
     buffer[sz] = 0;
     lwqq_verbose(3,"%s",buffer);
+    return 0;
 }
 /** 
  * Create a new Http request instance
@@ -748,8 +751,7 @@ static void delay_add_handle(LwqqAsyncIoHandle io,int fd,int act,void* data)
 static void delay_add_handle2(void* noused)
 {
     pthread_mutex_lock(&add_lock);
-    char buf[16];
-    //remove from pipe
+    
     D_ITEM* di,*tvar;
     LIST_FOREACH_SAFE(di,&global.add_link,entries,tvar){
         LIST_REMOVE(di,entries);

@@ -19,10 +19,13 @@
 
 #include "lwqq.h"
 
-#define LWQQ_CLI_VERSION "0.0.1"
 #ifdef WIN32
-#define sleep(t) Sleep(t*1000);
+#include <windows.h>
+#define sleep(t) Sleep(1000*(t))
 #endif
+
+#define LWQQ_CLI_VERSION "0.0.1"
+
 
 static int help_f(int argc, char **argv);
 static int quit_f(int argc, char **argv);
@@ -334,6 +337,7 @@ static void *recvmsg_thread(void *list)
     }
 
     pthread_exit(NULL);
+    return NULL;
 }
 
 static void *info_thread(void *lc)
@@ -343,6 +347,7 @@ static void *info_thread(void *lc)
 //    lwqq_info_get_all_friend_qqnumbers(lc, &err);
 
     pthread_exit(NULL);
+    return NULL;
 }
 
 static char **breakline(char *input, int *count)

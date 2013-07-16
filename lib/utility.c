@@ -1,9 +1,13 @@
-#include "utility.h"
-#include "smemory.h"
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/stat.h>
+
+#include "utility.h"
+#include "smemory.h"
+#include "internal.h"
+
 
 void lwqq_ct_free(LwqqConfirmTable* table)
 {

@@ -46,7 +46,7 @@ void lwqq_log(int level, const char *file, int line,
 	char date[256];
 
 	tm = localtime(&t);
-	strftime(date, sizeof(date), "%b %e %T", tm);
+	strftime(date, sizeof(date), "%b %d %H:%M:%S", tm);
 	
     if(level > 1){
         snprintf(buf, sizeof(buf), "[%s] %s[%ld]: %s:%d %s: \n\t", date, levels[level], (long)getpid(), file, line, function);
