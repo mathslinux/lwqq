@@ -295,6 +295,7 @@ static char *lwqq_enc_pwd(const char *pwd, const char *vc, const char *uin)
 static LwqqAsyncEvent* do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *err)
 {
     char url[1024];
+    char refer[1024];
     LwqqHttpRequest *req;
     
     snprintf(url, sizeof(url), WEBQQ_LOGIN_HOST"/login?"
@@ -302,13 +303,15 @@ static LwqqAsyncEvent* do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *
              "webqq_type=%d&remember_uin=1&aid=1003903&login2qq=1&"
              "u1=http%%3A%%2F%%2Fweb.qq.com%%2Floginproxy.html"
              "%%3Flogin2qq%%3D1%%26webqq_type%%3D10&h=1&ptredirect=0&"
-             "ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&"
-             "action=2-11-7438&mibao_css=m_webqq&t=1&g=1",  lc->username, md5, lc->vc->str,lc->stat);
+             "ptlang=2052&daid=164&from_ui=1&pttype=1&dumy=&fp=loginerroralert&"
+             "action=4-15-15865&mibao_css=m_webqq&t=1&g=1&js_ver=10034",  lc->username, md5, lc->vc->str,lc->stat);
 
     req = lwqq_http_create_default_request(lc,url, err);
     lwqq_verbose(3,"%s\n",url);
+    snprintf(refer,sizeof(refer),"https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=5&mibao_css=m_webqq&appid=1003903&enable_qlogin=0&no_verifyimg=1&s_url=http%%3A%%2Fweb2.qq.com%%2Floginproxy.html&f_url=loginerroralert&strong_login=1&login_stat=%d&t=%lu",lc->stat,LTIME);
     /* Setup http header */
     req->set_header(req, "Cookie", lwqq_get_cookies(lc));
+    req->set_header(req, "Referer", refer);
 
     /* Send request */
     return req->do_request_async(req, 0, NULL,_C_(p_i,do_login_back,req));
@@ -319,6 +322,7 @@ static int do_login_back(LwqqHttpRequest* req)
     LwqqClient* lc = req->lc;
     int err = LWQQ_EC_OK;
     const char* response;
+    //const char redirect_url[512];
     if (req->http_code != 200) {
         err = LWQQ_EC_HTTP_ERROR;
         goto done;
@@ -346,11 +350,15 @@ static int do_login_back(LwqqHttpRequest* req)
     int status;
     strncpy(buf, p + 1, 1);
     status = atoi(buf);
+    //const char* beg,*end;
 
     switch (status) {
     case 0:
         //sava_cookie(lc, req, NULL);
         err = LWQQ_EC_OK;
+        //beg = strstr(response,"https://");
+        //end = strchr(beg,'\'');
+        //strncpy(redirect_url,beg,end-beg);
         break;
         
     case 1:

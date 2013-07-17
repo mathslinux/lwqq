@@ -760,7 +760,6 @@ static char* hashN(const char* uin,const char* ptwebqq)
     free(c);
     return ret;
 }
-#endif
 
 static char* hashO(const char* uin,const char* ptwebqq)
 {
@@ -792,19 +791,43 @@ static char* hashO(const char* uin,const char* ptwebqq)
     s_free(j);
     return s;
 }
-/**
- * Get QQ friends information. These information include basic friend
- * information, friends group information, and so on
- *
- * @param lc
- * @param err
- */
-LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err)
+#endif
+static char* hashP(const char* uin,const char* ptwebqq)
 {
+    char a[4]={0};
+    int i;
+    unsigned long uin_n = s_atol(uin,0);
+    for(i=0;i<strlen(ptwebqq);i++)
+        a[i%4] ^= ptwebqq[i];
+    char* j[] = {"EC","OK"};
+    char d[4];
+    d[0] = (uin_n >>24 & 255) ^ j[0][0];
+    d[1] = (uin_n >>16 & 255) ^ j[0][1];
+    d[2] = (uin_n >>8  & 255) ^ j[1][0];
+    d[3] = (uin_n & 255) ^ j[1][1];
+    char j2[8];
+    for (i=0;i<8;i++)
+        j2[i] = i % 2 == 0 ? a[i >> 1] : d[i >> 1];
+    char a2[] = "0123456789ABCDEF";
+    char d2[17] = {0};
+    for (i=0;i<8;i++){
+        d2[i*2] = a2[j2[i] >> 4&15];
+        d2[i*2+1] = a2[j2[i] & 15]; 
+    } 
+    return s_strdup(d2);
+} 
+/** 
+ * Get QQ friends information. These information include basic friend 
+ * information, friends group information, and so on 
+ * 
+ * @param lc 
+ * @param err 
+ */ 
+LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err) {
     char post[512];
     LwqqHttpRequest *req = NULL;
 
-    char* hash = hashO(lc->myself->uin, lc->cookies->ptwebqq);
+    char* hash = hashP(lc->myself->uin, lc->cookies->ptwebqq);
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
     snprintf(post, sizeof(post), "r={\"h\":\"hello\",\"hash\":\"%s\",\"vfwebqq\":\"%s\"}",hash,lc->vfwebqq);
     s_free(hash);
