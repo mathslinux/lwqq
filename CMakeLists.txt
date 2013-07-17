@@ -38,20 +38,20 @@ if(UNIX)
 endif(UNIX)
 
 if(WIN32)
-	set(CMAKE_PREFIX_PATH "${WIN32_LIBS_DIR}/win32-dev/libcurl-7.18.0-win32-msvc")
+	set(CMAKE_PREFIX_PATH "${WIN32_LIBS_DIR}/libcurl")
 	find_package(CURL REQUIRED)
-	set(CMAKE_PREFIX_PATH "${WIN32_LIBS_DIR}/win32-dev/sqlite3")
+	set(CMAKE_PREFIX_PATH "${WIN32_LIBS_DIR}/sqlite3")
 	find_package(Sqlite3 REQUIRED)
 	set(CMAKE_PREFIX_PATH 
-		"${WIN32_LIBS_DIR}/win32-dev/zlib-1.28/include" 
-		"${WIN32_LIBS_DIR}/win32-dev/zlib-1.28/lib"
+		"${WIN32_LIBS_DIR}/zlib/include" 
+		"${WIN32_LIBS_DIR}/zlib/lib"
 		)
 	find_package(ZLIB REQUIRED)
     if(WITH_LIBUV)
         set(CMAKE_PREFIX_PATH 
-            "${WIN32_LIBS_DIR}/win32-dev/libuv/include" 
-            "${WIN32_LIBS_DIR}/win32-dev/libuv/Release" 
-            "${WIN32_LIBS_DIR}/win32-dev/libuv/Debug")
+            "${WIN32_LIBS_DIR}/libuv/include" 
+            "${WIN32_LIBS_DIR}/libuv/Release" 
+            "${WIN32_LIBS_DIR}/libuv/Debug")
         find_package(Libuv REQUIRED)
     endif()
 endif(WIN32)
