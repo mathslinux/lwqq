@@ -38,7 +38,11 @@ if(UNIX)
 endif(UNIX)
 
 if(WIN32)
-	set(CMAKE_PREFIX_PATH "${WIN32_LIBS_DIR}/libcurl")
+	set(CMAKE_PREFIX_PATH 
+	"${WIN32_LIBS_DIR}/libcurl" 
+        "${WIN32_LIBS_DIR}/libcurl/include" 
+        "${WIN32_LIBS_DIR}/libcurl/lib"
+        )
 	find_package(CURL REQUIRED)
 	set(CMAKE_PREFIX_PATH "${WIN32_LIBS_DIR}/sqlite3")
 	find_package(Sqlite3 REQUIRED)
