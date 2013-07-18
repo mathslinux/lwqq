@@ -24,7 +24,7 @@ void lwqq_ct_free(LwqqConfirmTable* table)
 }
 
 
-LwqqOpCode lwqq_util_save_img(void* ptr,size_t len,char* path,char* dir)
+LwqqOpCode lwqq_util_save_img(void* ptr,size_t len,const char* path,const char* dir)
 {
     if(!ptr||!path) return LWQQ_OP_FAILED;
     char fullpath[1024];

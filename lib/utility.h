@@ -22,7 +22,7 @@ typedef struct LwqqConfirmTable {
 
 void lwqq_ct_free(LwqqConfirmTable* table);
 
-LwqqOpCode lwqq_util_save_img(void* ptr,size_t len,char* path,char* dir);
+LwqqOpCode lwqq_util_save_img(void* ptr,size_t len,const char* path,const char* dir);
 
 #define lwqq_group_pretty_name(g) (g->markname?:g->name)
 #define lwqq_buddy_pretty_name(b) (b->markname?:b->nick)

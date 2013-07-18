@@ -195,12 +195,14 @@ static char *get_vc()
     return s_strdup(vc);
 }
 
+
 static LwqqErrorCode cli_login()
 {
     LwqqErrorCode err;
 
     LWQQ_SYNC_BEGIN(lc);
     lwqq_login(lc,LWQQ_STATUS_ONLINE, &err);
+    #if 0
     if (err == LWQQ_EC_LOGIN_NEED_VC) {
         snprintf(vc_image, sizeof(vc_image), "/tmp/lwqq_%s.jpeg", lc->username);
         snprintf(vc_file, sizeof(vc_file), "/tmp/lwqq_%s.txt", lc->username);
@@ -223,7 +225,9 @@ static LwqqErrorCode cli_login()
         }
         lwqq_log(LOG_NOTICE, "Get verify code: %s\n", lc->vc->str);
         lwqq_login(lc,LWQQ_STATUS_ONLINE, &err);
-    } else if (err != LWQQ_EC_OK) {
+    } else 
+    #endif
+    if (err != LWQQ_EC_OK) {
         goto failed;
     }
 
@@ -424,6 +428,33 @@ static void command_loop()
     }
 }
 
+static void need_verify2(LwqqClient* lc,LwqqVerifyCode* code)
+{
+    #ifdef WIN32
+    const char *dir = NULL;
+    
+    #else
+    const char *dir = "/tmp";
+    #endif
+    char fname[32];
+    char vcode[256] = {0};
+    snprintf(fname,sizeof(fname),"%s.jpeg",lc->username);
+
+    lwqq_util_save_img(code->data,code->size,fname,dir);
+
+    lwqq_log(LOG_NOTICE,"Need verify code to login, please check "
+            "image file %s%s, and input below.\n",
+            dir?:"",fname);
+    printf("Verify Code:");
+    scanf("%s",vcode);
+    code->str = s_strdup(vcode);
+    vp_do(code->cmd,NULL);
+}
+
+static LwqqAction act = {
+    .need_verify2 = need_verify2
+};
+
 int main(int argc, char *argv[])
 {
     char *qqnumber = NULL, *password = NULL;
@@ -478,6 +509,7 @@ int main(int argc, char *argv[])
     
     lwqq_log_set_level(3);
     lc = lwqq_client_new(qqnumber, password);
+    lc->action = &act;
     if (!lc) {
         lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
         return -1;
