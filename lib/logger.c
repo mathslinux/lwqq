@@ -24,7 +24,14 @@ static char *levels[] = {
 };
 
 static int LWQQ_VERBOSE_LEVEL_ = 0;
-static LwqqLogRedirectFunc redirect_func_ = NULL;
+
+static void log_direct_to_stderr(int l,const char* str)
+{
+	fprintf(stderr,"%s\n",str);
+}
+
+static LwqqLogRedirectFunc redirect_func_ = log_direct_to_stderr;
+
 
 /** 
  * This is standard logger function
@@ -57,6 +64,7 @@ void lwqq_log(int level, const char *file, int line,
 	va_start (va, msg);
     vfprintf(stderr,msg,va);
 	va_end(va);
+	fflush(stderr);
 }
 
 const char* lwqq_log_time()
@@ -76,7 +84,6 @@ void lwqq_verbose(int l,const char* str,...)
         va_start(args,str);
         vsnprintf(buffer,sizeof(buffer),str,args);
         va_end(args);
-        fprintf(stderr,"%s",buffer);
         if(redirect_func_) redirect_func_(l,buffer);
     }
 }

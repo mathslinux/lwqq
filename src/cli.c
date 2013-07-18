@@ -21,7 +21,6 @@
 
 #ifdef WIN32
 #include <windows.h>
-#define sleep(t) Sleep(1000*(t))
 #endif
 
 #define LWQQ_CLI_VERSION "0.0.1"
@@ -74,6 +73,17 @@ char *strtok_r(char *str, const char *delim, char **save)
     }
     return res;
 }
+const char* iconv(unsigned int from,unsigned int to,const char* str,size_t sz)
+{
+	static char buf[2048];
+	wchar_t wbuf[2048];
+	MultiByteToWideChar(from,0,str,-1,wbuf,sizeof(wbuf));
+	WideCharToMultiByte(to,0,wbuf,-1,buf,sizeof(buf),NULL,NULL);
+	return buf;
+}
+#define charset(str) iconv(CP_UTF8,CP_OEMCP,str,-1)
+#else
+#define charset(str) str
 #endif
 
 
@@ -148,6 +158,7 @@ static int list_f(int argc, char **argv)
             }
         }
     }
+	
 
     return 0;
 }
@@ -202,31 +213,7 @@ static LwqqErrorCode cli_login()
 
     LWQQ_SYNC_BEGIN(lc);
     lwqq_login(lc,LWQQ_STATUS_ONLINE, &err);
-    #if 0
-    if (err == LWQQ_EC_LOGIN_NEED_VC) {
-        snprintf(vc_image, sizeof(vc_image), "/tmp/lwqq_%s.jpeg", lc->username);
-        snprintf(vc_file, sizeof(vc_file), "/tmp/lwqq_%s.txt", lc->username);
-        /* Delete old verify image */
-        unlink(vc_file);
 
-        lwqq_log(LOG_NOTICE, "Need verify code to login, please check "
-                 "image file %s, and input what you see to file %s\n",
-                 vc_image, vc_file);
-        while (1) {
-            if (!access(vc_file, F_OK)) {
-                sleep(1);
-                break;
-            }
-            sleep(1);
-        }
-        lc->vc->str = get_vc();
-        if (!lc->vc->str) {
-            goto failed;
-        }
-        lwqq_log(LOG_NOTICE, "Get verify code: %s\n", lc->vc->str);
-        lwqq_login(lc,LWQQ_STATUS_ONLINE, &err);
-    } else 
-    #endif
     if (err != LWQQ_EC_OK) {
         goto failed;
     }
@@ -278,10 +265,11 @@ void signal_handler(int signum)
 static void handle_new_msg(LwqqRecvMsg *recvmsg)
 {
     LwqqMsg *msg = recvmsg->msg;
+	char buf[2048] = {0};
 
     printf("Receive message type: %d\n", msg->type);
     if (msg->type == LWQQ_MS_BUDDY_MSG) {
-        char buf[1024] = {0};
+        
         LwqqMsgContent *c;
         LwqqMsgMessage *mmsg = (LwqqMsgMessage*)msg;
         TAILQ_FOREACH(c, &mmsg->content, entries) {
@@ -291,10 +279,10 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
                 printf ("Receive face msg: %d\n", c->data.face);
             }
         }
-        printf("Receive message: %s\n", buf);
+        printf("Receive message: %s\n", charset(buf));
     } else if (msg->type == LWQQ_MS_GROUP_MSG) {
         LwqqMsgMessage *mmsg = (LwqqMsgMessage*)msg;
-        char buf[1024] = {0};
+        
         LwqqMsgContent *c;
         TAILQ_FOREACH(c, &mmsg->content, entries) {
             if (c->type == LWQQ_CONTENT_STRING) {
@@ -303,7 +291,7 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
                 printf ("Receive face msg: %d\n", c->data.face);
             }
         }
-        printf("Receive message: %s\n", buf);
+        printf("Receive message: %s\n", charset(buf));
     } else if (msg->type == LWQQ_MT_STATUS_CHANGE) {
         LwqqMsgStatusChange *status = (LwqqMsgStatusChange*)msg;
         printf("Receive status change: %s - > %s\n", 
@@ -338,6 +326,7 @@ static void *recvmsg_thread(void *list)
         TAILQ_REMOVE(&l->head,recvmsg, entries);
         pthread_mutex_unlock(&l->mutex);
         handle_new_msg(recvmsg);
+		fflush(stdout);
     }
 
     pthread_exit(NULL);
@@ -425,6 +414,8 @@ static void command_loop()
             }
             free(v);
         }
+		fflush(stdout);
+		fflush(stderr);
     }
 }
 
@@ -446,9 +437,16 @@ static void need_verify2(LwqqClient* lc,LwqqVerifyCode* code)
             "image file %s%s, and input below.\n",
             dir?:"",fname);
     printf("Verify Code:");
+	fflush(stdout);
     scanf("%s",vcode);
     code->str = s_strdup(vcode);
     vp_do(code->cmd,NULL);
+}
+/**fix mingw and mintty and utf-8 no output */
+static void log_direct_flush(int l,const char* str)
+{
+	fprintf(stderr,"%s\n",str);
+	fflush(stderr);
 }
 
 static LwqqAction act = {
@@ -457,6 +455,9 @@ static LwqqAction act = {
 
 int main(int argc, char *argv[])
 {
+
+	lwqq_log_redirect(log_direct_flush);
+
     char *qqnumber = NULL, *password = NULL;
     LwqqErrorCode err;
     int i, c, e = 0;
