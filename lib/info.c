@@ -796,7 +796,11 @@ static char* hashP(const char* uin,const char* ptwebqq)
 {
     char a[4]={0};
     int i;
-    unsigned long uin_n = s_atol(uin,0);
+#ifdef WIN32
+	unsigned __int64 uin_n = _strtoui64(uin,NULL,10);
+#else
+	unsigned long long uin_n = strtoull(uin,NULL,10);
+#endif
     for(i=0;i<strlen(ptwebqq);i++)
         a[i%4] ^= ptwebqq[i];
     char* j[] = {"EC","OK"};
