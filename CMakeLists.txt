@@ -13,6 +13,7 @@ option(WITHOUT_ASYNC "Disable Async " Off)
 option(WITH_LIBEV "Use Libev To Provide Async " On)
 option(WITH_LIBUV "Use Libuv To Provide Async " Off)
 option(STATIC_LIBRARY "Compile Static Library " Off)
+option(LWQQ_INSTALL "Install Lwqq Library"      On)
 
 if(WITH_LIBEV)
     if(WITH_LIBUV)
