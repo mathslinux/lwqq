@@ -12,4 +12,6 @@ target_link_libraries(lwqq-cli
     pthread
     )
 
+if(LWQQ_INSTALL)
 INSTALL(TARGETS lwqq-cli DESTINATION bin)
+endif()

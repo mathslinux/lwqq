@@ -78,5 +78,7 @@ target_link_libraries(lwqq
   pthread
   )
 
+if(LWQQ_INSTALL)
 INSTALL(TARGETS lwqq DESTINATION lib)
 INSTALL(FILES ${LWQQ_HEADER} DESTINATION include/lwqq)
+endif()
