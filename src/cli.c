@@ -41,9 +41,6 @@ typedef struct CmdInfo {
 
 static LwqqClient *lc = NULL;
 
-static char vc_image[128];
-static char vc_file[128];
-
 static char *progname;
 
 static CmdInfo cmdtab[] = {
@@ -183,29 +180,6 @@ static char *get_prompt(void)
 		snprintf(prompt, sizeof(prompt), "%s> ", progname);
 	return prompt;
 }
-
-static char *get_vc()
-{
-    char vc[128] = {0};
-    int vc_len;
-    FILE *f;
-
-    if ((f = fopen(vc_file, "r")) == NULL) {
-        return NULL;
-    }
-
-    if (!fgets(vc, sizeof(vc), f)) {
-        fclose(f);
-        return NULL;
-    }
-    
-    vc_len = strlen(vc);
-    if (vc[vc_len - 1] == '\n') {
-        vc[vc_len - 1] = '\0';
-    }
-    return s_strdup(vc);
-}
-
 
 static LwqqErrorCode cli_login()
 {
@@ -508,7 +482,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
     
-    lwqq_log_set_level(3);
+    lwqq_log_set_level(4);
     lc = lwqq_client_new(qqnumber, password);
     lc->action = &act;
     if (!lc) {
