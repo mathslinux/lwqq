@@ -47,8 +47,8 @@ endif(UNIX)
 
 if(WIN32)
   set(LWQQ_LIST ${LWQQ_LIST} win32.c )
-  set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} ws2_32)
   add_definitions(-D_GNU_SOURCE=1)
+  set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} pthread ws2_32)
 endif(WIN32)
 
 if(SSL)
@@ -75,7 +75,6 @@ target_link_libraries(lwqq
   ${CURL_LIBRARIES}
   ${ZLIB_LIBRARIES}
   ${LWQQ_OTHER_LIBS}
-  pthread
   )
 
 if(LWQQ_INSTALL)
