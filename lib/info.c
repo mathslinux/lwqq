@@ -717,7 +717,6 @@ static void parse_friends_child(LwqqClient *lc, json_t *json)
     }
 }
 
-#if 0
 static char* hashN(const char* uin,const char* ptwebqq)
 {
     int alen=strlen(uin);
@@ -760,7 +759,7 @@ static char* hashN(const char* uin,const char* ptwebqq)
     free(c);
     return ret;
 }
-
+#if 0
 static char* hashO(const char* uin,const char* ptwebqq)
 {
     char* a = s_malloc0(strlen(ptwebqq)+strlen("password error")+3);
@@ -791,7 +790,6 @@ static char* hashO(const char* uin,const char* ptwebqq)
     s_free(j);
     return s;
 }
-#endif
 static char* hashP(const char* uin,const char* ptwebqq)
 {
     char a[4]={0};
@@ -820,6 +818,7 @@ static char* hashP(const char* uin,const char* ptwebqq)
     } 
     return s_strdup(d2);
 } 
+#endif
 /** 
  * Get QQ friends information. These information include basic friend 
  * information, friends group information, and so on 
@@ -831,7 +830,7 @@ LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err) {
     char post[512];
     LwqqHttpRequest *req = NULL;
 
-    char* hash = hashP(lc->myself->uin, lc->cookies->ptwebqq);
+    char* hash = hashN(lc->myself->uin, lc->cookies->ptwebqq);
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
     snprintf(post, sizeof(post), "r={\"h\":\"hello\",\"hash\":\"%s\",\"vfwebqq\":\"%s\"}",hash,lc->vfwebqq);
     s_free(hash);
