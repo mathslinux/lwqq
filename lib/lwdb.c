@@ -457,7 +457,7 @@ static LwqqErrorCode lwdb_globaldb_add_new_user(
     if (errmsg) {
         lwqq_log(LOG_ERROR, "Add new user error: %s\n", errmsg);
         s_free(errmsg);
-        return LWQQ_EC_DB_EXEC_FAIELD;
+        return LWQQ_EC_DB_EXEC_FAILED;
     }
 
     return LWQQ_EC_OK;
@@ -521,7 +521,7 @@ static LwqqErrorCode lwdb_globaldb_update_user_info(
              key, value, qqnumber);
     if (!sws_exec_sql(db->db, sql, &err)) {
         lwqq_log(LOG_DEBUG, "%s successfully\n", sql);
-        return LWQQ_EC_DB_EXEC_FAIELD;
+        return LWQQ_EC_DB_EXEC_FAILED;
     } else {
         lwqq_log(LOG_ERROR, "Failed to %s: %s\n", sql, err);
         s_free(err);

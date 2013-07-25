@@ -310,7 +310,7 @@ static void *recvmsg_thread(void *list)
 static void *info_thread(void *lc)
 {
     LwqqErrorCode err;
-    lwqq_info_get_friends_info(lc, &err);
+    lwqq_info_get_friends_info(lc, &err,NULL);
 //    lwqq_info_get_all_friend_qqnumbers(lc, &err);
 
     pthread_exit(NULL);

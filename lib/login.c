@@ -431,7 +431,7 @@ done:
  *        *err will be set LWQQ_EC_ERROR.
  */
 
-static LwqqAsyncEvent* get_version(LwqqClient *lc, LwqqErrorCode *err)
+LwqqAsyncEvent* lwqq_get_version(LwqqClient *lc, LwqqErrorCode *err)
 {
     LwqqHttpRequest *req;
 

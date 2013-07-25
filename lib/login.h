@@ -31,4 +31,5 @@ LwqqAsyncEvent* lwqq_relink(LwqqClient* lc);
  */
 void lwqq_logout(LwqqClient *client, LwqqErrorCode *err);
 
+LwqqAsyncEvent* lwqq_get_version(LwqqClient *lc, LwqqErrorCode *err);
 #endif  /* LWQQ_LOGIN_H */

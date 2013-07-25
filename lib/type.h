@@ -110,25 +110,28 @@ typedef enum {
 
 /* Lwqq Error Code */
 typedef enum {
-    LWQQ_EC_UPLOAD_OVERSIZE =      -21,
-    LWQQ_EC_UPLOAD_OVERRETRY =     -20,
-    LWQQ_EC_FILE_NOT_EXIST =       -6,
-    LWQQ_EC_NULL_POINTER =         -5,
-    LWQQ_EC_CANCELED =             -4,
-    LWQQ_EC_TIMEOUT_OVER =         -3,
-    LWQQ_EC_NO_RESULT =            -2,
-    LWQQ_EC_ERROR =                -1,                 //<general error
+    LWQQ_EC_DB_EXEC_FAILED   = -50,
+    //upload error code
+    LWQQ_EC_UPLOAD_OVERSIZE  = -21,
+    LWQQ_EC_UPLOAD_OVERRETRY = -20,
+    //network error code
+    LWQQ_EC_HTTP_ERROR       = -11,
+    LWQQ_EC_NETWORK_ERROR    = -10,
+    //system error code
+    LWQQ_EC_FILE_NOT_EXIST   = -6,
+    LWQQ_EC_NULL_POINTER     = -5,
+    LWQQ_EC_CANCELED         = -4,
+    LWQQ_EC_TIMEOUT_OVER     = -3,
+    LWQQ_EC_NO_RESULT        = -2,
+    LWQQ_EC_ERROR            = -1,
 
-    LWQQ_EC_NETWORK_ERROR = 20,
-    LWQQ_EC_HTTP_ERROR = 30,
-    LWQQ_EC_DB_EXEC_FAIELD = 50,
-    LWQQ_EC_DB_CLOSE_FAILED,
-    //old uncleard api
-    LWQQ_EC_OK = 0,
-    LWQQ_EC_LOGIN_NEED_VC = 10,
-    LWQQ_EC_LOGIN_ABNORMAL = 60,///<登录需要解禁
-    LWQQ_EC_NO_MESSAGE = 102,
-    LWQQ_EC_PTWEBQQ = 116
+    //webqq error code
+    LWQQ_EC_OK               = 0,
+    LWQQ_EC_LOGIN_NEED_VC    = 10,
+    LWQQ_EC_HASH_WRONG       = 50,
+    LWQQ_EC_LOGIN_ABNORMAL   = 60,///<登录需要解禁
+    LWQQ_EC_NO_MESSAGE       = 102,
+    LWQQ_EC_PTWEBQQ          = 116
 } LwqqErrorCode;
 typedef enum {
     LWQQ_OP_OK = 1,
