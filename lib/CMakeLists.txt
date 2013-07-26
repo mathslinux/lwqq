@@ -29,6 +29,8 @@ set(LWQQ_HEADER
     smemory.h
     type.h
     utility.h
+    lwqq.h
+    vplist.h
     )
 add_definitions(-Wall )
 

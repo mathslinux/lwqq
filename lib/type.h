@@ -378,7 +378,7 @@ typedef struct LwqqAction {
      */
     void (*group_members_chg)(LwqqClient* lc,LwqqGroup* g);
 }LwqqAction;
-//lwqq_call_action(lc,login_complete)(lc,0);
+
 #define lwqq_call_action(lc,act)  if(lc->action->act) lc->action->act
 
 /* Struct defination end */
