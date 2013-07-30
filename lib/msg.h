@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include "queue.h"
 #include "type.h"
+#include "async.h"
 
 /* msg type bits:right->left
  *  1 |  1  | 32 | many
@@ -64,6 +65,14 @@ typedef enum {
     LWQQ_MSG_IS_DISCU = LWQQ_MS_DISCU_MSG,
 }LwqqMessageType;
 
+typedef enum {
+    LWQQ_CONTENT_STRING,
+    LWQQ_CONTENT_FACE,
+    LWQQ_CONTENT_OFFPIC,
+    //custom face :this can send/recv picture
+    LWQQ_CONTENT_CFACE
+}LwqqContentType;
+
 typedef struct LwqqMsg {
     LwqqMsgType type;
 } LwqqMsg;
@@ -78,13 +87,7 @@ typedef struct LwqqMsgSeq {
 
 
 typedef struct LwqqMsgContent {
-    enum {
-        LWQQ_CONTENT_STRING,
-        LWQQ_CONTENT_FACE,
-        LWQQ_CONTENT_OFFPIC,
-//custom face :this can send/recv picture
-        LWQQ_CONTENT_CFACE
-    }type;
+    LwqqContentType type;
     union {
         int face;
         char *str;

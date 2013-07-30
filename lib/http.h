@@ -11,8 +11,9 @@
 #ifndef LWQQ_HTTP_H
 #define LWQQ_HTTP_H
 
-#include "type.h"
 #include <stdio.h>
+#include "type.h"
+#include "async.h"
 
 struct cookie_list;
 

@@ -43,9 +43,10 @@ typedef LIST_HEAD(,LwqqRecentItem) LwqqRecentList;
  * information, friends group information, and so on
  * 
  * @param lc 
+ * @param hash NULL to use internal hash function
  * @param err 
  */
-LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err,LwqqHashFunc hash);
+LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc,LwqqHashFunc hash, LwqqErrorCode *err);
 
 /** 
  * Get QQ groups' name information. Get only 'name', 'gid' , 'code' .

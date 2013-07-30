@@ -12,6 +12,7 @@
 #define LWQQ_LOGIN_H
 
 #include "type.h"
+#include "async.h"
 
 /** 
  * WebQQ login function

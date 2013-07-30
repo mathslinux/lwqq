@@ -3,6 +3,7 @@
 #include "type.h"
 #include "json.h"
 #include "config.h"
+#include "async.h"
 #ifdef WIN32
 #include "win32.h"
 #endif

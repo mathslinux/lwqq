@@ -826,7 +826,9 @@ static char* hashP(const char* uin,const char* ptwebqq)
  * @param lc 
  * @param err 
  */ 
-LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqErrorCode *err,LwqqHashFunc hash) {
+LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqHashFunc hash,
+        LwqqErrorCode *err) 
+{
     char post[512];
     LwqqHttpRequest *req = NULL;
     if(hash == NULL)  hash = hashN;

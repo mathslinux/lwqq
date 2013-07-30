@@ -30,13 +30,10 @@
 #define LWQQ_CACHE_DIR "/tmp/lwqq"
 
 
-typedef struct LwqqAsyncEvent LwqqAsyncEvent;
-typedef struct LwqqAsyncEvset LwqqAsyncEvset;
-typedef struct LwqqMsgContent LwqqMsgContent;
-typedef struct LwqqAction LwqqAction;
 typedef struct _LwqqHttpRequest LwqqHttpRequest;
-//typedef struct _LwqqClient LwqqClient;
 typedef LIST_HEAD(,LwqqAsyncEntry) LwqqAsyncQueue;
+struct LwqqMsgContent;
+struct LwqqAction;
 
 
 typedef VP_DISPATCH DISPATCH_FUNC;
@@ -315,7 +312,7 @@ typedef struct LwqqClient {
     const char* last_err;
     char *gface_key;                  /**< use at cface */
     char *gface_sig;                  /**<use at cfage */
-    const LwqqAction* action;
+    const struct LwqqAction* action;
     LwqqCookies *cookies;
 
     LwqqStatus stat;
@@ -360,7 +357,7 @@ typedef struct LwqqAction {
     /* this is poll lost after recv retcode 112 or 108 */
     void (*poll_lost)(LwqqClient* lc);
     /* this is upload content failed such as lwqq offline pic */
-    void (*upload_fail)(LwqqClient* lc,const char* serv_id,LwqqMsgContent* c,int extra_reason);
+    void (*upload_fail)(LwqqClient* lc,const char* serv_id,struct LwqqMsgContent* c,int extra_reason);
     /* this is you confirmed a friend request 
      * you should add buddy to gui level.
      */
