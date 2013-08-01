@@ -77,7 +77,8 @@ static LwqqAsyncEvent* get_verify_code(LwqqClient *lc,const char* appid)
     snprintf(url, sizeof(url), WEBQQ_CHECK_HOST"/check?uin=%s&appid=%s",
              lc->username, appid);
     req = lwqq_http_create_default_request(lc,url,NULL);
-    lwqq_http_set_option(req, LWQQ_HTTP_ALL_TIMEOUT,5L);
+    //lwqq_http_set_option(req, LWQQ_HTTP_ALL_TIMEOUT,5L);
+    //lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
     lwqq_verbose(3,"%s\n",url);
     
     snprintf(chkuin, sizeof(chkuin), "chkuin=%s", lc->username);

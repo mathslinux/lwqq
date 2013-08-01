@@ -389,7 +389,7 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
     curl_easy_setopt(request->req,CURLOPT_WRITEDATA,request);
     curl_easy_setopt(request->req,CURLOPT_NOSIGNAL,1);
     curl_easy_setopt(request->req,CURLOPT_FOLLOWLOCATION,1);
-    curl_easy_setopt(request->req,CURLOPT_CONNECTTIMEOUT,20);
+    curl_easy_setopt(request->req,CURLOPT_CONNECTTIMEOUT,30);
     //set normal operate timeout to 30.official value.
     //curl_easy_setopt(request->req,CURLOPT_TIMEOUT,30);
     //low speed: 5B/s
