@@ -40,7 +40,7 @@
 static LwqqAsyncEvent* set_online_status(LwqqClient *lc,const char *status);
 static int get_version_back(LwqqHttpRequest* req);
 static int get_verify_code_back(LwqqHttpRequest* req);
-static int do_login_back(LwqqHttpRequest* req);
+static int do_login_back(LwqqHttpRequest* req,LwqqAsyncEvent*);
 static int set_online_status_back(LwqqHttpRequest* req);
 static void login_stage_2(LwqqClient* lc,LwqqErrorCode* err);
 static void login_stage_3(LwqqAsyncEvent* ev,LwqqErrorCode* ec);
@@ -308,17 +308,19 @@ static LwqqAsyncEvent* do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *
 
     req = lwqq_http_create_default_request(lc,url, err);
     lwqq_verbose(3,"%s\n",url);
-    snprintf(refer,sizeof(refer),"https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=5&mibao_css=m_webqq&appid=1003903&enable_qlogin=0&no_verifyimg=1&s_url=http%%3A%%2Fweb2.qq.com%%2Floginproxy.html&f_url=loginerroralert&strong_login=1&login_stat=%d&t=%lu",lc->stat,LTIME);
     /* Setup http header */
     req->set_header(req, "Cookie", lwqq_get_cookies(lc));
-    req->set_header(req, "Referer", refer);
+    req->set_header(req, "Referer", WEBQQ_LOGIN_LONG_REF_URL(refer));
 
+    LwqqAsyncEvent* ret = lwqq_async_event_new(NULL);
     /* Send request */
-    return req->do_request_async(req, 0, NULL,_C_(p_i,do_login_back,req));
+    req->do_request_async(req, 0, NULL,_C_(2p_i,do_login_back,req,ret));
+    return ret;
 }
 
-static int do_login_back(LwqqHttpRequest* req)
+static int do_login_back(LwqqHttpRequest* req,LwqqAsyncEvent* event)
 {
+    char refer[1024];
     LwqqClient* lc = req->lc;
     int err = LWQQ_EC_OK;
     const char* response;
@@ -346,21 +348,24 @@ static int do_login_back(LwqqHttpRequest* req)
         err = LWQQ_EC_ERROR;
         goto done;
     }
-    char buf[4] = {0};
-    int status;
-    strncpy(buf, p + 1, 1);
-    status = atoi(buf);
-    //const char* beg,*end;
-
+    int status,param2;
+    char jumpurl[512];
+    int param4;
+    char msg[64];
+    char user[64];
+    sscanf(response,"ptuiCB('%d','%d','%[^']','%d','%[^']','%[^']');",
+            &status,&param2,jumpurl,&param4,msg,user);
     switch (status) {
     case 0:
-        //sava_cookie(lc, req, NULL);
-        err = LWQQ_EC_OK;
-        //beg = strstr(response,"https://");
-        //end = strchr(beg,'\'');
-        //strncpy(redirect_url,beg,end-beg);
-        break;
-        
+        {
+            err = LWQQ_EC_OK;
+            LwqqHttpRequest* req = lwqq_http_create_default_request(lc, jumpurl, NULL);
+            req->set_header(req,"Cookie",lwqq_get_cookies(lc));
+            req->set_header(req,"Referer",WEBQQ_LOGIN_LONG_REF_URL(refer));
+            lwqq_verbose(3,"%s\n",jumpurl);
+            LwqqAsyncEvent* ev = req->do_request_async(req,0,NULL,_C_(p_i,lwqq__process_empty,req));
+            lwqq_async_add_event_chain(ev, event);
+        } break;
     case 1:
         lwqq_log(LOG_WARNING, "Server busy! Please try again\n");
         lc->last_err = "Server busy! Please try again";
@@ -417,6 +422,11 @@ static int do_login_back(LwqqHttpRequest* req)
     }
 
 done:
+    if(err){
+        event->result = err;
+        event->lc = lc;
+        lwqq_async_event_finish(event);
+    }
     lwqq_http_request_free(req);
     return err;
 }
@@ -541,7 +551,7 @@ static LwqqAsyncEvent* set_online_status(LwqqClient *lc,const char *status)
     req->set_header(req, "Referer", WEBQQ_D_REF_URL);
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
     
-    /* Set http cookie */
+    /* Use Libcurl Internal cookie engine */
     req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     
     return  req->do_request_async(req, 1, msg,_C_(p_i,set_online_status_back,req));

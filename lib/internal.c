@@ -156,3 +156,9 @@ struct str_list_* str_list_prepend(struct str_list_* list,const char* str)
     return ret;
 }
 
+
+int lwqq__process_empty(LwqqHttpRequest* req)
+{
+    lwqq_http_request_free(req);
+    return 0;
+}

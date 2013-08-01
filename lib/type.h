@@ -128,6 +128,7 @@ typedef enum {
     LWQQ_EC_HASH_WRONG       = 50,
     LWQQ_EC_LOGIN_ABNORMAL   = 60,///<登录需要解禁
     LWQQ_EC_NO_MESSAGE       = 102,
+    LWQQ_EC_COOKIE_WRONG     = 103,
     LWQQ_EC_PTWEBQQ          = 116
 } LwqqErrorCode;
 typedef enum {

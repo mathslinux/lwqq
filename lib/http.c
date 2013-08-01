@@ -36,7 +36,7 @@ struct cookie_list {
 typedef struct GLOBAL {
     CURLM* multi;
     CURLSH* share;
-    pthread_mutex_t share_lock[3];
+    pthread_mutex_t share_lock[4];
     int still_running;
     LIST_HEAD(,D_ITEM) conn_link;
     #ifdef WITH_LIBEV
@@ -152,6 +152,8 @@ static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
 {
     if (!request->req || !name || !value)
         return ;
+    //use libcurl internal cookie engine
+    if(strcmp(name,"Cookie")==0) return;
 
     size_t name_len = strlen(name);
     size_t value_len = strlen(value);
@@ -282,6 +284,7 @@ static size_t write_header( void *ptr, size_t size, size_t nmemb, void *userdata
             //remove the last \r\n
             request->location[len-1] = 0;
             request->location[len-2] = 0;
+            lwqq_verbose(3,"Location: %s\n",request->location);
         }
         return size*nmemb;
     }
@@ -892,6 +895,7 @@ static void share_lock(CURL* handle,curl_lock_data data,curl_lock_access access,
         case CURL_LOCK_DATA_DNS:idx=0;break;
         case CURL_LOCK_DATA_CONNECT:idx=1;break;
         case CURL_LOCK_DATA_SSL_SESSION:idx=2;break;
+        case CURL_LOCK_DATA_COOKIE:idx=3;break;
         default:return;
     }
     pthread_mutex_lock(&g->share_lock[idx]);
@@ -905,6 +909,7 @@ static void share_unlock(CURL* handle,curl_lock_data data,void* userptr)
         case CURL_LOCK_DATA_DNS:idx=0;break;
         case CURL_LOCK_DATA_CONNECT:idx=1;break;
         case CURL_LOCK_DATA_SSL_SESSION:idx=2;break;
+        case CURL_LOCK_DATA_COOKIE:idx=3;break;
         default:return;
     }
     pthread_mutex_unlock(&g->share_lock[idx]);
@@ -934,6 +939,7 @@ void lwqq_http_global_init()
         curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_DNS);
         curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_CONNECT);
         curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_SSL_SESSION);
+        curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_COOKIE);
         curl_share_setopt(share,CURLSHOPT_LOCKFUNC,share_lock);
         curl_share_setopt(share,CURLSHOPT_UNLOCKFUNC,share_unlock);
         curl_share_setopt(share,CURLSHOPT_USERDATA,&global);

@@ -39,6 +39,9 @@
 #define WEBQQ_LOGIN_REF_URL WEBQQ_LOGIN_HOST"/proxy.html"
 #define WEBQQ_VERSION_URL   WEBQQ_LOGIN_UI_HOST"/cgi-bin/ver"
 
+#define WEBQQ_LOGIN_LONG_REF_URL(buf) (snprintf(buf,sizeof(buf),\
+            WEBQQ_LOGIN_UI_HOST"/cgi-bin/login?daid=164&target=self&style=5&mibao_css=m_webqq&appid=1003903&enable_qlogin=0&no_verifyimg=1&s_url=http%%3A%%2Fweb2.qq.com%%2Floginproxy.html&f_url=loginerroralert&strong_login=1&login_stat=%d&t=%lu",lc->stat,LTIME),buf)
+
 struct LwqqStrMapEntry_ {
     const char* str;
     int type;
@@ -74,6 +77,7 @@ int lwqq__get_retcode_from_str(const char* str);
 json_t *lwqq__parse_retcode_result(json_t *json,int* retcode);
 
 LwqqAsyncEvent* lwqq__request_captcha(LwqqClient* lc,LwqqVerifyCode* c);
+int lwqq__process_empty(LwqqHttpRequest* req);
 
 #define lwqq__jump_if_http_fail(req,err) if(req->http_code !=200) {err=LWQQ_EC_ERROR;goto done;}
 #define lwqq__jump_if_json_fail(json,str,err) \
