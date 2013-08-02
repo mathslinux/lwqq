@@ -1176,7 +1176,6 @@ static LwqqAsyncEvent* request_content_offpic(LwqqClient* lc,const char* f_uin,L
         goto done;
     }
     req->set_header(req, "Referer", "http://web2.qq.com/");
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
 
     if(LWQQ_VERBOSE_LEVEL>=4)
         lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
@@ -1204,7 +1203,6 @@ static LwqqAsyncEvent* request_content_cface(LwqqClient* lc,const char* group_co
         goto done;
     }
     req->set_header(req, "Referer", "http://web2.qq.com/");
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
 
     if(LWQQ_VERBOSE_LEVEL>=4)
         lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
@@ -1230,7 +1228,6 @@ static LwqqAsyncEvent* request_content_cface2(LwqqClient* lc,int msg_id,const ch
         goto done;
     }
     req->set_header(req, "Referer", "http://web2.qq.com/");
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
 
     if(LWQQ_VERBOSE_LEVEL>=4)
         lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
@@ -1549,7 +1546,6 @@ static void *start_poll_msg(void *msg_list)
     req->set_header(req, "Referer", WEBQQ_D_REF_URL);
     req->set_header(req, "Content-Transfer-Encoding", "binary");
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     //long poll timeout is 90s.official value
     lwqq_http_set_option(req, LWQQ_HTTP_TIMEOUT,90);
     lwqq_http_set_option(req, LWQQ_HTTP_CANCELABLE,1L);
@@ -1750,7 +1746,6 @@ static LwqqAsyncEvent* lwqq_msg_upload_offline_pic(
     req = lwqq_http_create_default_request(lc,url,&err);
     req->set_header(req,"Origin","http://web2.qq.com");
     req->set_header(req,"Referer","http://web2.qq.com/");
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     req->set_header(req,"Cache-Control","max-age=0");
 
     if(LWQQ_VERBOSE_LEVEL>=4)
@@ -1760,7 +1755,9 @@ static LwqqAsyncEvent* lwqq_msg_upload_offline_pic(
     req->add_form(req,LWQQ_FORM_CONTENT,"locallangid","2052");
     req->add_form(req,LWQQ_FORM_CONTENT,"clientversion","1409");
     req->add_form(req,LWQQ_FORM_CONTENT,"uin",lc->username);///<this may error
-    req->add_form(req,LWQQ_FORM_CONTENT,"skey",lc->cookies->skey);
+    char* skey = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "skey");
+    req->add_form(req,LWQQ_FORM_CONTENT,"skey",skey);
+    s_free(skey);
     req->add_form(req,LWQQ_FORM_CONTENT,"appid","1002101");
     req->add_form(req,LWQQ_FORM_CONTENT,"peeruin",to);///<what this means?
     req->add_file_content(req,"file",filename,buffer,size,NULL);
@@ -1829,7 +1826,6 @@ static LwqqAsyncEvent* query_gface_sig(LwqqClient* lc)
             "https://d.web2.qq.com/channel",lc->clientid,lc->psessionid,time(NULL));
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,&err);
     req->set_header(req,"Referer","https://d.web2.qq.com/cfproxy.html?v=20110331002&callback=1");
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
 
     return req->do_request_async(req,0,NULL,_C_(p,process_gface_sig,req));
 }
@@ -1900,7 +1896,6 @@ static LwqqAsyncEvent* lwqq_msg_upload_cface(
     //curl_easy_setopt(req->req,CURLOPT_VERBOSE,1);
     req->set_header(req,"Origin","http://web2.qq.com");
     req->set_header(req,"Referer","http://web2.qq.com/");
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
 
     if(LWQQ_VERBOSE_LEVEL>=4)
         lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
@@ -2030,7 +2025,6 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
     req->set_header(req, "Referer", WEBQQ_D_REF_URL);
     req->set_header(req, "Content-Transfer-Encoding", "binary");
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     
     return req->do_request_async(req, 1, data,_C_(2p_i,msg_send_back,req,lc));
 
@@ -2164,7 +2158,6 @@ LwqqAsyncEvent* lwqq_msg_accept_file(LwqqClient* lc,LwqqMsgFileMessage* msg,cons
     //s_free(gbk);
     lwqq_verbose(3,"%s\n",url);
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
     //followlocation by hand
     //because curl doesn't escape url after auto follow;
@@ -2185,7 +2178,6 @@ LwqqAsyncEvent* lwqq_msg_refuse_file(LwqqClient* lc,LwqqMsgFileMessage* file)
             file->session_id,file->super.from,lc->psessionid,time(NULL),lc->clientid);
     lwqq_verbose(3,"%s\n",url);
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
     return req->do_request_async(req,0,NULL,_C_(p_i,process_simple_response,req));
 }
@@ -2195,7 +2187,6 @@ LwqqAsyncEvent* lwqq_msg_upload_offline_file(LwqqClient* lc,LwqqMsgOffFile* file
     char url[512];
     snprintf(url,sizeof(url),"http://weboffline.ftn.qq.com/ftn_access/upload_offline_file?time=%ld",LTIME);
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     req->set_header(req,"Referer","http://web2.qq.com/");
     req->set_header(req,"Origin","http://web2.qq.com");
     req->set_header(req,"Cache-Control","max-age=0");
@@ -2212,7 +2203,9 @@ LwqqAsyncEvent* lwqq_msg_upload_offline_file(LwqqClient* lc,LwqqMsgOffFile* file
     req->add_form(req,LWQQ_FORM_CONTENT,"locallangid","2052");
     req->add_form(req,LWQQ_FORM_CONTENT,"clientversion","1409");
     req->add_form(req,LWQQ_FORM_CONTENT,"uin",file->super.from);
-    req->add_form(req,LWQQ_FORM_CONTENT,"skey",lc->cookies->skey);
+    char* skey = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "skey");
+    req->add_form(req,LWQQ_FORM_CONTENT,"skey",skey);
+    s_free(skey);
     req->add_form(req,LWQQ_FORM_CONTENT,"appid","1002101");
     req->add_form(req,LWQQ_FORM_CONTENT,"peeruin",file->super.to);
     req->add_form(req,LWQQ_FORM_CONTENT,"vfwebqq",lc->vfwebqq);
@@ -2261,7 +2254,6 @@ LwqqAsyncEvent* lwqq_msg_send_offfile(LwqqClient* lc,LwqqMsgOffFile* file)
     char post[512];
     snprintf(url,sizeof(url),WEBQQ_D_HOST"/channel/send_offfile2");
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
     snprintf(post,sizeof(post),"r={\"to\":\"%s\",\"file_path\":\"%s\","
             "\"filename\":\"%s\",\"to_uin\":\"%s\","
@@ -2300,7 +2292,6 @@ LwqqAsyncEvent* lwqq_msg_upload_file(LwqqClient* lc,LwqqMsgOffFile* file,
             );
     lwqq_verbose(3,"%s\n",url);
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     req->set_header(req,"Referer","http://web2.qq.com/");
 
     req->add_form(req,LWQQ_FORM_FILE,"file",file->name);
@@ -2377,7 +2368,6 @@ LwqqAsyncEvent* lwqq_msg_friend_history(LwqqClient* lc,const char* serv_id,LwqqH
     snprintf(url,sizeof(url),"http://web2.qq.com/cgi-bin/webqq_chat/?cmd=1&tuin=%s&vfwebqq=%s&page=%d&row=%d&callback=alloy.app.chatLogViewer.renderChatLog&t=%ld",serv_id,lc->vfwebqq,list->page,list->row,time(NULL));
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
     req->set_header(req,"Referer","http://web2.qq.com/");
-    req->set_header(req,"Cookie",lwqq_get_cookies(lc));
     lwqq_verbose(3,"%s\n",url);
     return req->do_request_async(req,0,NULL,_C_(3p_i,process_msg_list,req,s_strdup(serv_id),list));
 }
@@ -2390,7 +2380,6 @@ LwqqAsyncEvent* lwqq_msg_group_history(LwqqClient* lc,LwqqGroup* g,LwqqHistoryMs
             list->row,list->begin,list->end,g->code,lc->vfwebqq,time(NULL));
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
     req->set_header(req,"Referer","http://cgi.web2.qq.com/cfproxy.html?v=20110412001&id=2");
-    req->set_header(req,"Cookie",lwqq_get_cookies(lc));
     lwqq_verbose(3,"%s\n",url);
     return req->do_request_async(req,0,NULL,_C_(3p_i,process_group_msg_list,req,NULL,list));
 }

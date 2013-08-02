@@ -75,8 +75,6 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     lc->myself->qqnumber = s_strdup(username);
     lc->myself->uin = s_strdup(username);
 
-    lc->cookies = s_malloc0(sizeof(*(lc->cookies)));
-
     lc->msg_list = lwqq_recvmsg_new(lc);
 
     lc->action = &default_async_opt;
@@ -107,22 +105,6 @@ void* lwqq_get_http_handle(LwqqClient* lc)
     return ((LwqqClient_*)lc)->http;
 }
 
-/** 
- * Get cookies needby by webqq server
- * 
- * @param lc 
- * 
- * @return Cookies string on success, or null on failure
- */
-const char *lwqq_get_cookies(LwqqClient *lc)
-{
-    if (lc->cookies && lc->cookies->lwcookies) {
-        return (lc->cookies->lwcookies);
-    }
-
-    return NULL;
-}
-
 void lwqq_vc_free(LwqqVerifyCode *vc)
 {
     if (vc) {
@@ -130,24 +112,6 @@ void lwqq_vc_free(LwqqVerifyCode *vc)
         s_free(vc->uin);
         s_free(vc->data);
         s_free(vc);
-    }
-}
-
-static void cookies_free(LwqqCookies *c)
-{
-    if (c) {
-        s_free(c->ptvfsession);
-        s_free(c->ptcz);
-        s_free(c->skey);
-        s_free(c->ptwebqq);
-        s_free(c->ptuserinfo);
-        s_free(c->uin);
-        s_free(c->ptisp);
-        s_free(c->pt2gguin);
-        s_free(c->verifysession);
-        s_free(c->lwcookies);
-        s_free(c->RK);
-        s_free(c);
     }
 }
 
@@ -187,7 +151,6 @@ void lwqq_client_free(LwqqClient *client)
     s_free(client->version);
     s_free(client->error_description);
     lwqq_vc_free(client->vc);
-    cookies_free(client->cookies);
     s_free(client->clientid);
     s_free(client->seskey);
     s_free(client->cip);

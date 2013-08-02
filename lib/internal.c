@@ -53,7 +53,6 @@ LwqqAsyncEvent* lwqq__request_captcha(LwqqClient* lc,LwqqVerifyCode* c)
             "http://captcha.qq.com",random);
     lwqq_puts(url);
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
-    req->set_header(req,"Cookie", lwqq_get_cookies(lc));
     req->set_header(req,"Referer","http://web2.qq.com/");
     req->set_header(req,"Connection","keep-alive");
     return req->do_request_async(req,0,NULL,_C_(2p_i,request_captcha_back,req,c));

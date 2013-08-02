@@ -269,7 +269,6 @@ static LwqqAsyncEvent* do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *
     req = lwqq_http_create_default_request(lc,url, err);
     lwqq_verbose(3,"%s\n",url);
     /* Setup http header */
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
     req->set_header(req, "Referer", WEBQQ_LOGIN_LONG_REF_URL(refer));
 
     LwqqAsyncEvent* ret = lwqq_async_event_new(NULL);
@@ -320,7 +319,6 @@ static int do_login_back(LwqqHttpRequest* req,LwqqAsyncEvent* event)
         {
             err = LWQQ_EC_OK;
             LwqqHttpRequest* req = lwqq_http_create_default_request(lc, jumpurl, NULL);
-            req->set_header(req,"Cookie",lwqq_get_cookies(lc));
             req->set_header(req,"Referer",WEBQQ_LOGIN_LONG_REF_URL(refer));
             lwqq_http_set_option(req, LWQQ_HTTP_MAXREDIRS,1L);
             lwqq_verbose(3,"%s\n",jumpurl);
@@ -514,10 +512,6 @@ static LwqqAsyncEvent* set_online_status(LwqqClient *lc,const char *status)
     req->set_header(req, "Referer", WEBQQ_D_REF_URL);
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
     lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
-    
-    /* Use Libcurl Internal cookie engine */
-    req->set_header(req, "Cookie", lwqq_get_cookies(lc));
-    //lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
     
     return  req->do_request_async(req, 1, msg,_C_(p_i,set_online_status_back,req));
 }
@@ -715,9 +709,6 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     /* Set header needed by server */
     req->set_header(req, "Referer", WEBQQ_LOGIN_REF_URL);
     
-    /* Set http cookie */
-    req->set_header(req, "Cookie", lwqq_get_cookies(client));
-    
     lwqq_http_set_option(req, LWQQ_HTTP_ALL_TIMEOUT,5L);
     req->retry = 0;
     ret = req->do_request(req, 0, NULL);
@@ -813,7 +804,9 @@ LwqqAsyncEvent* lwqq_relink(LwqqClient* lc)
     if(!lc) return NULL;
     char url[128];
     char post[512];
-    if(!lc->new_ptwebqq) lc->new_ptwebqq = s_strdup(lc->cookies->ptwebqq);
+    if(!lc->new_ptwebqq){
+        lc->new_ptwebqq = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "ptwebqq");
+    }
     snprintf(url, sizeof(url), WEBQQ_D_HOST"/channel/login2");
     snprintf(post, sizeof(post), "r={\"status\":\"%s\",\"ptwebqq\":\"%s\",\"passwd_sig\":\"\",\"clientid\":\"%s\",\"psessionid\":\"%s\"}",lwqq_status_to_str(lc->stat),lc->new_ptwebqq,lc->clientid,lc->psessionid);
     lwqq_verbose(3,"%s\n",url);
@@ -821,7 +814,6 @@ LwqqAsyncEvent* lwqq_relink(LwqqClient* lc)
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
     lwqq_http_set_cookie(req, "ptwebqq", lc->new_ptwebqq);
-    req->set_header(req,"Cookie",lwqq_get_cookies(lc));
     req->retry = 0;
     return req->do_request_async(req,1,post,_C_(p_i,process_login2,req));
 }

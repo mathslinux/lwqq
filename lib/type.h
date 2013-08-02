@@ -283,19 +283,6 @@ typedef struct LwqqVerifyCode {
 typedef enum {LWQQ_NO,LWQQ_YES,LWQQ_EXTRA_ANSWER,LWQQ_IGNORE} LwqqAnswer;
 #define LWQQ_ALLOW_AND_ADD LWQQ_EXTRA_ANSWER
 
-typedef struct LwqqCookies {
-    char *ptvfsession;          /**< ptvfsession */
-    char *ptcz;
-    char *skey;
-    char *ptwebqq;
-    char *ptuserinfo;
-    char *uin;
-    char *ptisp;
-    char *pt2gguin;
-    char *verifysession;
-    char *RK;
-    char *lwcookies;
-} LwqqCookies;
 /* LwqqClient API */
 typedef struct LwqqClient {
     char *username;             /**< Username */
@@ -315,7 +302,6 @@ typedef struct LwqqClient {
     char *gface_sig;                  /**<use at cfage */
     char *login_sig;
     const struct LwqqAction* action;
-    LwqqCookies *cookies;
 
     LwqqStatus stat;
     char *error_description;
@@ -396,15 +382,6 @@ LwqqClient *lwqq_client_new(const char *username, const char *password);
 
 #define lwqq_client_valid(lc) (lc!=0&&lc->magic==LWQQ_MAGIC)
 #define lwqq_client_logined(lc) (lc->stat != LWQQ_STATUS_LOGOUT)
-
-/** 
- * Get cookies needby by webqq server
- * 
- * @param lc 
- * 
- * @return Cookies string on success, or null on failure
- */
-const char *lwqq_get_cookies(LwqqClient *lc);
 
 /** 
  * Free LwqqVerifyCode object
