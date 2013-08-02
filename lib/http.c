@@ -29,27 +29,20 @@ static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int 
 
 typedef struct GLOBAL {
     CURLM* multi;
-    pthread_mutex_t share_lock[4];
     int still_running;
     LIST_HEAD(,D_ITEM) conn_link;
-    #ifdef WITH_LIBEV
-    int pipe_fd[2];
-    #endif
     LwqqAsyncTimerHandle timer_event;
     LwqqAsyncIoHandle add_listener;
     LIST_HEAD(,D_ITEM) add_link;
+    #ifdef WITH_LIBEV
+    int pipe_fd[2];
+    #endif
 }GLOBAL;
 
 struct trunk_entry{
     char* trunk;
     size_t size;
     SIMPLEQ_ENTRY(trunk_entry) entries;
-};
-
-struct curl_err_map_t{
-    CURLcode c_err;
-    int retry;
-    LwqqCallbackCode set_err;
 };
 
 static
@@ -78,6 +71,7 @@ typedef struct LwqqHttpHandle_
 {
     LwqqHttpHandle parent;
     CURLSH* share;
+    pthread_mutex_t share_lock[4];
 }LwqqHttpHandle_;
 
 
@@ -911,7 +905,7 @@ static void share_lock(CURL* handle,curl_lock_data data,curl_lock_access access,
     //this is shared access.
     //no need to lock it.
     if(access == CURL_LOCK_ACCESS_SHARED) return;
-    GLOBAL* g = userptr;
+    LwqqHttpHandle_* h_ = userptr;
     int idx;
     switch(data){
         case CURL_LOCK_DATA_DNS:idx=0;break;
@@ -920,13 +914,13 @@ static void share_lock(CURL* handle,curl_lock_data data,curl_lock_access access,
         case CURL_LOCK_DATA_COOKIE:idx=3;break;
         default:return;
     }
-    pthread_mutex_lock(&g->share_lock[idx]);
+    pthread_mutex_lock(&h_->share_lock[idx]);
 
 }
 static void share_unlock(CURL* handle,curl_lock_data data,void* userptr)
 {
-    GLOBAL* g = userptr;
     int idx;
+    LwqqHttpHandle_* h_ = userptr;
     switch(data){
         case CURL_LOCK_DATA_DNS:idx=0;break;
         case CURL_LOCK_DATA_CONNECT:idx=1;break;
@@ -934,7 +928,7 @@ static void share_unlock(CURL* handle,curl_lock_data data,void* userptr)
         case CURL_LOCK_DATA_COOKIE:idx=3;break;
         default:return;
     }
-    pthread_mutex_unlock(&g->share_lock[idx]);
+    pthread_mutex_unlock(&h_->share_lock[idx]);
 }
 void lwqq_http_global_init()
 {
@@ -946,10 +940,6 @@ void lwqq_http_global_init()
         curl_multi_setopt(global.multi, CURLMOPT_TIMERFUNCTION, multi_timer_cb);
         curl_multi_setopt(global.multi, CURLMOPT_TIMERDATA, &global);
 
-        pthread_mutex_init(&global.share_lock[0],NULL);
-        pthread_mutex_init(&global.share_lock[1],NULL);
-        pthread_mutex_init(&global.share_lock[2],NULL);
-        pthread_mutex_init(&global.share_lock[3],NULL);
         
 #ifndef WITHOUT_ASYNC
         global.timer_event = lwqq_async_timer_new();
@@ -1005,11 +995,6 @@ void lwqq_http_global_free()
         lwqq_async_timer_stop(global.timer_event);
         lwqq_async_timer_free(global.timer_event);
         curl_global_cleanup();
-
-        pthread_mutex_destroy(&global.share_lock[0]);
-        pthread_mutex_destroy(&global.share_lock[1]);
-        pthread_mutex_destroy(&global.share_lock[2]);
-        pthread_mutex_destroy(&global.share_lock[3]);
     }
 }
 void lwqq_http_cleanup(LwqqClient*lc)
@@ -1179,7 +1164,10 @@ LwqqHttpHandle* lwqq_http_handle_new()
     curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_COOKIE);
     curl_share_setopt(share,CURLSHOPT_LOCKFUNC,share_lock);
     curl_share_setopt(share,CURLSHOPT_UNLOCKFUNC,share_unlock);
-    curl_share_setopt(share,CURLSHOPT_USERDATA,&global);
+    curl_share_setopt(share,CURLSHOPT_USERDATA,h_);
+    int i;
+    for(i=0;i<4;i++)
+        pthread_mutex_init(&h_->share_lock[i],NULL);
     return (LwqqHttpHandle*)h_;
 }
 void lwqq_http_handle_free(LwqqHttpHandle* http)
@@ -1189,6 +1177,9 @@ void lwqq_http_handle_free(LwqqHttpHandle* http)
         s_free(http->proxy.username);
         s_free(http->proxy.password);
         s_free(http->proxy.host);
+        int i;
+        for(i=0;i<4;i++)
+            pthread_mutex_destroy(&h_->share_lock[i]);
         curl_share_cleanup(h_->share);
         s_free(http);
     }
