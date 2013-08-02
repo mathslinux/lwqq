@@ -14,7 +14,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <ctype.h>
-//#include <alloca.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -533,15 +532,17 @@ static LwqqAsyncEvent* set_online_status(LwqqClient *lc,const char *status)
         lwqq_log(LOG_ERROR, "Generate clientid error\n");
         return NULL;
     }
+    char* ptwebqq = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "ptwebqq");
 
     snprintf(msg, sizeof(msg), "{\"status\":\"%s\",\"ptwebqq\":\"%s\","
              "\"passwd_sig\":""\"\",\"clientid\":\"%s\""
              ", \"psessionid\":null}"
-             ,status, lc->cookies->ptwebqq
+             ,status, ptwebqq
              ,lc->clientid);
     buf = url_encode(msg);
     snprintf(msg, sizeof(msg), "r=%s", buf);
     s_free(buf);
+    s_free(ptwebqq);
 
     /* Create a POST request */
     req = lwqq_http_create_default_request(lc,WEBQQ_D_HOST"/channel/login2", NULL);
@@ -551,68 +552,36 @@ static LwqqAsyncEvent* set_online_status(LwqqClient *lc,const char *status)
     //req->set_header(req, "Cookie2", "$Version=1");
     req->set_header(req, "Referer", WEBQQ_D_REF_URL);
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
+    lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
     
     /* Use Libcurl Internal cookie engine */
     req->set_header(req, "Cookie", lwqq_get_cookies(lc));
+    //lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
     
     return  req->do_request_async(req, 1, msg,_C_(p_i,set_online_status_back,req));
 }
 
 static int set_online_status_back(LwqqHttpRequest* req)
 {
-    int err = LWQQ_EC_OK;
-    int ret;
-    char* response;
-    char* value;
-    json_t * json = NULL;
+    int err = 0;
     LwqqClient* lc = req->lc;
-    if(!lwqq_client_valid(lc)){
-        err = LWQQ_EC_ERROR;
-        goto done;
+    json_t* root = NULL,*result;
+    lwqq__jump_if_http_fail(req,err);
+    lwqq__jump_if_json_fail(root,req->response,err);
+    result = lwqq__parse_retcode_result(root, &err);
+    if(err) goto done;
+    if(result){
+        lwqq_override(lc->seskey,lwqq__json_get_value(result,"seskey"));
+        lwqq_override(lc->cip,lwqq__json_get_value(result,"cip"));
+        lwqq_override(lc->myself->uin,lwqq__json_get_value(result,"uin"));
+        lwqq_override(lc->index,lwqq__json_get_value(result,"index"));
+        lwqq_override(lc->port,lwqq__json_get_value(result,"port"));
+        lwqq_override(lc->psessionid,lwqq__json_get_value(result,"psessionid"));
+        lwqq_override(lc->vfwebqq,lwqq__json_get_value(result,"vfwebqq"));
+        lc->stat = lwqq_status_from_str(json_parse_simple_value(result, "status"));
     }
-    if (req->http_code != 200) {
-        err = LWQQ_EC_HTTP_ERROR;
-        goto done;
-    }
-
-    /**
-     * Here, we got a json object like this:
-     * {"retcode":0,"result":{"uin":1421032531,"cip":2013211875,"index":1060,"port":43415,"status":"online","vfwebqq":"e7ce7913336ad0d28de9cdb9b46a57e4a6127161e35b87d09486001870226ec1fca4c2ba31c025c7","psessionid":"8368046764001e636f6e6e7365727665725f77656271714031302e3133332e34312e32303200006b2900001544016e0400533cb3546d0000000a4046674d4652585136496d00000028e7ce7913336ad0d28de9cdb9b46a57e4a6127161e35b87d09486001870226ec1fca4c2ba31c025c7","user_state":0,"f":0}}
-     * 
-     */
-    response = req->response;
-    lwqq_verbose(3,"%s\n",response);
-    ret = json_parse_document(&json, response);
-    if (ret != JSON_OK) {
-        err = LWQQ_EC_ERROR;
-        goto done;
-    }
-
-    if (!(value = json_parse_simple_value(json, "retcode"))) {
-        err = LWQQ_EC_ERROR;
-        goto done;
-    }
-    /**
-     * Do we need parse "seskey? from kernelhcy's code, we need it,
-     * but from the response we got like above, we dont need
-     * 
-     */
-    lwqq_override(lc->seskey,lwqq__json_get_value(json,"seskey"));
-    lwqq_override(lc->cip,lwqq__json_get_value(json,"cip"));
-    lwqq_override(lc->myself->uin,lwqq__json_get_value(json,"uin"));
-    lwqq_override(lc->index,lwqq__json_get_value(json,"index"));
-    lwqq_override(lc->port,lwqq__json_get_value(json,"port"));
-    lwqq_override(lc->vfwebqq,lwqq__json_get_value(json,"vfwebqq"));
-    lwqq_override(lc->psessionid,lwqq__json_get_value(json,"psessionid"));
-    lc->stat = lwqq_status_from_str(
-            json_parse_simple_value(json, "status"));
-
-    err = LWQQ_EC_OK;
-    
 done:
-    if (json)
-        json_free_value(&json);
-    lwqq_http_request_free(req);
+    lwqq__clean_json_and_req(root,req);
     return err;
 }
 
@@ -890,7 +859,7 @@ LwqqAsyncEvent* lwqq_relink(LwqqClient* lc)
     lwqq_verbose(3,"%s\n",post);
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
-    lwqq_set_cookie(lc->cookies, "ptwebqq", lc->new_ptwebqq);
+    lwqq_http_set_cookie(req, "ptwebqq", lc->new_ptwebqq);
     req->set_header(req,"Cookie",lwqq_get_cookies(lc));
     req->retry = 0;
     return req->do_request_async(req,1,post,_C_(p_i,process_login2,req));

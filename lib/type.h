@@ -405,7 +405,6 @@ LwqqClient *lwqq_client_new(const char *username, const char *password);
  */
 const char *lwqq_get_cookies(LwqqClient *lc);
 
-void lwqq_set_cookie(LwqqCookies* ,const char* key,const char* value);
 /** 
  * Free LwqqVerifyCode object
  * 

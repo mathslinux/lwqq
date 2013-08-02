@@ -3,7 +3,6 @@ add_executable(lwqq-cli
     )
 
 include_directories(
-	${EV_INCLUDE_DIRS}
 	../lib 
 	)
 

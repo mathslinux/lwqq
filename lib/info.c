@@ -833,7 +833,9 @@ LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqHashFunc hash,
     LwqqHttpRequest *req = NULL;
     if(hash == NULL)  hash = hashN;
 
-    char* h = hash(lc->myself->uin, lc->cookies->ptwebqq);
+    char* ptwebqq = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "ptwebqq");
+    char* h = hash(lc->myself->uin, ptwebqq);
+    s_free(ptwebqq);
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
     snprintf(post, sizeof(post), "r={\"h\":\"hello\",\"hash\":\"%s\",\"vfwebqq\":\"%s\"}",h,lc->vfwebqq);
     s_free(h);

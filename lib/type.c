@@ -485,45 +485,6 @@ const char* lwqq_date_to_str(time_t date)
     return buf;
 }
 
-
-
-void lwqq_set_cookie(LwqqCookies* c,const char* key,const char* value)
-{
-    if(!c) return;
-#define SET_COOKIE_IF_MATCH(k) if(!strncmp(key,#k,strlen(#k))){\
-    s_free(c->k);c->k = s_strdup(value);\
-    goto done;\
-    }
-    SET_COOKIE_IF_MATCH(ptvfsession);
-    SET_COOKIE_IF_MATCH(ptcz);
-    SET_COOKIE_IF_MATCH(skey);
-    SET_COOKIE_IF_MATCH(ptwebqq);
-    SET_COOKIE_IF_MATCH(ptuserinfo);
-    SET_COOKIE_IF_MATCH(uin);
-    SET_COOKIE_IF_MATCH(ptisp);
-    SET_COOKIE_IF_MATCH(pt2gguin);
-    SET_COOKIE_IF_MATCH(verifysession);
-    SET_COOKIE_IF_MATCH(RK);
-    lwqq_log(LOG_ERROR,"No this cookie:%s\n",key);
-done:
-    s_free(c->lwcookies);
-    char buf[4096]={0};
-#define PUT_COOKIE_KEY(k) if(c->k){strcat(buf,#k"=");strcat(buf,c->k);strcat(buf,"; ");}
-    PUT_COOKIE_KEY(ptvfsession);
-    PUT_COOKIE_KEY(ptcz);
-    PUT_COOKIE_KEY(skey);
-    PUT_COOKIE_KEY(ptwebqq);
-    PUT_COOKIE_KEY(ptuserinfo);
-    PUT_COOKIE_KEY(uin);
-    PUT_COOKIE_KEY(ptisp);
-    PUT_COOKIE_KEY(pt2gguin);
-    PUT_COOKIE_KEY(verifysession);
-    PUT_COOKIE_KEY(RK);
-    c->lwcookies = s_strdup(buf);
-#undef SET_COOKIE_IF_MATCH
-#undef PUT_COOKIE_KEY
-}
-
 long lwqq_time()
 {
     struct timeval tv;

@@ -41,7 +41,7 @@ struct _LwqqHttpRequest {
     void *lc;
     void *header;// read and write.
     void *recv_head;
-    struct cookie_list* cookie;
+    //struct cookie_list* cookie;
     void *form_start;
     void *form_end;
 
@@ -80,12 +80,6 @@ struct _LwqqHttpRequest {
     /** Get header */
     const char * (*get_header)(LwqqHttpRequest *request, const char *name);
 
-    /**
-     * Get Cookie, return a alloca memory, so caller has responsibility
-     * free the memory
-     */
-    char * (*get_cookie)(LwqqHttpRequest *request, const char *name);
-
     //add http form
     void (*add_form)(LwqqHttpRequest* request,LWQQ_FORM form,const char* name,const char* content);
     //add http form file type
@@ -110,6 +104,7 @@ typedef struct {
         char* username;
         char* password;
     }proxy;
+    struct cookie_list* cookies;
     int quit;
     int synced;
 }LwqqHttpHandle;
@@ -125,6 +120,7 @@ do{\
     h->proxy.password = s_strdup(_password);\
 }while(0);
 
+//void lwqq_http_set_cookie(LwqqHttpHandle*,const char* key,const char* val);
 void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req);
 
 /**
@@ -164,6 +160,9 @@ void lwqq_http_cleanup(LwqqClient*lc);
 void lwqq_http_set_option(LwqqHttpRequest* req,LwqqHttpOption opt,...);
 /** regist http progressing callback */
 void lwqq_http_on_progress(LwqqHttpRequest* req,LWQQ_PROGRESS progress,void* prog_data);
+
+char* lwqq_http_get_cookie(LwqqHttpHandle* handle, const char *name);
+void  lwqq_http_set_cookie(LwqqHttpRequest *request, const char *name,const char* val);
 /** 
  * force stop a request 
  * require set LWQQ_HTTP_CANCELABLE option first
