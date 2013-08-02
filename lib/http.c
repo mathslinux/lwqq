@@ -27,12 +27,8 @@ static void lwqq_http_add_file_content(LwqqHttpRequest* request,const char* name
 static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int method,
         char *body,LwqqCommand);
 
-struct cookie_list {
-    struct curl_slist data;
-};
 typedef struct GLOBAL {
     CURLM* multi;
-    CURLSH* share;
     pthread_mutex_t share_lock[4];
     int still_running;
     LIST_HEAD(,D_ITEM) conn_link;
@@ -71,6 +67,12 @@ typedef struct LwqqHttpRequest_
     int flags;              /**store http option settings**/
     SIMPLEQ_HEAD(,trunk_entry) trunks;
 }LwqqHttpRequest_;
+
+typedef struct LwqqHttpHandle_
+{
+    LwqqHttpHandle parent;
+    CURLSH* share;
+}LwqqHttpHandle_;
 
 
 static GLOBAL global = {0};
@@ -220,7 +222,12 @@ char *lwqq_http_get_cookie(LwqqHttpHandle* h, const char *name)
         lwqq_log(LOG_ERROR, "Invalid parameter\n");
         return NULL; 
     }
-    struct curl_slist* list = (struct curl_slist*)h->cookies;
+    LwqqHttpHandle_* h_ = (LwqqHttpHandle_*)h;
+    struct curl_slist* list ;
+    CURL* easy = curl_easy_init();
+    curl_easy_setopt(easy, CURLOPT_SHARE,h_->share);
+    curl_easy_getinfo(easy, CURLINFO_COOKIELIST,&list);
+    curl_easy_cleanup(easy);
     char* n,*v;
     while(list!=NULL){
         v = strrchr(list->data,'\t')+1;
@@ -240,26 +247,8 @@ void lwqq_http_set_cookie(LwqqHttpRequest* req,const char* name,const char* val)
         lwqq_log(LOG_ERROR, "Invalid parameter\n");
         return ; 
     }
-    if(!req->lc) return ;
-    LwqqHttpHandle* h = lwqq_get_http_handle(req->lc);
-    struct curl_slist* list = (struct curl_slist*)h->cookies;
+    if(!val) val="";
     char buf[1024];
-    if(!val) val = "";
-    char* n,*v;
-    while(list!=NULL){
-        v = strrchr(list->data,'\t')+1;
-        n = v-2;
-        while(n--,*n!='\t');
-        n++;
-
-        if(v-n-1 == strlen(name) && strncmp(name,n,v-n-1)==0){
-            strcpy(buf,list->data);
-            strcpy(strrchr(buf,'\t'),val);
-            curl_easy_setopt(req->req, CURLOPT_COOKIELIST,buf);
-            return;
-        }
-        list = list->next;
-    }
     snprintf(buf,sizeof(buf),"%s=%s",name,val);
 
     curl_easy_setopt(req->req, CURLOPT_COOKIE,buf);
@@ -280,7 +269,6 @@ int lwqq_http_request_free(LwqqHttpRequest *request)
         s_free(request->location);
         curl_slist_free_all(request->header);
         curl_slist_free_all(request->recv_head);
-        //slist_free_all(request->cookie);
         curl_formfree(request->form_start);
         if(request->req){
             curl_easy_cleanup(request->req);
@@ -403,8 +391,6 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
         lwqq_log(LOG_WARNING, "Invalid uri: %s\n", uri);
         goto failed;
     }
-    if(global.share==NULL) lwqq_http_global_init();
-    curl_easy_setopt(request->req,CURLOPT_SHARE,global.share);
     curl_easy_setopt(request->req,CURLOPT_HEADERFUNCTION,write_header);
     curl_easy_setopt(request->req,CURLOPT_HEADERDATA,request);
     curl_easy_setopt(request->req,CURLOPT_WRITEFUNCTION,write_content);
@@ -542,17 +528,20 @@ LwqqHttpRequest *lwqq_http_create_default_request(LwqqClient* lc,const char *url
     }
 
     req = lwqq_http_request_new(url);
+    
     if (!req) {
         lwqq_log(LOG_ERROR, "Create request object for url: %s failed\n", url);
         if (err)
             *err = LWQQ_EC_ERROR;
         return NULL;
     }
-
     lwqq_http_set_default_header(req);
-    lwqq_http_proxy_apply(lwqq_get_http_handle(lc), req);
+
+    LwqqHttpHandle* h = lwqq_get_http_handle(lc);
+    LwqqHttpHandle_* h_ = (LwqqHttpHandle_*) h;
+    curl_easy_setopt(req->req,CURLOPT_SHARE,h_->share);
+    lwqq_http_proxy_apply(h, req);
     req->lc = lc;
-    //lwqq_log(LOG_DEBUG, "Create request object for url: %s sucessfully\n", url);
     return req;
 }
 
@@ -577,14 +566,11 @@ static void uncompress_response(LwqqHttpRequest* req)
 static void async_complete(D_ITEM* conn)
 {
     LwqqHttpRequest* request = conn->req;
-    LwqqHttpHandle* handle = (LwqqHttpHandle*)lwqq_get_http_handle(request->lc);
     composite_trunks(request);
     int res = 0;
     char** resp = &request->response;
 
     curl_easy_getinfo(request->req,CURLINFO_RESPONSE_CODE,&request->http_code);
-    curl_slist_free_all((struct curl_slist*)handle->cookies);
-    curl_easy_getinfo(request->req,CURLINFO_COOKIELIST,&handle->cookies);
 
     /* NB: *response may null */
     if (*resp == NULL) {
@@ -947,6 +933,11 @@ void lwqq_http_global_init()
         curl_multi_setopt(global.multi,CURLMOPT_SOCKETDATA,&global);
         curl_multi_setopt(global.multi, CURLMOPT_TIMERFUNCTION, multi_timer_cb);
         curl_multi_setopt(global.multi, CURLMOPT_TIMERDATA, &global);
+
+        pthread_mutex_init(&global.share_lock[0],NULL);
+        pthread_mutex_init(&global.share_lock[1],NULL);
+        pthread_mutex_init(&global.share_lock[2],NULL);
+        pthread_mutex_init(&global.share_lock[3],NULL);
         
 #ifndef WITHOUT_ASYNC
         global.timer_event = lwqq_async_timer_new();
@@ -956,21 +947,6 @@ void lwqq_http_global_init()
         lwqq_async_io_watch(global.add_listener, global.pipe_fd[0], LWQQ_ASYNC_READ, delay_add_handle, NULL);
         #endif
 #endif
-    }
-    if(global.share==NULL){
-        global.share = curl_share_init();
-        CURLSH* share = global.share;
-        curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_DNS);
-        curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_CONNECT);
-        curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_SSL_SESSION);
-        curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_COOKIE);
-        curl_share_setopt(share,CURLSHOPT_LOCKFUNC,share_lock);
-        curl_share_setopt(share,CURLSHOPT_UNLOCKFUNC,share_unlock);
-        curl_share_setopt(share,CURLSHOPT_USERDATA,&global);
-        pthread_mutex_init(&global.share_lock[0],NULL);
-        pthread_mutex_init(&global.share_lock[1],NULL);
-        pthread_mutex_init(&global.share_lock[2],NULL);
-        pthread_mutex_init(&global.share_lock[3],NULL);
     }
 }
 
@@ -1017,10 +993,7 @@ void lwqq_http_global_free()
         lwqq_async_timer_stop(global.timer_event);
         lwqq_async_timer_free(global.timer_event);
         curl_global_cleanup();
-    }
-    if(global.share){
-        curl_share_cleanup(global.share);
-        global.share = NULL;
+
         pthread_mutex_destroy(&global.share_lock[0]);
         pthread_mutex_destroy(&global.share_lock[1]);
         pthread_mutex_destroy(&global.share_lock[2]);
@@ -1180,13 +1153,29 @@ void lwqq_http_cancel(LwqqHttpRequest* req)
     req_->retry_ = 0;
     req_->bits |= HTTP_FORCE_CANCEL;
 }
-void lwqq_http_handle_remove(LwqqHttpHandle* http)
+LwqqHttpHandle* lwqq_http_handle_new()
+{
+    LwqqHttpHandle_* h_ = s_malloc0(sizeof(LwqqHttpHandle_));
+    h_->share = curl_share_init();
+    CURLSH* share = h_->share;
+    curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_DNS);
+    curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_CONNECT);
+    curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_SSL_SESSION);
+    curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_COOKIE);
+    curl_share_setopt(share,CURLSHOPT_LOCKFUNC,share_lock);
+    curl_share_setopt(share,CURLSHOPT_UNLOCKFUNC,share_unlock);
+    curl_share_setopt(share,CURLSHOPT_USERDATA,&global);
+    return (LwqqHttpHandle*)h_;
+}
+void lwqq_http_handle_free(LwqqHttpHandle* http)
 {
     if(http){
+        LwqqHttpHandle_* h_ = (LwqqHttpHandle_*) http;
         s_free(http->proxy.username);
         s_free(http->proxy.password);
         s_free(http->proxy.host);
-        curl_slist_free_all((struct curl_slist*)http->cookies);
+        curl_share_cleanup(h_->share);
+        s_free(http);
     }
 }
 void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req)

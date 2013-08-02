@@ -15,8 +15,6 @@
 #include "type.h"
 #include "async.h"
 
-struct cookie_list;
-
 typedef enum {
     LWQQ_FORM_FILE,// use add_file_content instead
     LWQQ_FORM_CONTENT
@@ -41,7 +39,6 @@ struct _LwqqHttpRequest {
     void *lc;
     void *header;// read and write.
     void *recv_head;
-    //struct cookie_list* cookie;
     void *form_start;
     void *form_end;
 
@@ -104,12 +101,12 @@ typedef struct {
         char* username;
         char* password;
     }proxy;
-    struct cookie_list* cookies;
     int quit;
     int synced;
 }LwqqHttpHandle;
 
-void lwqq_http_handle_remove(LwqqHttpHandle* http);
+LwqqHttpHandle* lwqq_http_handle_new();
+void lwqq_http_handle_free(LwqqHttpHandle* http);
 #define lwqq_http_proxy_set(_handle,_type,_host,_port,_username,_password)\
 do{\
     LwqqHttpHandle* h = (LwqqHttpHandle*) (_handle);\
@@ -120,7 +117,6 @@ do{\
     h->proxy.password = s_strdup(_password);\
 }while(0);
 
-//void lwqq_http_set_cookie(LwqqHttpHandle*,const char* key,const char* val);
 void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req);
 
 /**
@@ -161,7 +157,7 @@ void lwqq_http_set_option(LwqqHttpRequest* req,LwqqHttpOption opt,...);
 /** regist http progressing callback */
 void lwqq_http_on_progress(LwqqHttpRequest* req,LWQQ_PROGRESS progress,void* prog_data);
 
-char* lwqq_http_get_cookie(LwqqHttpHandle* handle, const char *name);
+char *lwqq_http_get_cookie(LwqqHttpHandle* h, const char *name);
 void  lwqq_http_set_cookie(LwqqHttpRequest *request, const char *name,const char* val);
 /** 
  * force stop a request 

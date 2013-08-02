@@ -41,7 +41,7 @@ static LwqqAction default_async_opt = {
 typedef struct LwqqClient_
 {
     LwqqClient parent;
-    LwqqHttpHandle http;
+    LwqqHttpHandle* http;
 }LwqqClient_;
 
 /** 
@@ -91,6 +91,9 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     v = (v - v % 1000) / 1000;
     v = v % 10000 * 10000;
     lc->msg_id = v;
+
+    LwqqClient_* lc_ = (LwqqClient_*) lc;
+    lc_->http = lwqq_http_handle_new();
     
     return lc;
     
@@ -101,7 +104,7 @@ failed:
 
 void* lwqq_get_http_handle(LwqqClient* lc)
 {
-    return &((LwqqClient_*)lc)->http;
+    return ((LwqqClient_*)lc)->http;
 }
 
 /** 
@@ -176,7 +179,7 @@ void lwqq_client_free(LwqqClient *client)
 
     //important remove all http request
     lwqq_http_cleanup(client);
-    lwqq_http_handle_remove(&lc_->http);
+    lwqq_http_handle_free(lc_->http);
 
     /* Free LwqqVerifyCode instance */
     s_free(client->username);
