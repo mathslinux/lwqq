@@ -46,6 +46,12 @@ struct trunk_entry{
     SIMPLEQ_ENTRY(trunk_entry) entries;
 };
 
+struct curl_err_map_t{
+    CURLcode c_err;
+    int retry;
+    LwqqCallbackCode set_err;
+};
+
 static
 TABLE_BEGIN(proxy_map,long,0)
     TR(LWQQ_HTTP_PROXY_HTTP,     CURLPROXY_HTTP  )
@@ -573,7 +579,7 @@ static void async_complete(D_ITEM* conn)
     curl_easy_getinfo(request->req,CURLINFO_RESPONSE_CODE,&request->http_code);
 
     /* NB: *response may null */
-    if (*resp == NULL) {
+    if (*resp != NULL) {
         goto failed;
     }
 
@@ -591,7 +597,27 @@ failed:
     s_free(conn);
     return ;
 }
-
+static int set_error_code(LwqqHttpRequest* req,CURLcode err,LwqqErrorCode* ec)
+{
+    LwqqHttpRequest_* req_ = (LwqqHttpRequest_*) req;
+    if(err == CURLE_ABORTED_BY_CALLBACK && req_->bits & HTTP_FORCE_CANCEL){
+        req_->retry_ = 0;
+    }
+    if(err == CURLE_TOO_MANY_REDIRECTS){
+        req_->retry_ = 0;
+    }
+    if(err == CURLE_COULDNT_RESOLVE_HOST)
+        req_->retry_ = 0;
+    req_->retry_ --;
+    if(req_->retry_ >= 0){
+        return 1;
+    }
+    if(err == CURLE_OPERATION_TIMEDOUT) *ec = LWQQ_EC_TIMEOUT_OVER;
+    else if(err == CURLE_ABORTED_BY_CALLBACK) *ec = LWQQ_EC_CANCELED;
+    else if(err == CURLE_TOO_MANY_REDIRECTS) *ec = LWQQ_EC_OK;
+    else *ec = LWQQ_EC_ERROR;
+    return 0;
+}
 static void check_multi_info(GLOBAL *g)
 {
     CURLMsg *msg=NULL;
@@ -619,21 +645,15 @@ static void check_multi_info(GLOBAL *g)
                 lwqq_log(LOG_WARNING,"async retcode:%d\n",ret);
             }
             if(ret != CURLE_OK){
-                if(ret == CURLE_ABORTED_BY_CALLBACK && req_->bits & HTTP_FORCE_CANCEL){
-                    req_->retry_ = 0;
-                }
-                if(ret == CURLE_COULDNT_RESOLVE_HOST)
-                    req_->retry_ = 0;
-                req_->retry_ --;
-                if(req_->retry_ >= 0){
+                LwqqErrorCode ec;
+                if(set_error_code(req, ret, &ec)){
                     //re add it to libcurl
                     curl_multi_remove_handle(g->multi, easy);
                     http_clean(req);
                     curl_multi_add_handle(g->multi, easy);
                     continue;
                 }
-                ev->failcode = ev->result = (ret == CURLE_OPERATION_TIMEDOUT)?LWQQ_EC_TIMEOUT_OVER:
-                    (ret==CURLE_ABORTED_BY_CALLBACK)?LWQQ_EC_CANCELED:LWQQ_EC_ERROR;
+                ev->failcode = ev->result = ec;
             }
 
             curl_multi_remove_handle(g->multi, easy);
@@ -857,16 +877,11 @@ retry:
     composite_trunks(request);
     if(ret != CURLE_OK){
         lwqq_log(LOG_ERROR,"do_request fail curlcode:%d\n",ret);
-        if(ret == CURLE_ABORTED_BY_CALLBACK && req_->bits & HTTP_FORCE_CANCEL){
-            req_->retry_ = 0;
-        }
-        if(ret == CURLE_COULDNT_RESOLVE_HOST) req_->retry_ = 0;
-        req_->retry_ -- ;
-        if(req_->retry_ >= 0){
+        LwqqErrorCode ec;
+        if(set_error_code(request, ret, &ec)){
             goto retry;
         }
-        return (ret == CURLE_OPERATION_TIMEDOUT)?LWQQ_EC_TIMEOUT_OVER:
-            (ret == CURLE_ABORTED_BY_CALLBACK)?LWQQ_EC_CANCELED:LWQQ_EC_ERROR;
+        return ec;
     }
     //perduce timeout.
     req_->retry_ = request->retry;
@@ -1138,6 +1153,9 @@ void lwqq_http_set_option(LwqqHttpRequest* req,LwqqHttpOption opt,...)
         case LWQQ_HTTP_CANCELABLE:
             if(va_arg(args,long)&&req->progress_func==NULL)
                 lwqq_http_on_progress(req, NULL, NULL);
+            break;
+        case LWQQ_HTTP_MAXREDIRS:
+            curl_easy_setopt(req->req, CURLOPT_MAXREDIRS, va_arg(args,long));
             break;
         default:
             val = va_arg(args,long);

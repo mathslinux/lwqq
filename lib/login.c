@@ -362,6 +362,7 @@ static int do_login_back(LwqqHttpRequest* req,LwqqAsyncEvent* event)
             LwqqHttpRequest* req = lwqq_http_create_default_request(lc, jumpurl, NULL);
             req->set_header(req,"Cookie",lwqq_get_cookies(lc));
             req->set_header(req,"Referer",WEBQQ_LOGIN_LONG_REF_URL(refer));
+            lwqq_http_set_option(req, LWQQ_HTTP_MAXREDIRS,1L);
             lwqq_verbose(3,"%s\n",jumpurl);
             LwqqAsyncEvent* ev = req->do_request_async(req,0,NULL,_C_(p_i,lwqq__process_empty,req));
             lwqq_async_add_event_chain(ev, event);

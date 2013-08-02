@@ -27,6 +27,7 @@ typedef enum {
     LWQQ_HTTP_RESET_URL,
     LWQQ_HTTP_VERBOSE,
     LWQQ_HTTP_CANCELABLE,
+    LWQQ_HTTP_MAXREDIRS,
     LWQQ_HTTP_NOT_SET_COOKIE = 1<<7
 }LwqqHttpOption;
 /**
