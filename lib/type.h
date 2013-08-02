@@ -313,6 +313,7 @@ typedef struct LwqqClient {
     const char* last_err;
     char *gface_key;                  /**< use at cface */
     char *gface_sig;                  /**<use at cfage */
+    char *login_sig;
     const struct LwqqAction* action;
     LwqqCookies *cookies;
 

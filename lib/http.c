@@ -580,16 +580,13 @@ static void async_complete(D_ITEM* conn)
 
     /* NB: *response may null */
     if (*resp != NULL) {
-        goto failed;
+        /* Uncompress data here if we have a Content-Encoding header */
+        const char *enc_type = NULL;
+        enc_type = lwqq_http_get_header(request, "Content-Encoding");
+        if (enc_type && strstr(enc_type, "gzip")) {
+            uncompress_response(request);
+        }
     }
-
-    /* Uncompress data here if we have a Content-Encoding header */
-    const char *enc_type = NULL;
-    enc_type = lwqq_http_get_header(request, "Content-Encoding");
-    if (enc_type && strstr(enc_type, "gzip")) {
-        uncompress_response(request);
-    }
-failed:
     if(conn->req)conn->req->failcode = conn->event->failcode;
     vp_do(conn->cmd,&res);
     lwqq_async_event_set_result(conn->event,res);
