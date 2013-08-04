@@ -19,7 +19,6 @@
 #include "logger.h"
 #include "msg.h"
 #include "queue.h"
-#include "unicode.h"
 #include "async.h"
 #include "info.h"
 #include "internal.h"
@@ -100,7 +99,7 @@ static int parse_content(json_t *json,const char* key, LwqqMsgMessage* opaque)
                 /* Font name */
                 name = json_parse_simple_value(ctent, "name");
                 name = name ?: "Arial";
-                msg->f_name = ucs4toutf8(name);
+                msg->f_name = json_unescape(name);
 
                 /* Font color */
                 color = json_parse_simple_value(ctent, "color");
@@ -851,7 +850,7 @@ static int parse_kick_message(json_t *json,void *opaque)
     char* show;
     show = json_parse_simple_value(json,"show_reason");
     if(show)msg->show_reason = atoi(show);
-    msg->reason = ucs4toutf8(json_parse_simple_value(json,"reason"));
+    msg->reason = json_unescape(json_parse_simple_value(json,"reason"));
     if(!msg->reason){
         if(!show) msg->show_reason = 0;
         else return -1;

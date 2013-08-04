@@ -1,7 +1,6 @@
 set(LWQQ_LIST
     url.c
     md5.c
-    unicode.c
     logger.c
     login.c
     json.c
