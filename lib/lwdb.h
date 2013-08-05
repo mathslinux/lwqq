@@ -122,8 +122,6 @@ LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group);
 LwqqErrorCode lwdb_userdb_query_buddy(LwdbUserDB* db,LwqqBuddy* buddy);
 LwqqErrorCode lwdb_userdb_query_group(LwdbUserDB* db,LwqqGroup* group);
 
-void lwdb_userdb_write_to_client(LwdbUserDB* from,LwqqClient* to);
-void lwdb_userdb_read_from_client(LwqqClient* from,LwdbUserDB* to);
 void lwdb_userdb_begin(LwdbUserDB* db);
 void lwdb_userdb_commit(LwdbUserDB* db);
 void lwdb_userdb_query_qqnumbers(LwqqClient* lc,LwdbUserDB* db);
@@ -134,5 +132,9 @@ int lwdb_userdb_write(LwdbUserDB* db,const char* key,const char* value);
 /* LwdbUserDB API end */
 
 /************************************************************************/
+#if 0
+void lwdb_userdb_write_to_client(LwdbUserDB* from,LwqqClient* to);
+void lwdb_userdb_read_from_client(LwqqClient* from,LwdbUserDB* to);
+#endif
 
 #endif

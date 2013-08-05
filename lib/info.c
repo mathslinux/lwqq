@@ -1633,6 +1633,14 @@ static void parse_discus_other_child(LwqqClient* lc,LwqqGroup* discu,json_t* roo
         json = json->next;
     }
 }
+static void check_discus_info_complection(LwqqClient* lc,LwqqGroup* discu)
+{
+    LwqqSimpleBuddy* sb;
+    LIST_FOREACH(sb,&discu->members,entries){
+        //note some member nick may null.
+        if(sb->nick==NULL) sb->nick = s_strdup(sb->qq);
+    }
+}
 static int get_discu_detail_info_back(LwqqHttpRequest* req,LwqqClient* lc,LwqqGroup* discu)
 {
     int err = 0;
@@ -1650,6 +1658,7 @@ static int get_discu_detail_info_back(LwqqHttpRequest* req,LwqqClient* lc,LwqqGr
     if(json) {
         parse_discus_info_child(lc,discu,json);
         parse_discus_other_child(lc,discu,json);
+        check_discus_info_complection(lc,discu);
     }
 done:
     if(root)
