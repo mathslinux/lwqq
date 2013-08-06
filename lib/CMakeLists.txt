@@ -30,6 +30,7 @@ set(LWQQ_HEADER
     utility.h
     lwqq.h
     vplist.h
+    swsqlite.h
     )
 add_definitions(-Wall )
 

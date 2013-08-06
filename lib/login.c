@@ -563,8 +563,12 @@ void lwqq_login(LwqqClient *client, LwqqStatus status,LwqqErrorCode *err)
 
     /* optional: get webqq version */
     //get_version(client, err);
-    LwqqAsyncEvent* ev = get_login_sig(client);
-    lwqq_async_add_event_listener(ev, _C_(2p,login_stage_2,client,err));
+    if(!client->vc){
+        LwqqAsyncEvent* ev = get_login_sig(client);
+        lwqq_async_add_event_listener(ev, _C_(2p,login_stage_2,client,err));
+    }else{
+        login_stage_4(client,err);
+    }
 }
 
 static void login_stage_2(LwqqClient* lc,LwqqErrorCode* err)

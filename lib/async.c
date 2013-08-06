@@ -185,7 +185,14 @@ void lwqq_async_add_event_chain(LwqqAsyncEvent* caller,LwqqAsyncEvent* called)
 {
     /**indeed caller->lc may be NULL when recursor */
     called->lc = caller->lc;
-    lwqq_async_add_event_listener(caller,_C_(2p,on_chain,caller,called));
+    if(caller->failcode == LWQQ_CALLBACK_SYNCED){
+        //when sync enabled, caller and called must finished already.
+        //so free caller ,and do not trigger anything
+        called->result = caller->result;
+        called->failcode = caller->failcode;
+        lwqq_async_event_finish(caller);
+    }else
+        lwqq_async_add_event_listener(caller,_C_(2p,on_chain,caller,called));
 }
 void lwqq_async_add_evset_listener(LwqqAsyncEvset* evset,LwqqCommand cmd)
 {

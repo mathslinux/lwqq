@@ -58,6 +58,8 @@ void lwqq_async_evset_free(LwqqAsyncEvset* set);
  *              NULL if it is controled by you
  */
 LwqqAsyncEvent* lwqq_async_event_new(void* req);
+/** when create empty event, use this to init sync infomation */
+//#define lwqq_async_event_init(ev,lc) ev->lc = lc;ev->failcode = LWQQ_SYNC_ENABLED(lc)?LWQQ_CALLBACK_SYNCED:0;
 /** 
  * this would trigger event callback and free event.
  * and decrease reference count of binded evset if have.

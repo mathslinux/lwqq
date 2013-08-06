@@ -819,7 +819,7 @@ static LwqqErrorCode lwdb_userdb_update_buddy_info(
     return LWQQ_EC_OK;
 }
 */
-void lwdb_userdb_query_qqnumbers(LwqqClient* lc,LwdbUserDB* db)
+void lwdb_userdb_query_qqnumbers(LwdbUserDB* db,LwqqClient* lc)
 {
     if(!lc || !db) return;
     LwqqBuddy* buddy;
