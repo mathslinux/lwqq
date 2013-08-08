@@ -511,8 +511,6 @@ static LwqqAsyncEvent* set_online_status(LwqqClient *lc,const char *status)
     //req->set_header(req, "Cookie2", "$Version=1");
     req->set_header(req, "Referer", WEBQQ_D_REF_URL);
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
-    lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
-    
     return  req->do_request_async(req, 1, msg,_C_(p_i,set_online_status_back,req));
 }
 
