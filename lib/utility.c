@@ -43,6 +43,24 @@ LwqqOpCode lwqq_util_save_img(void* ptr,size_t len,const char* path,const char* 
     return LWQQ_OP_OK;
 }
 
+int lwqq_util_mapto_type(const struct LwqqTypeMap* maps,const char* key)
+{
+    while(maps->str != NULL){
+        if(key&&!strncmp(maps->str,key,strlen(maps->str))) return maps->type;
+        else if(key == NULL && maps->str == NULL) return maps->type;
+        maps++;
+    }
+    return maps->type;
+}
+
+const char* lwqq_util_mapto_str(const struct LwqqTypeMap* maps,int type)
+{
+    while(maps->str != NULL){
+        if(maps->type == type) return maps->str;
+        maps++;
+    }
+    return NULL;
+}
 
 void ds_cat_(struct ds* str,...)
 {

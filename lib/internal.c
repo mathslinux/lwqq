@@ -6,25 +6,6 @@
 #include <string.h>
 
 
-int lwqq__map_to_type_(const struct LwqqStrMapEntry_* maps,const char* key)
-{
-    while(maps->str != NULL){
-        if(key&&!strncmp(maps->str,key,strlen(maps->str))) return maps->type;
-        else if(key == NULL && maps->str == NULL) return maps->type;
-        maps++;
-    }
-    return maps->type;
-}
-
-const char* lwqq__map_to_str_(const struct LwqqStrMapEntry_* maps,int type)
-{
-    while(maps->str != NULL){
-        if(maps->type == type) return maps->str;
-        maps++;
-    }
-    return NULL;
-}
-
 static int request_captcha_back(LwqqHttpRequest* req,LwqqVerifyCode* code)
 {
     int err = 0;

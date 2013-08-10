@@ -54,25 +54,25 @@ typedef struct LwqqRecvMsgList_{
 #define RET_DELAYINS_MSG 1
 #define RET_UNKNOW_MSG -1
 
-static struct LwqqStrMapEntry_ msg_type_map[] = {
-    {"message",                 LWQQ_MS_BUDDY_MSG,          },
-    {"group_message",           LWQQ_MS_GROUP_MSG,          },
-    {"discu_message",           LWQQ_MS_DISCU_MSG,          },
-    {"sess_message",            LWQQ_MS_SESS_MSG,           },
-    {"group_web_message",       LWQQ_MS_GROUP_WEB_MSG,      },
-    {"buddies_status_change",   LWQQ_MT_STATUS_CHANGE,      },
-    {"kick_message",            LWQQ_MT_KICK_MESSAGE,       },
-    {"system_message",          LWQQ_MT_SYSTEM,             },
-    {"buddylist_change",        LWQQ_MT_BLIST_CHANGE,       },
-    {"sys_g_msg",               LWQQ_MT_SYS_G_MSG,          },
-    {"push_offfile",            LWQQ_MT_OFFFILE,            },
-    {"filesrv_transfer",        LWQQ_MT_FILETRANS,          },
-    {"file_message",            LWQQ_MT_FILE_MSG,           },
-    {"notify_offfile",          LWQQ_MT_NOTIFY_OFFFILE,     },
-    {"input_notify",            LWQQ_MT_INPUT_NOTIFY,       },
-    {"shake_message",           LWQQ_MT_SHAKE_MESSAGE,      },
-    {"unknow",                  LWQQ_MT_UNKNOWN,            },
-    {NULL,                      LWQQ_MT_UNKNOWN,            }
+static struct LwqqTypeMap msg_type_map[] = {
+    {LWQQ_MS_BUDDY_MSG,          "message",                 },
+    {LWQQ_MS_GROUP_MSG,          "group_message",           },
+    {LWQQ_MS_DISCU_MSG,          "discu_message",           },
+    {LWQQ_MS_SESS_MSG,           "sess_message",            },
+    {LWQQ_MS_GROUP_WEB_MSG,      "group_web_message",       },
+    {LWQQ_MT_STATUS_CHANGE,      "buddies_status_change",   },
+    {LWQQ_MT_KICK_MESSAGE,       "kick_message",            },
+    {LWQQ_MT_SYSTEM,             "system_message",          },
+    {LWQQ_MT_BLIST_CHANGE,       "buddylist_change",        },
+    {LWQQ_MT_SYS_G_MSG,          "sys_g_msg",               },
+    {LWQQ_MT_OFFFILE,            "push_offfile",            },
+    {LWQQ_MT_FILETRANS,          "filesrv_transfer",        },
+    {LWQQ_MT_FILE_MSG,           "file_message",            },
+    {LWQQ_MT_NOTIFY_OFFFILE,     "notify_offfile",          },
+    {LWQQ_MT_INPUT_NOTIFY,       "input_notify",            },
+    {LWQQ_MT_SHAKE_MESSAGE,      "shake_message",           },
+    {LWQQ_MT_UNKNOWN,            "unknow",                  },
+    {LWQQ_MT_UNKNOWN,            NULL,                      }
 };
 
 
@@ -764,7 +764,7 @@ static LwqqMsgType parse_recvmsg_type(json_t *json)
     if (!msg_type) {
         return type;
     }
-    return lwqq__map_to_type_(msg_type_map, msg_type);
+    return lwqq_util_mapto_type(msg_type_map, msg_type);
 }
 
 /**

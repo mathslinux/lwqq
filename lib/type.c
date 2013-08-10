@@ -18,16 +18,31 @@
 #include "async.h"
 #include "http.h"
 #include "internal.h"
-static struct LwqqStrMapEntry_ status_type_map[] = {
-    {"online",      LWQQ_STATUS_ONLINE},
-    {"offline",     LWQQ_STATUS_OFFLINE},
-    {"away",        LWQQ_STATUS_AWAY},
-    {"hidden",      LWQQ_STATUS_HIDDEN},
-    {"busy",        LWQQ_STATUS_BUSY},
-    {"callme",      LWQQ_STATUS_CALLME},
-    {"slient",      LWQQ_STATUS_SLIENT},
-    {NULL,          LWQQ_STATUS_LOGOUT}
+#include "utility.h"
+
+
+static struct LwqqTypeMap status_type_map[] = {
+    {LWQQ_STATUS_ONLINE  ,"online",   },
+    {LWQQ_STATUS_OFFLINE ,"offline",     },
+    {LWQQ_STATUS_AWAY    ,"away",        },
+    {LWQQ_STATUS_HIDDEN  ,"hidden",      },
+    {LWQQ_STATUS_BUSY    ,"busy",        },
+    {LWQQ_STATUS_CALLME  ,"callme",      },
+    {LWQQ_STATUS_SLIENT  ,"slient",      },
+    {LWQQ_STATUS_LOGOUT  ,NULL,          }
 };
+
+
+const char* lwqq_status_to_str(LwqqStatus status)
+{
+    return lwqq_util_mapto_str(status_type_map, status);
+}
+
+LwqqStatus lwqq_status_from_str(const char* str)
+{
+    return lwqq_util_mapto_type(status_type_map, str);
+}
+
 
 static void null_action(LwqqClient* lc)
 {
@@ -434,14 +449,7 @@ LwqqSimpleBuddy *lwqq_group_find_group_member_by_uin(LwqqGroup *group, const cha
     return NULL;
 }
 
-const char* lwqq_status_to_str(LwqqStatus status)
-{
-    return lwqq__map_to_str_(status_type_map, status);
-}
-LwqqStatus lwqq_status_from_str(const char* str)
-{
-    return lwqq__map_to_type_(status_type_map, str);
-}
+
 const char* lwqq_date_to_str(time_t date)
 {
     static char buf[128];

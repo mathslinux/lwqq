@@ -164,10 +164,18 @@ static LwqqOpCode clear_cache(LwdbUserDB* db)
 const char* lwdb_get_config_dir()
 {
     static char buf[256];
-#ifdef WIN32
+#if defined (WIN32)
     char home[256];
     SHGetFolderPath(NULL,CSIDL_APPDATA,NULL,0,home);
     snprintf(buf,sizeof(buf),"%s"SEP"lwqq",home);
+#elif defined (__APPLE__)
+    char *home;
+    home = getenv("HOME");
+    if (!home) {
+        lwqq_log(LOG_ERROR, "Cant get $HOME, exit\n");
+        exit(1);
+    }
+    snprintf(buf, sizeof(buf), "%s"SEP"/Library/Application Support/lwqq",home);
 #else
     char *home;
     home = getenv("HOME");

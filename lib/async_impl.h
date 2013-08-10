@@ -4,17 +4,17 @@
 #include "async.h"
 
 #define LWQQ__ASYNC_IMPL(impl) lwqq__async_impl_.impl
-typedef struct LwqqAsyncTimer{
+struct LwqqAsyncTimer{
     LwqqAsyncTimerCallback func;
     void* data;
-}LwqqAsyncTimer;
+};
 
-typedef struct LwqqAsyncIo{
+struct LwqqAsyncIo{
     LwqqAsyncIoCallback func;
     void* data;
     int fd;
     int action;
-}LwqqAsyncIo;
+};
 typedef struct LwqqAsyncImpl{
     void (*loop_create)();
     void (*loop_run)();

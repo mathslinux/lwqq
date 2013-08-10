@@ -20,7 +20,15 @@ typedef struct LwqqConfirmTable {
     LwqqCommand cmd;
 }LwqqConfirmTable;
 
+typedef struct LwqqTypeMap{
+    int type;
+    const char* str;
+}LwqqTypeMap;
+
 void lwqq_ct_free(LwqqConfirmTable* table);
+
+int lwqq_util_mapto_type(const struct LwqqTypeMap* maps,const char* key);
+const char* lwqq_util_mapto_str(const struct LwqqTypeMap* maps,int type);
 
 LwqqOpCode lwqq_util_save_img(void* ptr,size_t len,const char* path,const char* dir);
 
