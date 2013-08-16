@@ -90,7 +90,7 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     lc->myself->qqnumber = s_strdup(username);
     lc->myself->uin = s_strdup(username);
 
-    lc->msg_list = lwqq_recvmsg_new(lc);
+    lc->msg_list = lwqq_msglist_new(lc);
 
     lc->action = &default_async_opt;
 
@@ -202,7 +202,7 @@ void lwqq_client_free(LwqqClient *client)
     }
 
     /* Free msg_list */
-    lwqq_recvmsg_free(client->msg_list);
+    lwqq_msglist_close(client->msg_list);
     client->magic = 0;
     s_free(client);
 }

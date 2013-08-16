@@ -284,7 +284,7 @@ static void *recvmsg_thread(void *list)
     LwqqRecvMsgList *l = (LwqqRecvMsgList *)list;
 
     /* Poll to receive message */
-    l->poll_msg(l,0);
+    lwqq_msglist_poll(l, 0);
 
     /* Need to wrap those code so look like more nice */
     while (1) {

@@ -65,6 +65,14 @@ typedef enum {
     LWQQ_MSG_IS_DISCU = LWQQ_MS_DISCU_MSG,
 }LwqqMessageType;
 
+/* LwqqRecvMsg API */
+typedef enum {
+    POLL_AUTO_DOWN_GROUP_PIC = 1<<0,
+    POLL_AUTO_DOWN_BUDDY_PIC = 1<<1,
+    POLL_AUTO_DOWN_DISCU_PIC = 1<<2,
+    POLL_REMOVE_DUPLICATED_MSG = 1<<3,
+}LwqqPollOption;
+
 typedef enum {
     LWQQ_CONTENT_STRING,
     LWQQ_CONTENT_FACE,
@@ -336,13 +344,6 @@ LwqqMsg *lwqq_msg_new(LwqqMsgType type);
 void lwqq_msg_free(LwqqMsg *msg);
 
 /************************************************************************/
-/* LwqqRecvMsg API */
-typedef enum {
-    POLL_AUTO_DOWN_GROUP_PIC = 1<<0,
-    POLL_AUTO_DOWN_BUDDY_PIC = 1<<1,
-    POLL_AUTO_DOWN_DISCU_PIC = 1<<2,
-    POLL_REMOVE_DUPLICATED_MSG = 1<<3,
-}LwqqPollOption;
 /**
  * Lwqq Receive Message object, used by receiving message
  *
@@ -357,9 +358,19 @@ typedef struct LwqqRecvMsgList {
     pthread_mutex_t mutex;
     //int poll_flags;
     TAILQ_HEAD(RecvMsgListHead, LwqqRecvMsg) head;
-    void (*poll_msg)(struct LwqqRecvMsgList *list,LwqqPollOption flags); /**< Poll to fetch msg */
-    void (*poll_close)(struct LwqqRecvMsgList* list);/**< Close Poll */
 } LwqqRecvMsgList;
+
+/**
+ * Create a new LwqqRecvMsgList object
+ * @param client Lwqq Client reference
+ * @return NULL on failure
+ */
+LwqqRecvMsgList *lwqq_msglist_new(void *client);
+void lwqq_msglist_free(LwqqRecvMsgList *list);
+void lwqq_msglist_poll(LwqqRecvMsgList* list,LwqqPollOption flags);
+void lwqq_msglist_close(LwqqRecvMsgList* list);
+LwqqMsg* lwqq_msglist_read(LwqqRecvMsgList* list);
+
 typedef struct LwqqHistoryMsgList {
     int row;
     union{
@@ -374,14 +385,6 @@ typedef struct LwqqHistoryMsgList {
     TAILQ_HEAD(,LwqqRecvMsg) msg_list;
 } LwqqHistoryMsgList;
 
-/**
- * Create a new LwqqRecvMsgList object
- *
- * @param client Lwqq Client reference
- *
- * @return NULL on failure
- */
-LwqqRecvMsgList *lwqq_recvmsg_new(void *client);
 LwqqHistoryMsgList *lwqq_historymsg_list();
 
 /**
@@ -389,7 +392,6 @@ LwqqHistoryMsgList *lwqq_historymsg_list();
  *
  * @param list
  */
-void lwqq_recvmsg_free(LwqqRecvMsgList *list);
 void lwqq_historymsg_free(LwqqHistoryMsgList* list);
 
 //insert msg content

@@ -83,9 +83,9 @@ void lwqq_async_init(LwqqClient* lc)
     LWQQ_ASYNC_IMPLEMENT(impl_libuv);
 #endif
     //check async_impl
-    assert(("need loop_create implement",LWQQ__ASYNC_IMPL(loop_create)));
-    assert(("need io_new implement",LWQQ__ASYNC_IMPL(io_new)));
-    assert(("need timer_new implement",LWQQ__ASYNC_IMPL(timer_new)));
+    assert(LWQQ__ASYNC_IMPL(loop_create));
+    assert(LWQQ__ASYNC_IMPL(io_new));
+    assert(LWQQ__ASYNC_IMPL(timer_new));
 }
 
 LwqqAsyncEvent* lwqq_async_event_new(void* req)

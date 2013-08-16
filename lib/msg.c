@@ -30,10 +30,8 @@
 #define LWQQ_MT_BITS  (~((-1)<<8))
 
 static void *start_poll_msg(void *msg_list);
-static void lwqq_recvmsg_poll_close(LwqqRecvMsgList* list);
 static json_t *get_result_json_object(json_t *json);
 static int parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str);
-static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list,LwqqPollOption flags);
 
 static int msg_send_back(LwqqHttpRequest* req,void* data);
 static int upload_offline_pic_back(LwqqHttpRequest* req,LwqqMsgContent* c,const char* to);
@@ -398,7 +396,7 @@ done:
  * 
  * @return NULL on failure
  */
-LwqqRecvMsgList *lwqq_recvmsg_new(void *client)
+LwqqRecvMsgList *lwqq_msglist_new(void *client)
 {
     LwqqRecvMsgList_ *list;
 
@@ -409,10 +407,28 @@ LwqqRecvMsgList *lwqq_recvmsg_new(void *client)
     list->parent.lc = client;
     pthread_mutex_init(&list->parent.mutex, NULL);
     TAILQ_INIT(&list->parent.head);
-    list->parent.poll_msg = lwqq_recvmsg_poll_msg;
-    list->parent.poll_close = lwqq_recvmsg_poll_close;
     
     return (LwqqRecvMsgList*)list;
+}
+
+
+LwqqMsg* lwqq_msglist_read(LwqqRecvMsgList* list)
+{
+    LwqqRecvMsg* rmsg;
+    LwqqMsg* msg;
+    if(!list) return NULL;
+    pthread_mutex_lock(&list->mutex);
+    if (TAILQ_EMPTY(&list->head)) {
+        /* No message now, wait 100ms */
+        pthread_mutex_unlock(&list->mutex);
+        return NULL;
+    }
+    rmsg = TAILQ_FIRST(&list->head);
+    TAILQ_REMOVE(&list->head, rmsg, entries);
+    msg = rmsg->msg;
+    s_free(rmsg);
+    pthread_mutex_unlock(&list->mutex);
+    return msg;
 }
 LwqqHistoryMsgList *lwqq_historymsg_list()
 {
@@ -1507,7 +1523,7 @@ void check_connection_lost(LwqqAsyncEvent* ev)
     LwqqClient* lc = ev->lc;
     if(ev->result == LWQQ_EC_OK){
         LwqqRecvMsgList_* msg_list = (LwqqRecvMsgList_*)lc->msg_list;
-        lwqq_recvmsg_poll_msg(lc->msg_list, msg_list->flags);
+        lwqq_msglist_poll(lc->msg_list, msg_list->flags);
     }else{
         lc->action->poll_lost(lc);
     }
@@ -1609,7 +1625,7 @@ failed:
 #endif
 }
 
-static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list,LwqqPollOption flags)
+void lwqq_msglist_poll(LwqqRecvMsgList *list,LwqqPollOption flags)
 {
     LwqqRecvMsgList_* internal = (LwqqRecvMsgList_*)list;
     internal->flags = flags;
@@ -1621,7 +1637,7 @@ static void lwqq_recvmsg_poll_msg(LwqqRecvMsgList *list,LwqqPollOption flags)
 #endif
 }
 
-static void lwqq_recvmsg_poll_close(LwqqRecvMsgList* list)
+void lwqq_msglist_close(LwqqRecvMsgList* list)
 {
     if(!list) return;
     LwqqRecvMsgList_* list_= (LwqqRecvMsgList_*)list;
