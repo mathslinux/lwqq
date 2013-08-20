@@ -129,7 +129,8 @@ typedef enum {
     LWQQ_EC_LOGIN_ABNORMAL   = 60,///<登录需要解禁
     LWQQ_EC_NO_MESSAGE       = 102,
     LWQQ_EC_COOKIE_WRONG     = 103,
-    LWQQ_EC_PTWEBQQ          = 116
+    LWQQ_EC_PTWEBQQ          = 116,
+    LWQQ_EC_LOST_CONN        = 121
 } LwqqErrorCode;
 typedef enum {
     LWQQ_OP_OK = 1,
@@ -143,15 +144,6 @@ typedef enum {
     LWQQ_CALLBACK_FAILED = LWQQ_EC_ERROR, //< -1
     LWQQ_CALLBACK_VALID = LWQQ_EC_OK, //< 0
 }LwqqCallbackCode;
-//**should depreciate **/
-typedef enum {
-    WEBQQ_OK = 0,
-    WEBQQ_NO_MESSAGE = 102,
-    WEBQQ_108 = 108,
-    WEBQQ_NEW_PTVALUE = 116,
-    WEBQQ_LOST_CONN = 121,
-    WEBQQ_FATAL = 100000
-}WebqqRetCode;
 
 #define LWQQ_FRIEND_CATE_IDX_DEFAULT 0
 #define LWQQ_FRIEND_CATE_IDX_PASSERBY -1

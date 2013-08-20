@@ -141,7 +141,7 @@ static char* ibmpc_ascii_character_convert(char *str)
 static void do_change_markname(LwqqAsyncEvent* ev,LwqqBuddy* b,LwqqGroup* g,char* mark)
 {
     if(ev->failcode == LWQQ_CALLBACK_FAILED) {s_free(mark);return;}
-    if(ev->result != WEBQQ_OK) {s_free(mark);return;}
+    if(ev->result != LWQQ_EC_OK) {s_free(mark);return;}
     if(b){s_free(b->markname); b->markname = mark;}
     if(g){s_free(g->markname); g->markname = mark;}
 }
@@ -153,9 +153,9 @@ static void do_modify_category(LwqqAsyncEvent* ev,LwqqBuddy* b,int cate)
 static void do_change_status(LwqqAsyncEvent* ev,LwqqClient* lc,LwqqStatus s)
 {
     if(ev->failcode == LWQQ_CALLBACK_FAILED) return;
-    if(ev->result == WEBQQ_108)
+    if(ev->result == 108)
         lc->dispatch(_C_(p,lc->action->poll_lost,lc));
-    if(ev->result != WEBQQ_OK) return;
+    if(ev->result != LWQQ_EC_OK) return;
     lc->stat = s;
 }
 static void do_mask_group(LwqqAsyncEvent* ev,LwqqGroup* g,LwqqMask m)
@@ -166,7 +166,7 @@ static void do_mask_group(LwqqAsyncEvent* ev,LwqqGroup* g,LwqqMask m)
 static void do_rename_discu(LwqqAsyncEvent* ev,LwqqGroup* d,char* name)
 {
     if(ev->failcode == LWQQ_CALLBACK_FAILED) {s_free(name);return;}
-    if(ev->result != WEBQQ_OK) {s_free(name);return;}
+    if(ev->result != LWQQ_EC_OK) {s_free(name);return;}
     s_free(d->name);
     d->name = name;
 }
@@ -369,7 +369,7 @@ static int process_simple_response(LwqqHttpRequest* req)
     lwqq_puts(req->response);
     lwqq__jump_if_json_fail(root,req->response,err);
     int retcode = s_atoi(json_parse_simple_value(root, "retcode"),LWQQ_EC_ERROR);
-    if(retcode != WEBQQ_OK){
+    if(retcode != LWQQ_EC_OK){
         err = retcode;
     }
 done:
@@ -386,7 +386,7 @@ static int process_friend_detail(LwqqHttpRequest* req,LwqqBuddy* out)
     lwqq__jump_if_json_fail(root,req->response,err);
     result = lwqq__parse_retcode_result(root, &err);
     //WEBQQ_FATAL:验证码输入错误.
-    if(err != WEBQQ_OK) goto done;
+    if(err != LWQQ_EC_OK) goto done;
     if(result)
         parse_friend_detail(result,out);
     else err = LWQQ_EC_NO_RESULT;
@@ -884,7 +884,7 @@ static int get_friends_info_back(LwqqHttpRequest* req)
     }
 
     json_tmp = lwqq__parse_retcode_result(json, &retcode);
-    if (retcode != WEBQQ_OK){
+    if (retcode != LWQQ_EC_OK){
         err = retcode;
         goto done;
     }
@@ -1164,7 +1164,7 @@ static int get_group_name_list_back(LwqqHttpRequest* req,LwqqClient* lc)
 
     int retcode;
     json_tmp = lwqq__parse_retcode_result(json,&retcode);
-    if (!json_tmp||retcode != WEBQQ_OK) {
+    if (!json_tmp||retcode != LWQQ_EC_OK) {
         lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
         err = LWQQ_EC_ERROR;
         goto done;
@@ -1256,7 +1256,7 @@ static int get_discu_list_back(LwqqHttpRequest* req,void* data)
     json_parse_document(&root, req->response);
     if(!root){ err = 1; goto done;}
     json_temp = lwqq__parse_retcode_result(root, &retcode);
-    if(!json_temp || retcode != WEBQQ_OK) {err=1;goto done;}
+    if(!json_temp || retcode != LWQQ_EC_OK) {err=1;goto done;}
 
     if (json_temp ) {
         parse_discus_discu_child(lc,json_temp);
@@ -1556,7 +1556,7 @@ static int group_detail_back(LwqqHttpRequest* req,LwqqClient* lc,LwqqGroup* grou
 
     int retcode;
     json_tmp = lwqq__parse_retcode_result(json, &retcode);
-    if (!json_tmp || retcode != WEBQQ_OK) {
+    if (!json_tmp || retcode != LWQQ_EC_OK) {
         lwqq_log(LOG_ERROR, "Parse json object error: %s\n", req->response);
         goto json_error;
     }
@@ -2043,7 +2043,7 @@ static int add_group_stage_2(LwqqHttpRequest* req,LwqqGroup* g)
     lwqq__jump_if_http_fail(req,err);
     lwqq__jump_if_json_fail(root,req->response,err);
     result = lwqq__parse_retcode_result(root, &err);
-    if(err != WEBQQ_OK) {goto done;}
+    if(err != LWQQ_EC_OK) {goto done;}
     if(result && result->child){
         result = result->child;
         g->name = json_unescape(json_parse_simple_value(result, "TI"));

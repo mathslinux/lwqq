@@ -248,7 +248,7 @@ static int process_simple_response(LwqqHttpRequest* req)
     lwqq_puts(req->response);
     lwqq__jump_if_json_fail(root,req->response,err);
     int retcode = s_atoi(json_parse_simple_value(root, "retcode"),LWQQ_EC_ERROR);
-    if(retcode != WEBQQ_OK){
+    if(retcode != LWQQ_EC_OK){
         err = retcode;
     }
 done:
@@ -1323,7 +1323,7 @@ static int parse_msg_seq(json_t* json,LwqqMsg* msg)
 static int parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
 {
     int ret;
-    WebqqRetCode retcode = 0;
+    LwqqErrorCode retcode = 0;
     json_t *json = NULL, *json_tmp, *cur;
 
     ret = json_parse_document(&json, (char *)str);
@@ -1341,12 +1341,12 @@ static int parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
     if(retcode_str)
         retcode = atoi(retcode_str);
 
-    if(retcode == WEBQQ_NEW_PTVALUE){
+    if(retcode == LWQQ_EC_PTWEBQQ){
         LwqqClient* lc = list->lc;
         lwqq_override(lc->new_ptwebqq,lwqq__json_get_value(json,"p"));
         lwqq_verbose(3,"[new ptwebqq:%s]\n",lc->new_ptwebqq);
     }
-    if(retcode != WEBQQ_OK) goto done;
+    if(retcode != LWQQ_EC_OK) goto done;
 
     json_tmp = get_result_json_object(json);
     if (!json_tmp) {
@@ -1586,10 +1586,10 @@ static void *start_poll_msg(void *msg_list)
         retcode = parse_recvmsg_from_json(list, req->response);
         if(!lwqq_client_logined(lc)) break;
         switch(retcode){
-            case WEBQQ_OK:
+            case LWQQ_EC_OK:
                 lc->dispatch(_C_(p,lc->action->poll_msg,lc));
                 break;
-            case WEBQQ_NO_MESSAGE:
+            case LWQQ_EC_NO_MESSAGE:
                 continue;
                 break;
             case 109:
@@ -1601,11 +1601,12 @@ static void *start_poll_msg(void *msg_list)
                 lwqq_async_add_event_listener(ev, _C_(p,check_connection_lost,ev));
                 goto failed;
                 break;
-            case WEBQQ_NEW_PTVALUE:
+            case LWQQ_EC_PTWEBQQ:
                 //just need do some things when relogin
                 //lwqq_set_cookie(lc->cookies, "ptwebqq", lc->new_ptwebqq);
                 lwqq_http_set_cookie(req, "ptwebqq", lc->new_ptwebqq);
                 break;
+            default:break;
         }
     }
     lwqq_puts("quit the msg_thread");
