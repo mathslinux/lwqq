@@ -102,10 +102,11 @@ void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc, LwqqErrorCode *err);
  * @return qqnumber on sucessful, NB: caller is responsible for freeing
  * the memory returned by this function
  */
-#define lwqq_info_get_friend_qqnumber(lc,buddy) (lwqq_info_get_qqnumber(lc,buddy,NULL))
-#define lwqq_info_get_group_qqnumber(lc,group) (lwqq_info_get_qqnumber(lc,NULL,group))
+#define lwqq_info_get_friend_qqnumber(lc,buddy) (lwqq_info_get_qqnumber(lc,buddy->uin,&buddy->qqnumber))
+#define lwqq_info_get_group_qqnumber(lc,group) (lwqq_info_get_qqnumber(lc,group->code,&group->account))
+#define lwqq_info_get_member_qqnumber(lc,simple_buddy) (lwqq_info_get_qqnumber(lc,simple_buddy->uin,&simple_buddy->qq))
 
-LwqqAsyncEvent* lwqq_info_get_qqnumber(LwqqClient* lc,LwqqBuddy* buddy,LwqqGroup* group);
+LwqqAsyncEvent* lwqq_info_get_qqnumber(LwqqClient* lc,const char* uin_gcode,char **value);
 
 /**
  * Get QQ groups detail information. 

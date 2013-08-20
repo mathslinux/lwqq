@@ -396,7 +396,7 @@ done:
     return err;
 }
 
-static int process_qqnumber(LwqqHttpRequest* req,LwqqBuddy* b,LwqqGroup* g)
+static int process_qqnumber(LwqqHttpRequest* req,char** value)
 {
     //{"retcode":0,"result":{"uiuin":"","account":1154230227,"uin":2379149875}}
     int err = 0;
@@ -406,12 +406,7 @@ static int process_qqnumber(LwqqHttpRequest* req,LwqqBuddy* b,LwqqGroup* g)
     result = lwqq__parse_retcode_result(root, &err);
     if(result){
         char* account = lwqq__json_get_value(result,"account");
-        if(b&&account){
-            s_free(b->qqnumber);b->qqnumber = account;
-        }
-        if(g&&account){
-            s_free(g->account);g->account = account;
-        }
+        lwqq_override(*value, account);
     }
 done:
     lwqq__clean_json_and_req(root,req);
@@ -1668,20 +1663,18 @@ done:
     return err;
 }
 
-LwqqAsyncEvent* lwqq_info_get_qqnumber(LwqqClient* lc,LwqqBuddy* buddy,LwqqGroup* group)
+LwqqAsyncEvent* lwqq_info_get_qqnumber(LwqqClient* lc,const char* uin_gcode,char **value)
 {
-    if (!lc || !(group || buddy) ) return NULL;
-    const char* uin = NULL;
-    uin = (buddy)?buddy->uin:group->code;
+    if (!lc || !uin_gcode || !value ) return NULL;
     char url[512];
     LwqqHttpRequest *req = NULL;
     snprintf(url, sizeof(url),
              WEBQQ_S_HOST"/api/get_friend_uin2?tuin=%s&verifysession=&type=1&code=&vfwebqq=%s&t=%ld",
-             uin, lc->vfwebqq,time(NULL));
+             uin_gcode, lc->vfwebqq,time(NULL));
     req = lwqq_http_create_default_request(lc,url, NULL);
     req->set_header(req, "Referer", WEBQQ_S_REF_URL);
     lwqq_verbose(3,"%s\n",url);
-    return req->do_request_async(req, 0, NULL,_C_(3p_i,process_qqnumber,req,buddy,group));
+    return req->do_request_async(req, 0, NULL,_C_(3p_i,process_qqnumber,req,value));
 }
 
 /**
