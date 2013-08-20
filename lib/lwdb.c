@@ -242,7 +242,7 @@ static int lwdb_create_db(const char *filename, int db_type)
 	char* end = strrchr(dir,SEP[0]);
 	if(end){
 	   *end = '\0';
-	   mkdir(dir,0755);
+	   mkdir(dir,0700);
 	}
 	s_free(dir);
     }
@@ -252,9 +252,6 @@ static int lwdb_create_db(const char *filename, int db_type)
         ret = sws_exec_sql_directly(filename, create_user_db_sql, &errmsg);
     } else {
         ret = -1;
-    }
-    if(ret >= 0) {
-        chmod(filename,0666);
     }
     if(db_type ==1){
         ret = sws_exec_sql_directly(filename, init_user_db_sql,&errmsg);
