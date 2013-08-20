@@ -76,7 +76,7 @@ int lwqq__process_empty(LwqqHttpRequest* req);
 #define lwqq__jump_if_json_fail(json,str,err) \
     if(json_parse_document(&json,str)!=JSON_OK){\
         lwqq_log(LOG_ERROR, "Parse json object of add friend error: %s\n", str);\
-        err = LWQQ_EC_ERROR; goto done;  }
+        err = LWQQ_EC_NOT_JSON_FORMAT; goto done;  }
 #define lwqq__jump_if_retcode_fail(retcode) if(retcode != LWQQ_EC_OK) goto done;
 #define lwqq__jump_if_ev_fail(ev,err) do{\
     if(ev->failcode != LWQQ_CALLBACK_VALID){err=LWQQ_EC_ERROR;goto done;}\

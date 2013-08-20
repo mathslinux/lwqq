@@ -108,6 +108,8 @@ typedef enum {
 /* Lwqq Error Code */
 typedef enum {
     LWQQ_EC_DB_EXEC_FAILED   = -50,
+    //response unexpected
+    LWQQ_EC_NOT_JSON_FORMAT  = -30,
     //upload error code
     LWQQ_EC_UPLOAD_OVERSIZE  = -21,
     LWQQ_EC_UPLOAD_OVERRETRY = -20,

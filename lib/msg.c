@@ -1322,21 +1322,15 @@ static int parse_msg_seq(json_t* json,LwqqMsg* msg)
  */
 static int parse_recvmsg_from_json(LwqqRecvMsgList *list, const char *str)
 {
-    int ret;
     LwqqErrorCode retcode = 0;
     json_t *json = NULL, *json_tmp, *cur;
 
-    ret = json_parse_document(&json, (char *)str);
-
+    lwqq__jump_if_json_fail(json, str, retcode);
+    
     char* dbg_str = json_unescape((char*)str);
     lwqq_verbose(2,"[%s]%s\n",TIME_,dbg_str);
     s_free(dbg_str);
-    
-    if (ret != JSON_OK) {
-        lwqq_log(LOG_ERROR, "Parse recvmsg from json error: %s\n", str);
-        assert(0);
-        goto done;
-    }
+
     const char* retcode_str = json_parse_simple_value(json,"retcode");
     if(retcode_str)
         retcode = atoi(retcode_str);
@@ -1605,6 +1599,9 @@ static void *start_poll_msg(void *msg_list)
                 //just need do some things when relogin
                 //lwqq_set_cookie(lc->cookies, "ptwebqq", lc->new_ptwebqq);
                 lwqq_http_set_cookie(req, "ptwebqq", lc->new_ptwebqq);
+                break;
+            case LWQQ_EC_NOT_JSON_FORMAT:
+                lc->dispatch(_C_(p,lc->action->poll_lost,lc));
                 break;
             default:break;
         }
