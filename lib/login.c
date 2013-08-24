@@ -69,6 +69,8 @@ static LwqqAsyncEvent* get_login_sig(LwqqClient* lc)
             "&enable_qlogin=0&s_url=http%%3A%%2F%%2Fweb2.qq.com%%2Floginproxy.html"
             );
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
+    lwqq_http_set_option(req, LWQQ_HTTP_TIMEOUT,30);
+    req->retry = 1;
     return req->do_request_async(req,0,NULL,_C_(p_i,get_login_sig_back,req));
 }
 static int check_need_verify_back(LwqqHttpRequest* req)
@@ -123,8 +125,11 @@ static LwqqAsyncEvent* check_need_verify(LwqqClient *lc,const char* appid)
 
     double random = drand48();
     snprintf(url, sizeof(url), WEBQQ_CHECK_HOST"/check?uin=%s&appid=%s&"
-            "js_ver=10037&js_type=0&login_sig=%s&u1=http%%3A%%2F%%2Fweb2.qq.com%%2Floginproxy.html&r=%.16lf",
-            lc->username, appid,lc->login_sig,random);
+            "js_ver=10037&js_type=0&%s%s&u1=http%%3A%%2F%%2Fweb2.qq.com%%2Floginproxy.html&r=%.16lf",
+            lc->username, appid,
+            lc->login_sig?"login_sig=":"",
+            lc->login_sig?:"",
+            random);
     req = lwqq_http_create_default_request(lc,url,NULL);
     req->set_header(req,"Referer",WEBQQ_LOGIN_LONG_REF_URL(buf));
     lwqq_verbose(3,"%s\n",url);
