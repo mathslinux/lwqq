@@ -14,7 +14,7 @@
 #include "type.h"
 #include "msg.h"
 
-typedef char* (*LwqqHashFunc)(const char* uin,const char* ptwebqq);
+typedef char* (*LwqqHashFunc)(const char* uin,const char* ptwebqq,void* userdata);
 /** change discu member operation structure */
 typedef struct LwqqDiscuMemChange LwqqDiscuMemChange;
 /**群名片*/
@@ -46,7 +46,7 @@ typedef LIST_HEAD(,LwqqRecentItem) LwqqRecentList;
  * @param hash NULL to use internal hash function
  * @param err 
  */
-LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc,LwqqHashFunc hash, LwqqErrorCode *err);
+LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc,LwqqHashFunc hash, void* userdata);
 
 /** 
  * Get QQ groups' name information. Get only 'name', 'gid' , 'code' .

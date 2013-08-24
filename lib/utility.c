@@ -62,6 +62,108 @@ const char* lwqq_util_mapto_str(const struct LwqqTypeMap* maps,int type)
     return NULL;
 }
 
+
+char* lwqq_util_hashN(const char* uin,const char* ptwebqq,void* unused)
+{
+    int alen=strlen(uin);
+    int *c = malloc(sizeof(int)*strlen(uin));
+    int d,b,k,clen;
+    int elen=strlen(ptwebqq);
+    const char* e = ptwebqq;
+    int h;
+    int i;
+    for(d=0;d<alen;d++){
+        c[d]=uin[d]-'0';
+    }
+    clen = d;
+    for(b=0,k=-1,d=0;d<clen;d++){
+        b += c[d];
+        b %= elen;
+        int f = 0;
+        if(b+4>elen){
+            int g;
+            for(g=4+b-elen,h=0;h<4;h++)
+                f |= h<g?((e[b+h]&255)<<(3-h)*8):((e[h-g]&255)<<(3-h)*8);
+        }else{
+            for(h=0;h<4;h++)
+                f |= (e[b+h]&255)<<(3-h)*8;
+        }
+        k ^= f;
+    }
+    memset(c,0,sizeof(int)*alen);
+    c[0] = k >> 24&255;
+    c[1] = k >> 16&255;
+    c[2] = k >> 8&255;
+    c[3] = k & 255;
+    const char* ch = "0123456789ABCDEF";
+    char* ret = malloc(10);
+    memset(ret,0,10);
+    for(b=0,i=0;b<4;b++){
+        ret[i++]=ch[c[b]>>4&15];
+        ret[i++]=ch[c[b]&15];
+    }
+    free(c);
+    return ret;
+}
+char* lwqq_util_hashO(const char* uin,const char* ptwebqq,void* unused)
+{
+    char* a = s_malloc0(strlen(ptwebqq)+strlen("password error")+3);
+    const char* b = uin;
+    strcat(strcpy(a,ptwebqq),"password error");
+    size_t alen = strlen(a);
+    char* s = s_malloc0(2048);
+    int *j = malloc(sizeof(int)*alen);
+    for(;;){
+        if(strlen(s)<=alen){
+            if(strcat(s,b),strlen(s)==alen) break;
+        }else{
+            s[alen]='\0';
+            break;
+        }
+    }
+    int d;
+    for(d=0;d<strlen(s);d++){
+        j[d]=s[d]^a[d];
+    }
+    const char* ch = "0123456789ABCDEF";
+    s[0]=0;
+    for(d=0;d<alen;d++){
+        s[2*d]=ch[j[d]>>4&15];
+        s[2*d+1]=ch[j[d]&15];
+    }
+    s_free(a);
+    s_free(j);
+    return s;
+}
+char* lwqq_util_hashP(const char* uin,const char* ptwebqq,void* unused)
+{
+    char a[4]={0};
+    int i;
+#ifdef WIN32
+	unsigned __int64 uin_n = _strtoui64(uin,NULL,10);
+#else
+	unsigned long long uin_n = strtoull(uin,NULL,10);
+#endif
+    for(i=0;i<strlen(ptwebqq);i++)
+        a[i%4] ^= ptwebqq[i];
+    char* j[] = {"EC","OK"};
+    char d[4];
+    d[0] = (uin_n >>24 & 255) ^ j[0][0];
+    d[1] = (uin_n >>16 & 255) ^ j[0][1];
+    d[2] = (uin_n >>8  & 255) ^ j[1][0];
+    d[3] = (uin_n & 255) ^ j[1][1];
+    char j2[8];
+    for (i=0;i<8;i++)
+        j2[i] = i % 2 == 0 ? a[i >> 1] : d[i >> 1];
+    char a2[] = "0123456789ABCDEF";
+    char d2[17] = {0};
+    for (i=0;i<8;i++){
+        d2[i*2] = a2[j2[i] >> 4&15];
+        d2[i*2+1] = a2[j2[i] & 15]; 
+    } 
+    return s_strdup(d2);
+} 
+
 void ds_cat_(struct ds* str,...)
 {
     va_list args;

@@ -32,6 +32,10 @@ const char* lwqq_util_mapto_str(const struct LwqqTypeMap* maps,int type);
 
 LwqqOpCode lwqq_util_save_img(void* ptr,size_t len,const char* path,const char* dir);
 
+char* lwqq_util_hashN(const char* uin,const char* ptwebqq,void*);
+char* lwqq_util_hashO(const char* uin,const char* ptwebqq,void*);
+char* lwqq_util_hashP(const char* uin,const char* ptwebqq,void*);
+
 #define lwqq_group_pretty_name(g) (g->markname?:g->name)
 #define lwqq_buddy_pretty_name(b) (b->markname?:b->nick)
 #define lwqq_override(k,v) {char* tmp_ = v;if(tmp_){s_free(k);k=tmp_;}}
