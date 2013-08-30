@@ -40,6 +40,11 @@ char* lwqq_util_hashP(const char* uin,const char* ptwebqq,void*);
 #define lwqq_buddy_pretty_name(b) (b->markname?:b->nick)
 #define lwqq_override(k,v) {char* tmp_ = v;if(tmp_){s_free(k);k=tmp_;}}
 
+#ifdef WIN32
+#define LWQQ_PATH_SEP "\\"
+#else
+#define LWQQ_PATH_SEP "/"
+#endif
 
 #define TABLE_BEGIN_LONG(name,rettp,paratp,init) \
     rettp name(paratp k){\
