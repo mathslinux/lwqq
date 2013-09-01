@@ -727,6 +727,9 @@ LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqHashFunc hash, vo
 
     char* ptwebqq = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "ptwebqq");
     char* h = hash(lc->myself->uin, ptwebqq,userdata);
+    if(h == NULL) 
+        // hash failed, fake it with empty and wait for server error return.
+        h = s_strdup("");
     s_free(ptwebqq);
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
     snprintf(post, sizeof(post), "r={\"h\":\"hello\",\"hash\":\"%s\",\"vfwebqq\":\"%s\"}",h,lc->vfwebqq);
