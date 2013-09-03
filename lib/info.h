@@ -152,7 +152,7 @@ LwqqAsyncEvent* lwqq_info_delete_friend(LwqqClient* lc,LwqqBuddy* buddy,LwqqDelF
  */
 LwqqAsyncEvent* lwqq_info_delete_group(LwqqClient* lc,LwqqGroup* group);
 //no necessary to call
-void lwqq_info_get_group_sig(LwqqClient* lc,LwqqGroup* group,const char* to_uin);
+LwqqAsyncEvent* lwqq_info_get_group_sig(LwqqClient* lc,LwqqGroup* group,const char* to_uin);
 
 LwqqAsyncEvent* lwqq_info_change_status(LwqqClient* lc,LwqqStatus status);
 LwqqAsyncEvent* lwqq_info_mask_group(LwqqClient* lc,LwqqGroup* group,LwqqMask mask);

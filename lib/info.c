@@ -1782,15 +1782,13 @@ LwqqAsyncEvent* lwqq_info_answer_request_friend(LwqqClient* lc,const char* qq,Lw
     return req->do_request_async(req,1,post,_C_(p_i,process_simple_response,req));
 }
 
-void lwqq_info_get_group_sig(LwqqClient* lc,LwqqGroup* group,const char* to_uin)
+LwqqAsyncEvent* lwqq_info_get_group_sig(LwqqClient* lc,LwqqGroup* group,const char* to_uin)
 {
-    if(!lc||!group||!to_uin) return;
-    if(group->group_sig) return;
+    if(!lc||!group||!to_uin) return NULL;
+    if(group->group_sig) return NULL;
     LwqqSimpleBuddy* sb = lwqq_group_find_group_member_by_uin(group,to_uin);
-    if(sb==NULL) return;
+    if(sb==NULL) return NULL;
     char url[512];
-    int ret;
-    json_t* root = NULL;
     snprintf(url,sizeof(url),WEBQQ_D_HOST"/channel/get_c2cmsg_sig2?"
             "id=%s&"
             "to_uin=%s&"
@@ -1800,25 +1798,9 @@ void lwqq_info_get_group_sig(LwqqClient* lc,LwqqGroup* group,const char* to_uin)
             "t=%ld",
             group->gid,to_uin,(group->type == LWQQ_GROUP_DISCU),lc->clientid,lc->psessionid,time(NULL));
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
-    if(req==NULL){
-        goto done;
-    }
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
     lwqq_verbose(3,"%s\n",url);
-    ret = req->do_request(req,0,NULL);
-    if(req->http_code!=200){
-        goto done;
-    }
-    ret = json_parse_document(&root,req->response);
-    if(ret!=JSON_OK){
-        goto done;
-    }
-    sb->group_sig = s_strdup(json_parse_simple_value(root,"value"));
-
-done:
-    if(root)
-        json_free_value(&root);
-    lwqq_http_request_free(req);
+    return req->do_request_async(req,0,NULL,_C_(3p_i,process_simple_string,req, "value", &sb->group_sig));
 }
 
 LwqqAsyncEvent* lwqq_info_change_status(LwqqClient* lc,LwqqStatus status)
