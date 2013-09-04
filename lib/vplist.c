@@ -32,6 +32,7 @@ void vp_do(vp_command cmd,void* retval)
     vp_start(cmd.data);
     cmd.dsph(cmd.func,&cmd.data,retval);
     vp_end(cmd.data);
+
     cmd.dsph = (VP_DISPATCH)NULL;
     cmd.func = (VP_CALLBACK)NULL;
     vp_command* n = cmd.next;
@@ -151,7 +152,7 @@ void vp_func_3pi(VP_CALLBACK func,vp_list* vp,void* q)
     typedef void (*f)(void*,void*,void*,int);
     if( !func ){
         va_list* va = q;
-        vp_init(*vp,sizeof(void*)*2+sizeof(int));
+        vp_init(*vp,sizeof(void*)*3+sizeof(int));
         vp_dump(*vp,*va,void*);
         vp_dump(*vp,*va,void*);
         vp_dump(*vp,*va,void*);
