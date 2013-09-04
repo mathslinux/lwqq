@@ -107,6 +107,7 @@ typedef struct LwqqMsgContent {
             size_t size;
             int success;
             char* file_path;
+            char* url;
         }img;
         struct {
             char* name;
@@ -116,7 +117,7 @@ typedef struct LwqqMsgContent {
             char* key;
             char serv_ip[24];
             char serv_port[8];
-            char* direct_url;
+            char* url;
         }cface;
     } data;
     TAILQ_ENTRY(LwqqMsgContent) entries;

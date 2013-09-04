@@ -563,13 +563,14 @@ static void msg_message_free(LwqqMsg *opaque)
                 s_free(c->data.img.file_path);
                 s_free(c->data.img.name);
                 s_free(c->data.img.data);
+                s_free(c->data.img.url);
                 break;
             case LWQQ_CONTENT_CFACE:
                 s_free(c->data.cface.data);
                 s_free(c->data.cface.name);
                 s_free(c->data.cface.file_id);
                 s_free(c->data.cface.key);
-                s_free(c->data.cface.direct_url);
+                s_free(c->data.cface.url);
                 break;
             default:
                 break;
@@ -1161,10 +1162,12 @@ static int set_content_picture_data(LwqqHttpRequest* req,LwqqMsgContent* c)
         case LWQQ_CONTENT_OFFPIC:
             c->data.img.data = req->response;
             c->data.img.size = req->resp_len;
+            c->data.img.url = s_strdup(req->location);
         break;
         case LWQQ_CONTENT_CFACE:
             c->data.cface.data = req->response;
             c->data.cface.size = req->resp_len;
+            c->data.cface.url = s_strdup(req->location);
         break;
         default:
         break;
