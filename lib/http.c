@@ -1209,3 +1209,10 @@ void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req)
     curl_easy_setopt(c, CURLOPT_PROXYTYPE,handle->proxy.type);
     #endif
 }
+
+char* lwqq_http_get_url(LwqqHttpRequest* req)
+{
+    char* url = NULL;
+    curl_easy_getinfo(req->req, CURLINFO_EFFECTIVE_URL,&url);
+    return url;
+}

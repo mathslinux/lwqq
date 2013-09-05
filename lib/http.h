@@ -157,6 +157,7 @@ void lwqq_http_cleanup(LwqqClient*lc);
 void lwqq_http_set_option(LwqqHttpRequest* req,LwqqHttpOption opt,...);
 /** regist http progressing callback */
 void lwqq_http_on_progress(LwqqHttpRequest* req,LWQQ_PROGRESS progress,void* prog_data);
+char* lwqq_http_get_url(LwqqHttpRequest* req);
 
 char *lwqq_http_get_cookie(LwqqHttpHandle* h, const char *name);
 void  lwqq_http_set_cookie(LwqqHttpRequest *request, const char *name,const char* val);

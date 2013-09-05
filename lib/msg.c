@@ -1162,12 +1162,12 @@ static int set_content_picture_data(LwqqHttpRequest* req,LwqqMsgContent* c)
         case LWQQ_CONTENT_OFFPIC:
             c->data.img.data = req->response;
             c->data.img.size = req->resp_len;
-            c->data.img.url = s_strdup(req->location);
+            c->data.img.url = lwqq_http_get_url(req);
         break;
         case LWQQ_CONTENT_CFACE:
             c->data.cface.data = req->response;
             c->data.cface.size = req->resp_len;
-            c->data.cface.url = s_strdup(req->location);
+            c->data.cface.url = lwqq_http_get_url(req);
         break;
         default:
         break;
