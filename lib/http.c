@@ -1210,7 +1210,7 @@ void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req)
     #endif
 }
 
-char* lwqq_http_get_url(LwqqHttpRequest* req)
+const char* lwqq_http_get_url(LwqqHttpRequest* req)
 {
     char* url = NULL;
     curl_easy_getinfo(req->req, CURLINFO_EFFECTIVE_URL,&url);
