@@ -1380,7 +1380,7 @@ LwqqAsyncEvent* lwqq_info_get_group_detail_info(LwqqClient *lc, LwqqGroup *group
 
         /* Create a GET request */
         snprintf(url, sizeof(url),
-                WEBQQ_S_HOST"/api/get_group_info_ext2?gcode=%s&vfwebqq=%s&t=%ld",
+                WEBQQ_S_HOST"/api/get_group_info_ext2?gcode=%s&cb=undefined&vfwebqq=%s&t=%ld",
                 group->code, lc->vfwebqq,time(NULL));
         req = lwqq_http_create_default_request(lc,url, err);
         req->set_header(req, "Referer", WEBQQ_S_REF_URL);
