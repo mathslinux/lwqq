@@ -1655,7 +1655,7 @@ static void parse_unescape(char* source,char *buf,int buf_len)
     size_t idx;
     while(*ptr!='\0'){
         if(buf_len<=0) return;
-        idx = strcspn(ptr,"\r\n\t\\;&\"+");
+        idx = strcspn(ptr,"\r\n\t\\;&\"+%");
         if(ptr[idx] == '\0'){
             strncpy(buf,ptr,buf_len);
             buf+=idx;
@@ -1677,6 +1677,7 @@ static void parse_unescape(char* source,char *buf,int buf_len)
             case '&' : strncpy(buf,"\\u0026",buf_len);break;
             case '"' : strncpy(buf,"\\\\\\\"",buf_len);break;
             case '+' : strncpy(buf,"\\u002B",buf_len);break;
+            case '%' : strncpy(buf,"\\u0025",buf_len);break;
         }
         ptr+=idx+1;
         idx=strlen(buf);
