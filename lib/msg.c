@@ -1902,37 +1902,31 @@ static LwqqAsyncEvent* lwqq_msg_upload_cface(
     const char *buffer = c->data.cface.data;
     size_t size = c->data.cface.size;
     LwqqHttpRequest *req;
-    LwqqErrorCode err;
     char url[512];
     static int fileid = 1;
     char fileid_str[20];
 
-    snprintf(url,sizeof(url),"http://up.web2.qq.com/cgi-bin/cface_upload?time=%ld",
-            time(NULL));
-    req = lwqq_http_create_default_request(lc,url,&err);
-    //curl_easy_setopt(req->req,CURLOPT_VERBOSE,1);
+    snprintf(url,sizeof(url),"http://up.web2.qq.com/cgi-bin/cface_upload");
+    req = lwqq_http_create_default_request(lc,url,NULL);
     req->set_header(req,"Origin","http://web2.qq.com");
-    req->set_header(req,"Referer","http://web2.qq.com/");
+    req->set_header(req,"Referer","http://web2.qq.com/webqq.html");
 
     if(LWQQ_VERBOSE_LEVEL>=4)
         lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
 
     req->add_form(req,LWQQ_FORM_CONTENT,"vfwebqq",lc->vfwebqq);
     //this is special for group msg.it can upload over 250K
-    req->add_form(req,LWQQ_FORM_CONTENT,"from","control");
     if(type == LWQQ_MS_GROUP_MSG){
+        req->add_form(req,LWQQ_FORM_CONTENT,"from","control");
         req->add_form(req,LWQQ_FORM_CONTENT,"f","EQQ.Model.ChatMsg.callbackSendPicGroup");
+        //cface 上传是会占用自定义表情的空间的.这里的fileid是几就是占用第几个格子.
+        req->add_form(req,LWQQ_FORM_CONTENT,"fileid","1");
     } else if(type == LWQQ_MS_BUDDY_MSG){
-        req->add_form(req,LWQQ_FORM_CONTENT,"f","EQQ.Model.ChatMsg.callbackSendPic");
+        req->add_form(req,LWQQ_FORM_CONTENT,"f","EQQ.View.ChatBox.uploadCustomFaceCallback");
     }
     req->add_file_content(req,"custom_face",filename,buffer,size,NULL);
     snprintf(fileid_str,sizeof(fileid_str),"%d",fileid++);
-    //cface 上传是会占用自定义表情的空间的.这里的fileid是几就是占用第几个格子.
-    req->add_form(req,LWQQ_FORM_CONTENT,"fileid","1");
 
-    /*void **data = s_malloc0(sizeof(void*)*2);
-    data[0] = lc;
-    data[1] = c;*/
     return req->do_request_async(req,0,NULL,_C_(3p_i,upload_cface_back,req,c,to));
 }
 
