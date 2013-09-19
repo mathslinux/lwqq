@@ -1935,6 +1935,16 @@ void lwqq_msg_send_continue(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* e
     LwqqAsyncEvent* ret = lwqq_msg_send(lc,msg);
     lwqq_async_add_event_chain(ret, event);
 }
+
+static void clean_cface_of_im(LwqqClient* lc,LwqqMsgMessage* msg)
+{
+    LwqqMsgContent* c;
+    TAILQ_FOREACH(c,&msg->content,entries){
+        if(c->type == LWQQ_CONTENT_CFACE){
+            lwqq_msg_remove_uploaded_cface(lc, c);
+        }
+    }
+}
 /** 
  * 
  * 
@@ -1962,20 +1972,20 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
     LwqqAsyncEvent* event;
     LwqqAsyncEvset* evset = NULL;
     if(mmsg->upload_retry>=0){
-    TAILQ_FOREACH(c,&mmsg->content,entries){
-        event = NULL;
-        if(c->type == LWQQ_CONTENT_CFACE && c->data.cface.data > 0){
-            event = lwqq_msg_upload_cface(lc,c,mmsg->super.super.type,
-                    mmsg->super.to);
-            if(!lc->gface_sig) lwqq_async_evset_add_event(evset,query_gface_sig(lc));
-        } else if(c->type == LWQQ_CONTENT_OFFPIC && c->data.img.data > 0)
-            event = lwqq_msg_upload_offline_pic(lc,c,mmsg->super.to);
-        if(event){
-            if(evset==NULL)evset = lwqq_async_evset_new();
-            lwqq_async_evset_add_event(evset,event);
-            will_upload = 1;
+        TAILQ_FOREACH(c,&mmsg->content,entries){
+            event = NULL;
+            if(c->type == LWQQ_CONTENT_CFACE && c->data.cface.data > 0){
+                event = lwqq_msg_upload_cface(lc,c,mmsg->super.super.type,
+                        mmsg->super.to);
+                if(!lc->gface_sig) lwqq_async_evset_add_event(evset,query_gface_sig(lc));
+            } else if(c->type == LWQQ_CONTENT_OFFPIC && c->data.img.data > 0)
+                event = lwqq_msg_upload_offline_pic(lc,c,mmsg->super.to);
+            if(event){
+                if(evset==NULL)evset = lwqq_async_evset_new();
+                lwqq_async_evset_add_event(evset,event);
+                will_upload = 1;
+            }
         }
-    }
     }
     mmsg->upload_retry--;
     if(will_upload){
@@ -2036,9 +2046,13 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
     req->set_header(req, "Referer", WEBQQ_D_REF_URL);
     req->set_header(req, "Content-Transfer-Encoding", "binary");
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
-    
-    return req->do_request_async(req, 1, data,_C_(2p_i,msg_send_back,req,lc));
 
+    LwqqAsyncEvent* ev = req->do_request_async(req, 1, data,_C_(2p_i,msg_send_back,req,lc));
+    /*if(msg->super.super.type == LWQQ_MS_BUDDY_MSG && has_cface)
+        //delete server cface after upload
+        lwqq_async_add_event_listener(ev, _C_(2p,clean_cface_of_im,lc,msg));*/
+    
+    return ev;
 failed:
     lwqq_http_request_free(req);
     return NULL;
@@ -2393,6 +2407,17 @@ LwqqAsyncEvent* lwqq_msg_group_history(LwqqClient* lc,LwqqGroup* g,LwqqHistoryMs
     req->set_header(req,"Referer","http://cgi.web2.qq.com/cfproxy.html?v=20110412001&id=2");
     lwqq_verbose(3,"%s\n",url);
     return req->do_request_async(req,0,NULL,_C_(3p_i,process_group_msg_list,req,NULL,list));
+}
+
+LwqqAsyncEvent* lwqq_msg_remove_uploaded_cface(LwqqClient* lc,LwqqMsgContent* cface)
+{
+    if(!lc||!cface||cface->type!=LWQQ_CONTENT_CFACE||!cface->data.cface.name) return NULL;
+    char url[256];
+    snprintf(url,sizeof(url),"http://web2.qq.com/cgi-bin/webqq_app/?cmd=12&bd=%s&vfwebqq=%s",cface->data.cface.name,lc->vfwebqq);
+    LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
+    req->set_header(req,"Referer","http://web2.qq.com/webqq.html");
+    lwqq_verbose(3, "%s\n",url);
+    return req->do_request_async(req,0,NULL,_C_(p_i,lwqq__process_empty,req));
 }
 
 #if 0

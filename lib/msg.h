@@ -431,6 +431,7 @@ int lwqq_msg_send_simple(LwqqClient* lc,int type,const char* to,const char* mess
 //then add it to LwqqMsgMessage::content
 LwqqMsgContent* lwqq_msg_fill_upload_cface(const char* filename,
         const void* buffer,size_t buf_size);
+LwqqAsyncEvent* lwqq_msg_remove_uploaded_cface(LwqqClient* lc,LwqqMsgContent* cface);
 //helper function : fill a msg content with upload offline pic
 //then add it to LwqqMsgMessage::content
 LwqqMsgContent* lwqq_msg_fill_upload_offline_pic(const char* filename,
