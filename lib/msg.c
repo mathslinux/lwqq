@@ -1518,6 +1518,8 @@ static int _continue_poll(LwqqHttpRequest* req,void* data)
 void check_connection_lost(LwqqAsyncEvent* ev)
 {
     LwqqClient* lc = ev->lc;
+    //check before poll lost
+    if(!lwqq_client_valid(lc)) return;
     if(ev->result == LWQQ_EC_OK){
         LwqqRecvMsgList_* msg_list = (LwqqRecvMsgList_*)lc->msg_list;
         lwqq_msglist_poll(lc->msg_list, msg_list->flags);
