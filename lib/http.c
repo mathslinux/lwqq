@@ -644,7 +644,8 @@ static void check_multi_info(GLOBAL *g)
                     curl_multi_add_handle(g->multi, easy);
                     continue;
                 }
-                ev->failcode = ev->result = ec;
+                ev->failcode = ec;
+                ev->result = ret;
             }
 
             curl_multi_remove_handle(g->multi, easy);
