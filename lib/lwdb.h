@@ -62,6 +62,9 @@ LwqqErrorCode lwdb_userdb_insert_buddy_info(LwdbUserDB* db,LwqqBuddy* buddy);
  * if there is no database entry, create one and update it
  */
 LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group);
+#define lwdb_userdb_insert_discu_info(db,discu) lwdb_userdb_insert_group_info(db,discu)
+
+//LwqqErrorCode lwdb_userdb_migrate_discu_info(LwdbUserDB* db,LwqqGroup* discu,int old_account);
 /** 
  * update a buddy info to database
  * if there is no database entry, error occurs
@@ -72,6 +75,7 @@ LwqqErrorCode lwdb_userdb_update_buddy_info(LwdbUserDB* db,LwqqBuddy* buddy);
  * if there is no database entry, error occurs
  */
 LwqqErrorCode lwdb_userdb_update_group_info(LwdbUserDB* db,LwqqGroup* group);
+#define lwdb_userdb_update_discu_info(db,discu) lwdb_userdb_update_group_info(db,discu)
 
 /** erase infomation older than @day and at most @last entries , 
  * when query buddy, LwqqBuddy::last_modify puts LWQQ_LAST_MODIFY_RESET

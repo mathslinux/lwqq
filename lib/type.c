@@ -415,13 +415,17 @@ LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid)
 
 LwqqGroup* lwqq_group_find_group_by_qqnumber(LwqqClient* lc,const char* qqnumber)
 {
-    LwqqGroup *group;
+    LwqqGroup *group,*discu;
     
     if (!lc || !qqnumber)
         return NULL;
 
     LIST_FOREACH(group,&lc->groups,entries){
         if(group->account && ! strcmp(group->account,qqnumber) ) return group;
+    }
+
+    LIST_FOREACH(discu,&lc->discus,entries){
+        if(discu->account && ! strcmp(discu->account,qqnumber) ) return discu;
     }
     return NULL;
 }

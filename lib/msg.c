@@ -1938,6 +1938,7 @@ void lwqq_msg_send_continue(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* e
     lwqq_async_add_event_chain(ret, event);
 }
 
+/*
 static void clean_cface_of_im(LwqqClient* lc,LwqqMsgMessage* msg)
 {
     LwqqMsgContent* c;
@@ -1947,6 +1948,7 @@ static void clean_cface_of_im(LwqqClient* lc,LwqqMsgMessage* msg)
         }
     }
 }
+*/
 /** 
  * 
  * 

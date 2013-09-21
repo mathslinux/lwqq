@@ -1116,7 +1116,6 @@ static void parse_discus_discu_child(LwqqClient* lc,json_t* root)
         LwqqGroup* discu = lwqq_group_new(LWQQ_GROUP_DISCU);
         discu->did = s_strdup(json_parse_simple_value(json,"did"));
         //for compability
-        discu->account = s_strdup(discu->did);
         name = json_parse_simple_value(json,"name");
         if(strcmp(name,"")==0)
             discu->name = s_strdup("未命名讨论组");
@@ -1500,6 +1499,7 @@ static void parse_discus_info_child(LwqqClient* lc,LwqqGroup* discu,json_t* root
     json = json->child;
 
     discu->owner = s_strdup(json_parse_simple_value(json,"discu_owner"));
+    discu->account = s_strdup(json_parse_simple_value(json, "info_seq"));
 
     json = json_find_first_label(json,"mem_list");
     json = json->child->child;

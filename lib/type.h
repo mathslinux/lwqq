@@ -460,8 +460,9 @@ LwqqGroup *lwqq_group_new(int type);
  * @return A LwqqGroup instance
  */
 LwqqGroup *lwqq_group_find_group_by_gid(LwqqClient *lc, const char *gid);
-LwqqGroup* lwqq_group_find_group_by_qqnumber(LwqqClient* lc,const char* qqnumber);
 #define lwqq_discu_find_discu_by_did(lc,did) lwqq_group_find_group_by_gid(lc,did);
+LwqqGroup* lwqq_group_find_group_by_qqnumber(LwqqClient* lc,const char* qqnumber);
+#define lwqq_group_find_group_by_account(lc,acc) lwqq_group_find_group_by_qqnumber(lc,acc)
 
 /** 
  * Find group member object by member's uin

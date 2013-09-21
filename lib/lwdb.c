@@ -53,7 +53,7 @@ static char *global_database_name;
 
 ///when save friend info need update version
 //to clean old error
-#define LWDB_VERSION 1003
+#define LWDB_VERSION 1004
 #define VAL(v) #v
 #define STR(v) VAL(v)
 
@@ -106,6 +106,21 @@ static const char *create_user_db_sql =
     "    sort default '');"
 
     "create table if not exists groups("
+    "    account primary key not null,"
+    "    name default '',"
+    "    markname default '',"
+    "    face default '',"
+    "    memo default '',"
+    "    class default '',"
+    "    fingermemo default '',"
+    "    createtime default '',"
+    "    level default '',"
+    "    owner default '',"
+    "    flag default '',"
+    "    mask int default 0,"
+    "    last_modify timestamp default 0);"
+
+    "create table if not exists discus("
     "    account primary key not null,"
     "    name default '',"
     "    markname default '',"
@@ -725,8 +740,13 @@ LwqqErrorCode lwdb_userdb_update_group_info(LwdbUserDB* db,LwqqGroup* group)
     if(!db || !group || !group->account) return LWQQ_EC_ERROR;
     SwsStmt* stmt = NULL;
     int cache = 0;
-    const char* sql = "UPDATE groups SET "
-            "name=? , markname=?,memo=?,last_modify=datetime('now') WHERE account=?;";
+    const char* sql;
+    if(group->type == LWQQ_GROUP_QUN)
+        sql = "UPDATE groups SET name=? ,"
+            "markname=?,memo=?,last_modify=datetime('now') WHERE account=?;";
+    else
+        sql = "UPDATE discus SET name=? ,"
+            "markname=?,memo=?,last_modify=datetime('now') WHERE account=?;";
 
     enable_cache(stmt,sql,cache);
 
@@ -746,8 +766,11 @@ LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group)
     if(! group->account) return -1;
     SwsStmt* stmt = NULL;
     int cache = 0;
-    const char* sql="INSERT INTO groups ("
-            "account,name,markname) VALUES (?,?,?);";
+    const char* sql;
+    if(group->type == LWQQ_GROUP_QUN)
+        sql = "INSERT INTO groups (account,name,markname) VALUES (?,?,?);";
+    else
+        sql = "INSERT INTO discus (account,name,markname) VALUES (?,?,?);";
 
     enable_cache(stmt,sql,cache);
 
@@ -761,82 +784,20 @@ LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group)
     if(!cache) sws_query_end(stmt, NULL);
     return 0;
 }
-/*
-static LwqqErrorCode lwdb_userdb_update_buddy_info(
-    struct LwdbUserDB *db, LwqqBuddy *buddy)
-{
-    char sql[4096] = {0};
-    int sqllen = 0;
-    
-    if (!buddy || !buddy->qqnumber) {
-        return LWQQ_EC_NULL_POINTER;
-    }
-
-    snprintf(sql, sizeof(sql), "UPDATE buddies SET qqnumber='%s'", buddy->qqnumber);
-    sqllen = strlen(sql);
-
-#define UBI_CONSTRUCT_SQL(member) {                                     \
-    if (buddy->member) {                                            \
-        snprintf(sql + sqllen, sizeof(sql) - sqllen, ",%s='%s'", #member, buddy->member); \
-        sqllen = strlen(sql);                                       \
-        if (sqllen > (sizeof(sql) - 128)) {                         \
-            return LWQQ_EC_ERROR;                                   \
-        }                                                           \
-    }                                                               \
-}
-#define UBI_CONSTRUCT_SQL_INT(member) {                                 \
-    if(buddy->member) {                                                 \
-        snprintf(sql+sqllen,sizeof(sql) - sqllen,",%s=%d",#member,buddy->member); \
-        sqllen = strlen(sql);                                           \
-        if(sqllen > (sizeof(sql) - 128 )) return LWQQ_EC_ERROR;         \
-    }                                                                   \
-}
-    UBI_CONSTRUCT_SQL(face);
-    UBI_CONSTRUCT_SQL(phone);
-    UBI_CONSTRUCT_SQL(allow);
-    UBI_CONSTRUCT_SQL(college);
-    UBI_CONSTRUCT_SQL(reg_time);
-    UBI_CONSTRUCT_SQL(constel);
-    UBI_CONSTRUCT_SQL(blood);
-    UBI_CONSTRUCT_SQL(homepage);
-    UBI_CONSTRUCT_SQL_INT(stat);
-    UBI_CONSTRUCT_SQL(country);
-    UBI_CONSTRUCT_SQL(city);
-    UBI_CONSTRUCT_SQL(personal);
-    UBI_CONSTRUCT_SQL(nick);
-    UBI_CONSTRUCT_SQL(shengxiao);
-    UBI_CONSTRUCT_SQL(email);
-    UBI_CONSTRUCT_SQL(province);
-    UBI_CONSTRUCT_SQL(gender);
-    UBI_CONSTRUCT_SQL(mobile);
-    UBI_CONSTRUCT_SQL(vip_info);
-    UBI_CONSTRUCT_SQL(markname);
-    UBI_CONSTRUCT_SQL(flag);
-    UBI_CONSTRUCT_SQL_INT(cate_index);
-    UBI_CONSTRUCT_SQL_INT(client_type);
-#undef UBI_CONSTRUCT_SQL
-#undef UBI_CONSTRUCT_SQL_INT
-    snprintf(sql + sqllen, sizeof(sql) - sqllen, " WHERE qqnumber='%s';", buddy->qqnumber);
-    if (!sws_exec_sql(db->db, sql, NULL)) {
-        return LWQQ_EC_DB_EXEC_FAIELD;
-    }
-
-    return LWQQ_EC_OK;
-}
-*/
 void lwdb_userdb_query_qqnumbers(LwdbUserDB* db,LwqqClient* lc)
 {
     if(!lc || !db) return;
     LwqqBuddy* buddy;
-    LwqqGroup* group;
+    LwqqGroup* group,* discu;
     char qqnumber[32];
     char last_modify[64];
-    static SwsStmt* stmt1 = 0,*stmt2,*stmt3,*stmt4;
+    static SwsStmt* stmt1 = 0,*stmt2,*stmt3,*stmt4,*stmt5;
             
     sws_query_start(db->db, "SELECT qqnumber,last_modify FROM buddies WHERE nick=? AND markname=?", &stmt1, NULL);
     sws_query_start(db->db, "SELECT qqnumber,last_modify FROM buddies WHERE nick=?",&stmt2,NULL);
     sws_query_start(db->db, "SELECT account,last_modify FROM groups WHERE name=? AND markname=?",&stmt3,NULL);
     sws_query_start(db->db, "SELECT account,last_modify FROM groups WHERE name=?",&stmt4,NULL);
+    sws_query_start(db->db, "SELECT account,last_modify FROM discus WHERE name=?", &stmt5, NULL);
 
     LIST_FOREACH(buddy,&lc->friends,entries){
         if(buddy->markname){
@@ -914,10 +875,30 @@ void lwdb_userdb_query_qqnumbers(LwdbUserDB* db,LwqqClient* lc)
         }
     }
 
+    LIST_FOREACH(discu,&lc->discus,entries){
+        sws_query_reset(stmt5);
+        sws_query_bind(stmt5, 1, SWS_BIND_TEXT,discu->name);
+        if(sws_query_next(stmt5,0)!=SWS_OK){
+            lwqq_verbose(1,"userdb mismatch [ name : %s ]\n",discu->name);
+            discu->last_modify = -1;
+            continue;
+        }
+        sws_query_column(stmt5,0, qqnumber,sizeof(qqnumber),NULL);
+        sws_query_column(stmt5, 1, last_modify, sizeof(last_modify),NULL);
+        if(sws_query_next(stmt5,0)==SWS_FAILED){
+            discu->account = s_strdup(qqnumber);
+            discu->last_modify = s_atol(last_modify, 0);
+        }else{
+            lwqq_verbose(1,"userdb mismatch [ name : %s ]\n",discu->name);
+            discu->last_modify = -1;
+        }
+    }
+
     sws_query_end(stmt1, NULL);
     sws_query_end(stmt2, NULL);
     sws_query_end(stmt3, NULL);
     sws_query_end(stmt4, NULL);
+    sws_query_end(stmt5, NULL);
 }
 
 void lwdb_userdb_begin(LwdbUserDB* db)
