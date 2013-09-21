@@ -232,8 +232,6 @@ LwqqAsyncEvent* lwqq_info_set_self_long_nick(LwqqClient* lc,const char* nick);
 
 LwqqAsyncEvent* lwqq_info_get_group_memo(LwqqClient* lc,LwqqGroup* g);
 
-LwqqAsyncEvent* lwqq_info_set_dicsu_topic(LwqqClient* lc,LwqqGroup* d,const char* topic);
-
 void lwqq_recent_list_free(LwqqRecentList* list);
 LwqqAsyncEvent* lwqq_info_recent_list(LwqqClient* lc,LwqqRecentList* list);
 LwqqAsyncEvent* lwqq_info_get_level(LwqqClient* lc,LwqqBuddy* b);

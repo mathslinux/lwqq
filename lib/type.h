@@ -233,9 +233,13 @@ typedef struct LwqqGroup {
     char *did;                   /**< QQ Discu id */
     };
     union{
-    char *account;               /** < QQ Group number */
+    char *account;               /** < Group: QQ number 
+                                        Discu: (with lwdb) the only one and stable key reference
+                                               (without lwdb) equal to info_seq;
+                                 */
     char *qq;                    /** < QQ number */
     };
+    char *info_seq;              /** < avaliable for discu */
     char *code;    
     char *markname;              /** < QQ Group mark name */
 
@@ -356,6 +360,11 @@ typedef struct LwqqAction {
      * you need flush displayed group member
      */
     void (*group_members_chg)(LwqqClient* lc,LwqqGroup* g);
+    /** this called when a discu account would change
+     * you need update database with lwdb_userdb_update_discu_account
+     * you need flush displayed group member
+     */
+    //void (*discu_account_chg)(LwqqClient* lc,LwqqGroup* discu,int old_account);
 }LwqqAction;
 
 #define lwqq_call_action(lc,act)  if(lc->action->act) lc->action->act

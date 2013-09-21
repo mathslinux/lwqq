@@ -373,6 +373,7 @@ void lwqq_group_free(LwqqGroup *group)
     s_free(group->owner);
     s_free(group->flag);
     s_free(group->option);
+    s_free(group->info_seq);
 
     s_free(group->avatar);
 
