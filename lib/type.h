@@ -101,6 +101,7 @@ typedef enum {
     LWQQ_MALE = 2
 }LwqqGender;
 typedef enum {
+    LWQQ_DEL_KEEP_OTHER = 1,/* delete buddy and keep myself from other buddy list */
     LWQQ_DEL_FROM_OTHER = 2/* delete buddy and remove myself from other buddy list */
 }LwqqDelFriendType;
 
