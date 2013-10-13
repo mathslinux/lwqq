@@ -17,6 +17,7 @@ set(LWQQ_LIST
     lwdb.c
     )
 set(LWQQ_HEADER
+	queue.h
     async.h
     async_impl.h
     http.h
