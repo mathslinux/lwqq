@@ -35,6 +35,7 @@ LwqqOpCode lwqq_util_save_img(void* ptr,size_t len,const char* path,const char* 
 char* lwqq_util_hashN(const char* uin,const char* ptwebqq,void*);
 char* lwqq_util_hashO(const char* uin,const char* ptwebqq,void*);
 char* lwqq_util_hashP(const char* uin,const char* ptwebqq,void*);
+char* lwqq_util_hashQ(const char* uin,const char* ptwebqq,void* _unused);
 
 #define lwqq_group_pretty_name(g) (g->markname?:g->name)
 #define lwqq_buddy_pretty_name(b) (b->markname?:b->nick)

@@ -163,6 +163,76 @@ char* lwqq_util_hashP(const char* uin,const char* ptwebqq,void* unused)
     } 
     return s_strdup(d2);
 } 
+struct hash_slice{
+	int s;
+	int e;
+};
+char* lwqq_util_hashQ(const char* uin,const char* ptwebqq,void* _unused)
+{
+	int r[4];
+#ifdef WIN32
+	unsigned __int64 uin_n = _strtoui64(uin,NULL,10);
+#else
+	unsigned long long uin_n = strtoull(uin,NULL,10);
+#endif
+	r[0] = uin_n>>24&255;
+	r[1] = uin_n>>16&255;
+	r[2] = uin_n>>8&255;
+	r[3] = uin_n&255;
+	char* j = s_strdup(ptwebqq);
+	struct hash_slice e_ins;
+	struct hash_slice e[1024];
+	int e_idx = 0;
+	e[e_idx++] = (e_ins.s = 0,e_ins.e = strlen(j)-1,e_ins);
+	for(;e_idx>0;){
+		struct hash_slice c;
+		c = e[--e_idx];
+		if(!(c.s>=c.e||c.s<0||c.e>=strlen(j)))
+			if(c.s+1==c.e){
+				if(j[c.s]>j[c.e]){
+					int l=j[c.s];
+					j[c.s]=j[c.e];
+					j[c.e]=l;
+				}
+			}else{
+				int l=c.s;
+				int J=c.e;
+				int f=j[c.s];
+				for(;c.s<c.e;){
+					for(;c.s<c.e&&j[c.e]>=f;){
+						c.e--;
+						r[0]=r[0]+3&255;
+					}
+					if(c.s<c.e){
+						j[c.s]=j[c.e];
+						c.s++;
+						r[1]=r[1]*13+43&255;
+					}
+					for(;c.s<c.e&&j[c.s]<=f;){
+						c.s++;
+						r[2]=r[2]-3&255;
+					}
+					if(c.s<c.e){
+						j[c.e]=j[c.s];
+						c.e--;
+						r[3]=(r[0]^r[1]^r[2]^r[3]+1)&255;
+					}
+				}
+				j[c.s]=f;
+				e[e_idx++]=(e_ins.s=l,e_ins.e=c.s-1,e_ins);
+				e[e_idx++]=(e_ins.s=c.s+1,e_ins.e=J,e_ins);
+			}
+	}
+	char j2[] = "0123456789ABCDEF";
+	char e2[10] = {0};
+	int c;
+	for(c=0;c<4;c++){
+		e2[c*2]=j2[r[c]>>4&15];
+		e2[c*2+1]=j2[r[c]&15];
+	}
+	s_free(j);
+	return s_strdup(e2);
+}
 
 void ds_cat_(struct ds* str,...)
 {
