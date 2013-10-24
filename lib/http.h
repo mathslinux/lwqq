@@ -28,7 +28,8 @@ typedef enum {
     LWQQ_HTTP_VERBOSE,
     LWQQ_HTTP_CANCELABLE,
     LWQQ_HTTP_MAXREDIRS,
-    LWQQ_HTTP_NOT_SET_COOKIE = 1<<7
+    LWQQ_HTTP_NOT_SET_COOKIE = 1<<7,
+	LWQQ_HTTP_MAX_LINK = 1000
 }LwqqHttpOption;
 /**
  * Lwqq Http request struct, this http object worked done for lwqq,
