@@ -441,6 +441,7 @@ LwqqBuddy* lwqq_buddy_find_buddy_by_name(LwqqClient* lc,const char* name);
 
 
 LwqqFriendCategory* lwqq_category_find_by_name(LwqqClient* lc,const char* name);
+LwqqFriendCategory* lwqq_category_find_by_id(LwqqClient* lc,int index);
 
 /* LwqqBuddy API END*/
 

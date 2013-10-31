@@ -332,6 +332,15 @@ LwqqFriendCategory* lwqq_category_find_by_name(LwqqClient* lc,const char* name)
     }
     return NULL;
 }
+LwqqFriendCategory* lwqq_category_find_by_id(LwqqClient* lc,int index)
+{
+    if(!lc) return NULL;
+    LwqqFriendCategory* cate;
+    LIST_FOREACH(cate,&lc->categories,entries){
+        if(cate->index == index) return cate;
+    }
+    return NULL;
+}
 
 /* LwqqBuddy API END*/
 /************************************************************************/
