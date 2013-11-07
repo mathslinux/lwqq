@@ -32,7 +32,6 @@ static struct LwqqTypeMap status_type_map[] = {
     {LWQQ_STATUS_LOGOUT  ,NULL,          }
 };
 
-
 const char* lwqq_status_to_str(LwqqStatus status)
 {
     return lwqq_util_mapto_str(status_type_map, status);
@@ -91,6 +90,11 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     lc->myself->uin = s_strdup(username);
 
     lc->msg_list = lwqq_msglist_new(lc);
+
+    LwqqFriendCategory* my_friend = s_malloc0(sizeof(*my_friend));
+    my_friend->index = 0;
+    my_friend->name = s_strdup("My Friend");
+    LIST_INSERT_HEAD(&lc->categories, my_friend, entries);
 
     lc->action = &default_async_opt;
 
