@@ -1220,7 +1220,7 @@ static LwqqAsyncEvent* request_content_cface(LwqqClient* lc,const char* group_co
     if (!req) {
         goto done;
     }
-    req->set_header(req, "Referer", "http://web2.qq.com/");
+    req->set_header(req, "Referer", "http://web2.qq.com/webqq.html");
 
     if(LWQQ_VERBOSE_LEVEL>=4)
         lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
@@ -1245,7 +1245,7 @@ static LwqqAsyncEvent* request_content_cface2(LwqqClient* lc,int msg_id,const ch
     if (!req) {
         goto done;
     }
-    req->set_header(req, "Referer", "http://web2.qq.com/");
+    req->set_header(req, "Referer", "http://web2.qq.com/webqq.html");
 
     if(LWQQ_VERBOSE_LEVEL>=4)
         lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
