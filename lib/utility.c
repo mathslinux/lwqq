@@ -187,7 +187,7 @@ char* lwqq_util_hashQ(const char* uin,const char* ptwebqq,void* _unused)
 	for(;e_idx>0;){
 		struct hash_slice c;
 		c = e[--e_idx];
-		if(!(c.s>=c.e||c.s<0||c.e>=strlen(j)))
+		if(!(c.s>=c.e||c.s<0||c.e>=strlen(j))){
 			if(c.s+1==c.e){
 				if(j[c.s]>j[c.e]){
 					int l=j[c.s];
@@ -201,27 +201,28 @@ char* lwqq_util_hashQ(const char* uin,const char* ptwebqq,void* _unused)
 				for(;c.s<c.e;){
 					for(;c.s<c.e&&j[c.e]>=f;){
 						c.e--;
-						r[0]=r[0]+3&255;
+						r[0]=(r[0]+3)&255;
 					}
 					if(c.s<c.e){
 						j[c.s]=j[c.e];
 						c.s++;
-						r[1]=r[1]*13+43&255;
+						r[1]=(r[1]*13+43)&255;
 					}
 					for(;c.s<c.e&&j[c.s]<=f;){
 						c.s++;
-						r[2]=r[2]-3&255;
+						r[2]=(r[2]-3)&255;
 					}
 					if(c.s<c.e){
 						j[c.e]=j[c.s];
 						c.e--;
-						r[3]=(r[0]^r[1]^r[2]^r[3]+1)&255;
+						r[3]=((r[0]^r[1]^r[2]^r[3])+1)&255;
 					}
 				}
 				j[c.s]=f;
 				e[e_idx++]=(e_ins.s=l,e_ins.e=c.s-1,e_ins);
 				e[e_idx++]=(e_ins.s=c.s+1,e_ins.e=J,e_ins);
 			}
+        }
 	}
 	char j2[] = "0123456789ABCDEF";
 	char e2[10] = {0};

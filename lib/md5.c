@@ -52,11 +52,10 @@
 
 #include "md5.h"
 
-static	char	*rcs_id =
-  "$Id: md5.c,v 1.8 2010-05-07 13:58:18 gray Exp $";
+#define rcs_id "$Id: md5.c,v 1.8 2010-05-07 13:58:18 gray Exp $"
 
 /* version id for the library */
-static char *version_id = "$MD5Version: 1.0.0 November-19-1997 $";
+#define version_id = "$MD5Version: 1.0.0 November-19-1997 $"
 
 /****************************** local routines *******************************/
 

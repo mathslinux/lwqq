@@ -10,8 +10,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-//to enable strptime
-#define __USE_XOPEN
 #include <time.h>
 #include <utime.h>
 #include <sys/stat.h>

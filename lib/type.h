@@ -29,6 +29,14 @@
 #define LWQQ_RETRY_VALUE 3
 #define LWQQ_CACHE_DIR "/tmp/lwqq"
 
+#ifdef UNUSED
+#elif defined(__GNUC__)
+# 	define UNUSED(x) UNUSED_ ## x __attribute__((unused))
+#else
+#	define UNUSED(x) x
+#endif
+
+
 
 typedef struct _LwqqHttpRequest LwqqHttpRequest;
 typedef LIST_HEAD(,LwqqAsyncEntry) LwqqAsyncQueue;
