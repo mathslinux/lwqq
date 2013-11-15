@@ -103,6 +103,7 @@ static int check_need_verify_back(LwqqHttpRequest* req)
     lc->vc = s_malloc0(sizeof(*lc->vc));
     lc->vc->uin = s_strdup(param3);
     lc->vc->str = s_strdup(param2);
+    lc->vc->lc  = lc;
 
     if (need_vf == 0) {
         /* We need get the ptvfsession from the header "Set-Cookie" */
@@ -123,6 +124,7 @@ static LwqqAsyncEvent* check_need_verify(LwqqClient *lc,const char* appid)
     char url[512];
     char buf[256];
 
+    srand48(time(NULL));
     double random = drand48();
     snprintf(url, sizeof(url), WEBQQ_CHECK_HOST"/check?uin=%s&appid=%s&"
             "js_ver=10037&js_type=0&%s%s&u1=http%%3A%%2F%%2Fweb2.qq.com%%2Floginproxy.html&r=%.16lf",

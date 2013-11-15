@@ -27,7 +27,9 @@ LwqqAsyncEvent* lwqq__request_captcha(LwqqClient* lc,LwqqVerifyCode* c)
 {
     if(!lc||!c) return NULL;
     char url[512];
+    c->lc = lc;
 
+    srand48(time(NULL));
     double random = drand48();
     snprintf(url,sizeof(url),"%s/getimage?"
             "aid=1003901&%.16lf",

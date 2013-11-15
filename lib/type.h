@@ -37,12 +37,13 @@
 #endif
 
 
-
-typedef struct _LwqqHttpRequest LwqqHttpRequest;
-typedef LIST_HEAD(,LwqqAsyncEntry) LwqqAsyncQueue;
 struct LwqqMsgContent;
 struct LwqqAction;
 
+typedef struct _LwqqHttpRequest LwqqHttpRequest;
+typedef LIST_HEAD(,LwqqAsyncEntry) LwqqAsyncQueue;
+
+typedef struct LwqqClient LwqqClient;
 
 typedef VP_DISPATCH DISPATCH_FUNC;
 typedef VP_CALLBACK CALLBACK_FUNC;
@@ -282,8 +283,11 @@ typedef struct LwqqGroup {
 typedef struct LwqqVerifyCode {
     char *str;
     char *uin;
+    //{image
     char *data;
     size_t size;
+    //}
+    LwqqClient* lc;
     LwqqCommand cmd;
 } LwqqVerifyCode ;
 
@@ -291,7 +295,7 @@ typedef enum {LWQQ_NO,LWQQ_YES,LWQQ_EXTRA_ANSWER,LWQQ_IGNORE} LwqqAnswer;
 #define LWQQ_ALLOW_AND_ADD LWQQ_EXTRA_ANSWER
 
 /* LwqqClient API */
-typedef struct LwqqClient {
+struct LwqqClient {
     char *username;             /**< Username */
     char *password;             /**< Password */
     LwqqBuddy *myself;          /**< Myself */
@@ -332,7 +336,7 @@ typedef struct LwqqClient {
     void (*dispatch)(LwqqCommand);
 
     int magic;          /**< 0x4153 **/
-} LwqqClient;
+};
 #define lwqq_client_userdata(lc) (lc->data)
 
 /**
