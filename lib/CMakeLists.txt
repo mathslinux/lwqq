@@ -15,7 +15,7 @@ set(LWQQ_LIST
     async.c
     http.c
     lwdb.c
-	js.c
+	lwjs.c
     )
 set(LWQQ_HEADER
 	queue.h
@@ -33,7 +33,7 @@ set(LWQQ_HEADER
     lwqq.h
     vplist.h
     swsqlite.h
-    js.h
+    lwjs.h
     )
 add_definitions(-Wall )
 

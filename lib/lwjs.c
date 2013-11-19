@@ -1,5 +1,5 @@
-#include "js.h"
 #include "lwqq.h"
+#include "lwjs.h"
 
 #include <stdint.h>
 
