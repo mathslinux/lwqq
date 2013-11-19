@@ -15,6 +15,7 @@ set(LWQQ_LIST
     async.c
     http.c
     lwdb.c
+	js.c
     )
 set(LWQQ_HEADER
 	queue.h
@@ -32,15 +33,17 @@ set(LWQQ_HEADER
     lwqq.h
     vplist.h
     swsqlite.h
+    js.h
     )
 add_definitions(-Wall )
 
 include_directories(
-  ${ZLIB_INCLUDE_DIRS}
-  ${CURL_INCLUDE_DIRS}
-  ${SQLITE_INCLUDE_DIRS}
-  ${PROJECT_BINARY_DIR}
-  )
+    ${ZLIB_INCLUDE_DIRS}
+    ${CURL_INCLUDE_DIRS}
+    ${SQLITE_INCLUDE_DIRS}
+    ${MOZJS_INCLUDE_DIRS}
+    ${PROJECT_BINARY_DIR}
+    )
 
 if(UNIX)
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fno-strict-aliasing")
@@ -72,18 +75,20 @@ set_target_properties(lwqq-static PROPERTIES OUTPUT_NAME lwqq)
 add_library(lwqq SHARED ${LWQQ_LIST} )
 
 target_link_libraries(lwqq
-  ${SQLITE_LIBRARIES}
-  ${CURL_LIBRARIES}
-  ${ZLIB_LIBRARIES}
-  ${LWQQ_OTHER_LIBS}
-  )
+    ${SQLITE_LIBRARIES}
+    ${CURL_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${MOZJS_LIBRARIES}
+    ${LWQQ_OTHER_LIBS}
+    )
 
 target_link_libraries(lwqq-static
-  ${SQLITE_LIBRARIES}
-  ${CURL_LIBRARIES}
-  ${ZLIB_LIBRARIES}
-  ${LWQQ_OTHER_LIBS}
-  )
+    ${SQLITE_LIBRARIES}
+    ${CURL_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${MOZJS_LIBRARIES}
+    ${LWQQ_OTHER_LIBS}
+    )
   
 
 if(LWQQ_INSTALL)

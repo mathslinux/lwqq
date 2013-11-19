@@ -3,6 +3,7 @@ add_executable(lwqq-cli
     )
 
 include_directories(
+    ${PROJECT_BINARY_DIR}
 	../lib 
 	)
 
