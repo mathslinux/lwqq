@@ -1,6 +1,6 @@
 #ifndef LWQQ_JS_H_H
 #define LWQQ_JS_H_H
-#include "config.h"
+#include "lwqq-config.h"
 
 typedef struct lwqq_js_t lwqq_js_t;
 typedef void   lwqq_jso_t;

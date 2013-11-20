@@ -2,7 +2,7 @@
 #define LWQQ_INTERNAL_H_H
 #include "type.h"
 #include "json.h"
-#include "config.h"
+#include "lwqq-config.h"
 #include "async.h"
 #ifdef WIN32
 #include "win32.h"
