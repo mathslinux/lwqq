@@ -1,0 +1,3 @@
+[submodule "doc"]
+	path = doc
+	url = https://github.com/xiehuc/lwqq.wiki.git
