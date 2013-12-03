@@ -7,6 +7,10 @@ include_directories(
 	../lib 
 	)
 
+link_directories(
+    ${CMAKE_CURRENT_BINARY_DIR}/../lib
+    )
+
 target_link_libraries(lwqq-cli
     lwqq
     pthread

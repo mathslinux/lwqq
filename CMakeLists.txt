@@ -76,7 +76,7 @@ if(WITH_MOZJS AND NOT MOZJS_FOUND)
 	message(FATAL_ERROR "Reuired mozjs185 or mozjs-17.0 package not found")
 endif()
 
-option(ENABLE_DOCS "Build Documentation" ${SPHINX_FOUND})
+option(ENABLE_DOCS "Build Documentation" OFF)
 if(ENABLE_DOCS AND NOT SPHINX_FOUND)
 	message(FATAL_ERROR "Reuired python-sphinx package not found")
 endif()

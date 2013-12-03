@@ -215,7 +215,7 @@ char* lwqq_util_hashQ(const char* uin,const char* ptwebqq,void* _unused)
 					if(c.s<c.e){
 						j[c.e]=j[c.s];
 						c.e--;
-						r[3]=((r[0]^r[1]^r[2]^r[3])+1)&255;
+						r[3]=(r[0]^r[1]^r[2]^(r[3]+1))&255;
 					}
 				}
 				j[c.s]=f;
