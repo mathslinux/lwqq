@@ -721,7 +721,7 @@ LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqHashFunc hash, vo
 {
     char post[512];
     LwqqHttpRequest *req = NULL;
-    if(hash == NULL)  hash = lwqq_util_hashQ;
+    if(hash == NULL)  hash = lwqq_util_hashP;
 
     char* ptwebqq = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "ptwebqq");
     char* h = hash(lc->myself->uin, ptwebqq,userdata);
