@@ -39,7 +39,7 @@ char* lwqq_util_hashQ(const char* uin,const char* ptwebqq,void* _unused);
 
 #define lwqq_group_pretty_name(g) (g->markname?:g->name)
 #define lwqq_buddy_pretty_name(b) (b->markname?:b->nick)
-#define lwqq_override(k,v) {char* tmp_ = v;if(tmp_){s_free(k);k=tmp_;}}
+#define lwqq_override(to,from_alloc) {char* tmp_ = from_alloc;if(tmp_){s_free(to);to=tmp_;}}
 
 #ifdef WIN32
 #define LWQQ_PATH_SEP "\\"

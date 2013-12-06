@@ -1498,8 +1498,6 @@ static void parse_discus_info_child(LwqqClient* lc,LwqqGroup* discu,json_t* root
 
     discu->owner = s_strdup(json_parse_simple_value(json,"discu_owner"));
     discu->info_seq = s_strdup(json_parse_simple_value(json, "info_seq"));
-    if(!discu->account)
-        discu->account = s_strdup(discu->info_seq);
 
     json = json_find_first_label(json,"mem_list");
     json = json->child->child;
