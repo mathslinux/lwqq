@@ -3,6 +3,7 @@
 
 #cmakedefine WITH_LIBEV
 #cmakedefine WITH_LIBUV
+#cmakedefine WITH_SQLITE
 #cmakedefine WITHOUT_ASYNC
 #cmakedefine SSL
 #cmakedefine WITH_MOZJS

@@ -81,6 +81,9 @@ if(ENABLE_DOCS AND NOT SPHINX_FOUND)
 	message(FATAL_ERROR "Reuired python-sphinx package not found")
 endif()
 
+#always true because we force enable sqlite
+set(WITH_SQLITE True)
+
 message( "================lwqq flags=====================")
 message(STATUS "With Libev (Option)     : ${WITH_LIBEV}")
 message(STATUS "With Mozjs (Option)     : ${WITH_MOZJS}")
