@@ -231,7 +231,7 @@ static void insert_msg_delay_by_request_content(LwqqRecvMsgList* list,LwqqMsg* m
 {
     insert_recv_msg_with_order(list,msg);
     LwqqClient* lc = list->lc;
-    lc->dispatch(_C_(p,lc->action->poll_msg,list->lc));
+    lwqq_client_dispatch(lc,_C_(p,lc->action->poll_msg,list->lc));
 }
 static void add_passerby(LwqqClient* lc,LwqqBuddy* buddy)
 {
@@ -1586,13 +1586,13 @@ static void *start_poll_msg(void *msg_list)
         if(!lwqq_client_logined(lc)) break;
         switch(retcode){
             case LWQQ_EC_OK:
-                lc->dispatch(_C_(p,lc->action->poll_msg,lc));
+                lwqq_client_dispatch(lc,_C_(p,lc->action->poll_msg,lc));
                 break;
             case LWQQ_EC_NO_MESSAGE:
                 continue;
                 break;
             case 109:
-                lc->dispatch(_C_(p,lc->action->poll_lost,lc));
+                lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
                 break;
             case 120:
             case 121:
@@ -1606,7 +1606,7 @@ static void *start_poll_msg(void *msg_list)
                 lwqq_http_set_cookie(req, "ptwebqq", lc->new_ptwebqq);
                 break;
             case LWQQ_EC_NOT_JSON_FORMAT:
-                lc->dispatch(_C_(p,lc->action->poll_lost,lc));
+                lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
                 break;
             default:break;
         }
@@ -1932,10 +1932,17 @@ static LwqqAsyncEvent* lwqq_msg_upload_cface(
     return req->do_request_async(req,0,NULL,_C_(3p_i,upload_cface_back,req,c,to));
 }
 
-void lwqq_msg_send_continue(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* event)
+static
+void msg_send_continue(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* event)
 {
     LwqqAsyncEvent* ret = lwqq_msg_send(lc,msg);
     lwqq_async_add_event_chain(ret, event);
+}
+
+static 
+void msg_send_delay(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* event, unsigned long delay)
+{
+	lc->dispatch(_C_(3p,msg_send_continue,lc,msg,event),delay);
 }
 
 /*
@@ -1994,7 +2001,8 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
     mmsg->upload_retry--;
     if(will_upload){
         event = lwqq_async_event_new(NULL);
-        lwqq_async_add_evset_listener(evset, _C_(3p,lwqq_msg_send_continue, lc,msg,event));
+		//add a delay to make server have a slip to sendout customface
+        lwqq_async_add_evset_listener(evset, _C_(4p,msg_send_delay, lc,msg,event,5000L));
         //if we need upload first. we break this send msg 
         //and use event chain to resume later.
         return event;

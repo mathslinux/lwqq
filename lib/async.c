@@ -63,11 +63,15 @@ static void dispatch_wrap(LwqqAsyncTimerHandle timer,void* p)
 }
 void lwqq_async_dispatch(LwqqCommand cmd)
 {
+	lwqq_async_dispatch_delay(cmd, 10);
+}
+void lwqq_async_dispatch_delay(LwqqCommand cmd,unsigned long timeout)
+{
 #ifndef WITHOUT_ASYNC
     async_dispatch_data* data = s_malloc0(sizeof(*data));
     data->cmd = cmd;
     data->timer = lwqq_async_timer_new();
-    lwqq_async_timer_watch(data->timer, 10, dispatch_wrap, data);
+    lwqq_async_timer_watch(data->timer, timeout, dispatch_wrap, data);
 #else
     vp_do(cmd,NULL);
 #endif
@@ -75,7 +79,7 @@ void lwqq_async_dispatch(LwqqCommand cmd)
 
 void lwqq_async_init(LwqqClient* lc)
 {
-    lc->dispatch = lwqq_async_dispatch;
+    lc->dispatch = lwqq_async_dispatch_delay;
 #ifdef WITH_LIBEV
     LWQQ_ASYNC_IMPLEMENT(impl_libev);
 #endif
@@ -275,11 +279,15 @@ static void *ev_run_thread(void* data)
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
     //signal(SIGPIPE,SIG_IGN);
     while(1){
+
         ev_thread_status = THREAD_NOW_RUNNING;
+
         LWQQ__ASYNC_IMPL(loop_run)();
         //if(ev_thread_status == THREAD_NOT_CREATED) return NULL;
         if(global_quit_lock) return NULL;
+
         ev_thread_status = THREAD_NOW_WAITING;
+
         pthread_mutex_lock(&mutex);
         pthread_cond_wait(&ev_thread_cond,&mutex);
         pthread_mutex_unlock(&mutex);

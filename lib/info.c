@@ -44,7 +44,7 @@ struct LwqqDiscuMemChange {
     struct str_list_* relate_groups;
 };
 #if USE_DEBUG
-static int lwqq_gdb_list_group_member(LwqqGroup* g)
+int lwqq_gdb_list_group_member(LwqqGroup* g)
 {
     LwqqSimpleBuddy* sb;
     int count = 0;
@@ -55,7 +55,7 @@ static int lwqq_gdb_list_group_member(LwqqGroup* g)
     return count;
 }
 
-static int lwqq_gdb_list_buddies(LwqqClient* lc)
+int lwqq_gdb_list_buddies(LwqqClient* lc)
 {
     LwqqBuddy* b;
     int count = 0;
@@ -152,7 +152,7 @@ static void do_change_status(LwqqAsyncEvent* ev,LwqqClient* lc,LwqqStatus s)
 {
     if(ev->failcode == LWQQ_CALLBACK_FAILED) return;
     if(ev->result == 108)
-        lc->dispatch(_C_(p,lc->action->poll_lost,lc));
+        lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
     if(ev->result != LWQQ_EC_OK) return;
     lc->stat = s;
 }

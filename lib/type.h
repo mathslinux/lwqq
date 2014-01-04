@@ -333,11 +333,12 @@ struct LwqqClient {
     /** non data area **/
 
     void* data;                     /**< user defined data*/
-    void (*dispatch)(LwqqCommand);
+    void (*dispatch)(LwqqCommand,unsigned long timeout);
 
     int magic;          /**< 0x4153 **/
 };
 #define lwqq_client_userdata(lc) (lc->data)
+#define lwqq_client_dispatch(lc,cmd) (lc->dispatch(cmd,10))
 
 /**
  * this is used for some long http request actions chain. 

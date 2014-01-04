@@ -666,7 +666,7 @@ static void check_multi_info(GLOBAL *g)
             if(ev->failcode != LWQQ_CALLBACK_TIMEOUT) req_->retry_ = req->retry;
             //执行完成时候的回调
             if(lwqq_client_valid(lc))
-            lc->dispatch(_C_(p,async_complete,conn));
+				lwqq_client_dispatch(lc,_C_(p,async_complete,conn));
         }
     }
 }
