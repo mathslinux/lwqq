@@ -93,12 +93,19 @@ int lwqq__process_empty(LwqqHttpRequest* req);
     lwqq_http_request_free(req);\
 }while(0);
 
+#define lwqq__log_if_error(err,req) if(err) lwqq_log(LOG_ERROR,"unexpected response \n\thttp:%d, response:\n\t%s\n",\
+		req->http_code,req->response);
+#define lwqq__has_post() (lwqq_verbose(3,"%s\n%s\n",url,post),1),post
+#define lwqq__hasnot_post() (lwqq_verbose(3,"%s\n",url),0),NULL
+#define __LWQQ_API_LEVEL_4__ if(LWQQ_VERBOSE_LEVEL>=4)\
+													lwqq_http_set_option(req, LWQQ_HTTP_VERBOSE,1L);
+
+/** ===================json part==================*/
 #define lwqq__json_get_int(json,k,def) s_atoi(json_parse_simple_value(json,k),def)
 #define lwqq__json_get_long(json,k,def) s_atol(json_parse_simple_value(json,k),def)
 #define lwqq__json_get_value(json,k) s_strdup(json_parse_simple_value(json,k))
 #define lwqq__json_get_string(json,k) json_unescape_s(json_parse_simple_value(json,k))
 #define lwqq__json_parse_child(json,k,sub) sub=json_find_first_label(json,k);if(sub) sub=sub->child;
-//#define lwqq__override(k,v) {char* tmp_ = v;if(tmp_){s_free(k);k=tmp_;}}
 
 //json function expand
 json_t *json_find_first_label_all (const json_t * json, const char *text_label);
