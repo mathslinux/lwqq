@@ -54,7 +54,12 @@ if(WIN32)
             "${WIN32_LIBS_DIR}/libuv/Debug")
         find_package(Libuv REQUIRED)
     endif()
+    set(CMAKE_PREFIX_PATH 
+        "${WIN32_LIBS_DIR}/js-1.8.5-mingw32/include/js" 
+        "${WIN32_LIBS_DIR}/js-1.8.5-mingw32/lib"
+        )
     find_package(MozJS REQUIRED)
+    set(MOZJS_185 ${MOZJS_FOUND})
 endif(WIN32)
 
 option(WITH_LIBEV "Use Libev To Provide Async " ${EV_FOUND})

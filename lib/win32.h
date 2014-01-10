@@ -3,6 +3,7 @@
 
 
 double drand48(void);
+void srand48(unsigned int i);
 
 #define mkdir(a,b) mkdir(a)
 
