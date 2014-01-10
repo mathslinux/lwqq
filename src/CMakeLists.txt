@@ -12,7 +12,7 @@ include_directories(
 #    )
 
 target_link_libraries(lwqq-cli
-    lwqq
+    lwqq-static
     )
 
 if(LWQQ_INSTALL)
