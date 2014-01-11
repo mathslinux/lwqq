@@ -1,11 +1,16 @@
+#include <curl/curl.h>
 #include <string.h>
 #include <zlib.h>
 #include <stdio.h>
-#include <curl/curl.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#ifdef WIN32
+#undef SLIST_ENTRY
+#endif
+
 #include "async.h"
 #include "smemory.h"
 #include "http.h"
@@ -13,6 +18,8 @@
 #include "queue.h"
 #include "utility.h"
 #include "internal.h"
+
+
 
 #define LWQQ_HTTP_USER_AGENT "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"
 
@@ -1210,7 +1217,6 @@ void lwqq_http_handle_free(LwqqHttpHandle* http)
 }
 void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req)
 {
-    #ifndef WIN32
     CURL* c = req->req;
     char* v;
     long l;
@@ -1231,7 +1237,6 @@ void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req)
         if(l) curl_easy_setopt(c, CURLOPT_PROXYPORT, l);
     }
     curl_easy_setopt(c, CURLOPT_PROXYTYPE,handle->proxy.type);
-    #endif
 }
 
 const char* lwqq_http_get_url(LwqqHttpRequest* req)
