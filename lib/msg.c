@@ -1693,10 +1693,10 @@ static char* content_parse_string(LwqqMsgMessage* msg,int msg_type,int *has_cfac
                 format_append(buf,"["KEY("face")",%d],",c->data.face);
                 break;
             case LWQQ_CONTENT_OFFPIC:
-                format_append(buf,"["KEY("offpic")","KEY("%s")","KEY("%s")",%zd],",
+                format_append(buf,"["KEY("offpic")","KEY("%s")","KEY("%s")",%lu],",
                         c->data.img.file_path,
                         c->data.img.name,
-                        c->data.img.size);
+                        (unsigned long)c->data.img.size);
                 break;
             case LWQQ_CONTENT_CFACE:
                 //[\"cface\",\"group\",\"0C3AED06704CA9381EDCC20B7F552802.jPg\"]
