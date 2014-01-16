@@ -2,3 +2,8 @@
 
 This Project is based on kernelhcy's gtkqq project, i rewrite the qq
 library to impove its stability
+
+Dependency
+----------
+
+- libev (you can `apt-get install libev-dev`)
