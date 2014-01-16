@@ -54,7 +54,7 @@ endif(UNIX)
 if(WIN32)
   set(LWQQ_LIST ${LWQQ_LIST} win32.c )
   add_definitions(-D_GNU_SOURCE=1)
-  set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} -Wl,-Bdynamic pthread ws2_32)
+  set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} ws2_32)
 endif(WIN32)
 
 if(SSL)
@@ -80,6 +80,7 @@ target_link_libraries(lwqq
     ${ZLIB_LIBRARIES}
     ${MOZJS_LIBRARIES}
     ${LWQQ_OTHER_LIBS}
+	-Wl,-Bdynamic pthread
     )
 
 target_link_libraries(lwqq-static
@@ -88,8 +89,8 @@ target_link_libraries(lwqq-static
     ${ZLIB_LIBRARIES}
     ${MOZJS_LIBRARIES}
     ${LWQQ_OTHER_LIBS}
+	-Wl,-Bdynamic pthread
     )
-  
 
 if(LWQQ_INSTALL)
 install(TARGETS lwqq DESTINATION lib)

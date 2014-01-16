@@ -10,10 +10,15 @@ include_directories(
 #link_directories(
 #    ${CMAKE_CURRENT_BINARY_DIR}/../lib
 #    )
-
-target_link_libraries(lwqq-cli
-    lwqq-static
-    )
+if(WIN32)
+	target_link_libraries(lwqq-cli
+		lwqq-static
+		)
+else()
+	target_link_libraries(lwqq-cli
+		lwqq
+		)
+endif()
 
 if(LWQQ_INSTALL)
 INSTALL(TARGETS lwqq-cli DESTINATION bin)

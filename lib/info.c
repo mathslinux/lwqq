@@ -983,13 +983,16 @@ static void parse_groups_gmarklist_child(LwqqClient *lc, json_t *json)
 LwqqAsyncEvent* lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
 {
 
-	char post[512];
+	char post[512] = {0};
     LwqqHttpRequest *req = NULL;
 
     const char* url =  WEBQQ_S_HOST"/api/get_group_name_list_mask2";
     /* Create a POST request */
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
-	snprintf(post, sizeof(post), "r={\"h\":\"hello\",\"vfwebqq\":\"%s\"}",lc->vfwebqq);
+	snprintf(post, sizeof(post), "r={\"vfwebqq\":\"%s\"}",lc->vfwebqq);
+	char* upost = url_encode(post+2);
+	strcpy(post+2, upost);
+	s_free(upost);
 
     req = lwqq_http_create_default_request(lc,url, err);
     req->set_header(req, "Referer", WEBQQ_S_REF_URL);
