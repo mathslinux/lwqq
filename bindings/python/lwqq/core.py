@@ -4,10 +4,10 @@ from .common import c_object_p
 from . import enumerations
 
 from ctypes import c_long,c_char_p,c_int,c_voidp,c_size_t
-from ctypes import Structure,CFUNCTYPE
+from ctypes import Structure,CFUNCTYPE,POINTER,cast
 
 __all__ = [
-        #'Status',
+        'Event',
         'Lwqq',
         'Buddy',
         'SimpleBuddy'
@@ -73,17 +73,32 @@ class Command(Structure):
 
 
 class Event(object):
-    event_ = None
+    class T(Structure):
+        _fields_ = [
+                ('result',c_int),
+                ('failcode',c_int),
+                ('lc',c_object_p)
+                ]
+    PT = POINTER(T)
+    ptr_ = None
 
-    def __init__(self,async_event):
-        event_ = async_event
+    def __init__(self,event):
+        self.ptr_ = event
+
+    @property
+    def raw(self):
+        return self.ptr_[0]
 
     @classmethod
     def new(self,http_req):
         return Event(lib.lwqq_async_event_new(http_req))
 
     def addListener(self,closure):
-        lib.lwqq_async_add_event_listener(self.event_,Command.make(closure))
+        lib.lwqq_async_add_event_listener(self.ptr_,Command.make(closure))
+        return self
+
+    def finish(self):
+        lib.lwqq_async_event_finish(self.ptr_)
         return self
 
 class Evset(object):
@@ -172,7 +187,7 @@ def register_library(library):
     lib.lwqq_logout.restype = None
 
     lib.lwqq_relink.argtypes = [c_object_p]
-    lib.lwqq_relink.restype = c_object_p
+    lib.lwqq_relink.restype = Event.PT
 
     lib.lwqq_log_set_level.argtypes = [c_int]
     lib.lwqq_log_set_level.restype = None
@@ -184,12 +199,12 @@ def register_library(library):
     lib.vp_func_void.restype = None
 
     lib.lwqq_async_event_new.argtypes = [c_object_p]
-    lib.lwqq_async_event_new.restype = c_object_p
+    lib.lwqq_async_event_new.restype = Event.PT
 
-    lib.lwqq_async_event_finish.argtypes = [c_object_p]
+    lib.lwqq_async_event_finish.argtypes = [Event.PT]
     lib.lwqq_async_event_finish.restype = None
 
-    lib.lwqq_async_add_event_listener.argtypes = [c_object_p,Command]
+    lib.lwqq_async_add_event_listener.argtypes = [Event.PT,Command]
     lib.lwqq_async_add_event_listener.restype = None
 
     lib.lwqq_async_add_evset_listener.argtypes = [c_object_p,Command]
