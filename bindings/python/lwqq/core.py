@@ -1,6 +1,8 @@
 from .common import get_library
 from .common import c_object_p
 
+from .http import HttpHandle
+
 from . import enumerations
 
 from ctypes import c_long,c_char_p,c_int,c_voidp,c_size_t
@@ -126,6 +128,12 @@ class Lwqq(object):
     def __del_(self):
         lib.lwqq_client_free(self.lc_)
 
+    def http(self):
+        return lib.lwqq_get_http_handle(self.lc_)[0]
+
+    def sync(self,yes):
+        self.http().synced = yes
+
     def login(self,status):
         lib.lwqq_login(self.lc_,status,0)
 
@@ -162,6 +170,35 @@ class SimpleBuddy(object):
         lib.lwqq_simple_buddy_free(self.ptr_)
 
 def register_library(library):
+    #============LOW LEVEL ASYNC PART===============#
+    lib.vp_make_command.argtypes = [c_voidp,c_voidp]
+    lib.vp_make_command.restype = Command
+
+    lib.vp_func_void.argtypes = [c_voidp,c_voidp,c_voidp]
+    lib.vp_func_void.restype = None
+
+    lib.lwqq_async_event_new.argtypes = [c_object_p]
+    lib.lwqq_async_event_new.restype = Event.PT
+
+    lib.lwqq_async_event_finish.argtypes = [Event.PT]
+    lib.lwqq_async_event_finish.restype = None
+
+    lib.lwqq_async_add_event_listener.argtypes = [Event.PT,Command]
+    lib.lwqq_async_add_event_listener.restype = None
+
+    lib.lwqq_async_add_evset_listener.argtypes = [c_object_p,Command]
+    lib.lwqq_async_add_evset_listener.restype = None
+
+    lib.lwqq_async_evset_new.argtypes = []
+    lib.lwqq_async_evset_new.restype = c_object_p
+
+    lib.lwqq_async_evset_free.argtypes = [c_object_p]
+    lib.lwqq_async_evset_free.restype = None
+
+    lib.lwqq_get_http_handle.argtypes = [c_object_p]
+    lib.lwqq_get_http_handle.restype = POINTER(HttpHandle)
+
+
     lib.lwqq_client_new.argtypes = [c_char_p,c_char_p]
     lib.lwqq_client_new.restype = c_object_p
 
@@ -192,29 +229,6 @@ def register_library(library):
     lib.lwqq_log_set_level.argtypes = [c_int]
     lib.lwqq_log_set_level.restype = None
 
-    lib.vp_make_command.argtypes = [c_voidp,c_voidp]
-    lib.vp_make_command.restype = Command
-
-    lib.vp_func_void.argtypes = [c_voidp,c_voidp,c_voidp]
-    lib.vp_func_void.restype = None
-
-    lib.lwqq_async_event_new.argtypes = [c_object_p]
-    lib.lwqq_async_event_new.restype = Event.PT
-
-    lib.lwqq_async_event_finish.argtypes = [Event.PT]
-    lib.lwqq_async_event_finish.restype = None
-
-    lib.lwqq_async_add_event_listener.argtypes = [Event.PT,Command]
-    lib.lwqq_async_add_event_listener.restype = None
-
-    lib.lwqq_async_add_evset_listener.argtypes = [c_object_p,Command]
-    lib.lwqq_async_add_evset_listener.restype = None
-
-    lib.lwqq_async_evset_new.argtypes = []
-    lib.lwqq_async_evset_new.restype = c_object_p
-
-    lib.lwqq_async_evset_free.argtypes = [c_object_p]
-    lib.lwqq_async_evset_free.restype = None
 
     lib.lwqq_time.argtypes = []
     lib.lwqq_time.restype = c_long

@@ -7,10 +7,10 @@ Lwqq.log_level(3)
 a = 3
 
 lc = Lwqq('2501542492','1234567890')
+lc.sync(1)
 lc.login(Status.ONLINE)
+ev = lc.relink()
 def a():
-    print("hi")
-ev = lc.relink().addListener(a)
+    print(ev.raw.result)
 ev.addListener(a)
-Event.new(x).addListener(a).finish()
 lc.logout()

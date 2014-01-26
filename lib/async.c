@@ -368,16 +368,10 @@ void lwqq_async_timer_repeat(LwqqAsyncTimerHandle timer)
 {
     LWQQ__ASYNC_IMPL(timer_again)(timer);
 }
-#if 0
-static void print_loop_no_impl()
-{
-    fprintf(stderr,"Need A Async Loop Implemention\n");
-    assert(0);
-}
-#endif
 LwqqAsyncImpl lwqq__async_impl_ = {0};
 
 void lwqq_async_implement(LwqqAsyncImpl* i)
 {
     lwqq__async_impl_ = *i;
 }
+
