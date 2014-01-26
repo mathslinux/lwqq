@@ -1472,37 +1472,6 @@ static void insert_recv_msg_with_order(LwqqRecvMsgList* list,LwqqMsg* msg)
     pthread_mutex_unlock(&list->mutex);
 }
 
-#if ! USE_MSG_THREAD
-static int _continue_poll(LwqqHttpRequest* req,void* data)
-{
-    void **d = data;
-    LwqqRecvMsgList* list = d[0];
-    char* msg = d[1];
-    LwqqClient* lc = list->lc;
-
-    if(req == LWQQ_CALLBACK_FAILED){
-        s_free(msg);
-        s_free(data);
-        return -1;
-    }
-
-    int retcode;
-    if(req->http_code==200){
-        req->response[req->resp_len] = '\0';
-        retcode = parse_recvmsg_from_json(list, req->response);
-        if(retcode == 121 || retcode == 108 || retcode == 120){
-            lc->async_opt->poll_lost(lc);
-            return 0;
-        }else{
-            lc->async_opt->poll_msg(lc);
-        }
-    }
-
-    req->do_request_async(req,1,msg,_continue_poll,data);
-    return 0;
-}
-#endif
-
 void check_connection_lost(LwqqAsyncEvent* ev)
 {
     LwqqClient* lc = ev->lc;
@@ -1515,6 +1484,68 @@ void check_connection_lost(LwqqAsyncEvent* ev)
         lc->action->poll_lost(lc);
     }
 }
+
+static int process_poll_message_cb(LwqqHttpRequest* req)
+{
+	LwqqClient* lc = req->lc;
+	LwqqRecvMsgList* list = lc->msg_list;
+	LwqqAsyncEvent* ev = NULL;
+	int ret = req->failcode;
+	if(!lwqq_client_logined(lc)) return LWQQ_EC_ERROR;
+	if(ret != LWQQ_EC_OK){
+		//some thing is wrong. try relogin first. 
+		LwqqAsyncEvent* ev = lwqq_relink(lc);
+		lwqq_async_add_event_listener(ev, _C_(p,check_connection_lost,ev));
+		return LWQQ_EC_ERROR;
+	}
+
+	if (ret || req->http_code != 200) return LWQQ_EC_OK;
+	req->response[req->resp_len] = '\0';
+	int retcode = parse_recvmsg_from_json(list, req->response);
+	if(!lwqq_client_logined(lc)) return LWQQ_EC_ERROR;
+	switch(retcode){
+		case LWQQ_EC_OK:
+			lwqq_client_dispatch(lc,_C_(p,lc->action->poll_msg,lc));
+			break;
+		case LWQQ_EC_NO_MESSAGE:
+			return LWQQ_EC_OK;
+			break;
+		case 109:
+			lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
+			break;
+		case 120:
+		case 121:
+			ev = lwqq_relink(lc);
+			lwqq_async_add_event_listener(ev, _C_(p,check_connection_lost,ev));
+			return LWQQ_EC_ERROR;
+			break;
+		case LWQQ_EC_PTWEBQQ:
+			//just need do some things when relogin
+			//lwqq_set_cookie(lc->cookies, "ptwebqq", lc->new_ptwebqq);
+			lwqq_http_set_cookie(req, "ptwebqq", lc->new_ptwebqq);
+			break;
+		case LWQQ_EC_NOT_JSON_FORMAT:
+			lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
+			break;
+		default:break;
+	}
+	return LWQQ_EC_OK;
+}
+#if ! USE_MSG_THREAD
+static void receive_poll_message(LwqqHttpRequest* req,char* post)
+{
+	if(process_poll_message_cb(req)==LWQQ_EC_ERROR){
+		LwqqClient* lc = req->lc;
+		lwqq_http_request_free(req);
+		LwqqRecvMsgList_* list_ = (LwqqRecvMsgList_*)lc->msg_list;
+		list_->req = NULL;
+		s_free(post);
+		return;
+	}
+	req->do_request_async(req,1,post,_C_(2p,receive_poll_message,req,post));
+}
+#endif
+
 
 /**
  * Poll to receive message.
@@ -1531,9 +1562,7 @@ static void *start_poll_msg(void *msg_list)
     LwqqRecvMsgList_* list_ = (LwqqRecvMsgList_*) list;
 
     lc = (LwqqClient *)(list->lc);
-    if (!lc) {
-        goto failed;
-    }
+    if (!lc) return NULL;
     snprintf(msg, sizeof(msg), "{\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
              lc->clientid, lc->psessionid);
     s = url_encode(msg);
@@ -1554,11 +1583,10 @@ static void *start_poll_msg(void *msg_list)
     req->retry = 5;
 
 #if USE_MSG_THREAD
-    int retcode;
-    int ret;
-    LwqqAsyncEvent* ev = NULL;
     while(1) {
-        ret = req->do_request(req, 1, msg);
+        req->do_request(req, 1, msg);
+		if(process_poll_message_cb(req)==LWQQ_EC_ERROR) break;
+#if 0
         if(!lwqq_client_logined(lc)) break;
         if(ret != LWQQ_EC_OK){
             //some thing is wrong. try relogin first. 
@@ -1597,6 +1625,7 @@ static void *start_poll_msg(void *msg_list)
                 break;
             default:break;
         }
+#endif
     }
     lwqq_puts("quit the msg_thread");
 failed:
@@ -1604,13 +1633,7 @@ failed:
     list_->req = NULL;
     return NULL;
 #else
-    void ** data = s_malloc0(sizeof(void*)*2);
-    data[0] = list;
-    data[1] = strdup(msg);
-    req->do_request_async(req,1,msg,_continue_poll,data);
-    return NULL;
-failed:
-    if(req) lwqq_http_request_free(req);
+    req->do_request_async(req,1,msg,_C_(2p,receive_poll_message,req,s_strdup(msg)));
     return NULL;
 #endif
 }

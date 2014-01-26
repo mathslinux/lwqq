@@ -112,7 +112,7 @@ typedef struct D_ITEM{
 
 
 #if USE_DEBUG
-static int lwqq_gdb_whats_running()
+int lwqq_gdb_whats_running()
 {
     D_ITEM* item;
     char* url;
@@ -703,11 +703,6 @@ static int multi_timer_cb(CURLM *multi, long timeout_ms, void *userp)
     GLOBAL* g = userp;
     //printf("timer_cb:%ld\n",timeout_ms);
     lwqq_async_timer_stop(g->timer_event);
-#if USE_DEBUG
-   if(LWQQ_VERBOSE_LEVEL>=5&&g->still_running>1){
-        lwqq_gdb_whats_running();
-    }
-#endif
     if (timeout_ms > 0) {
         //change time clock
         lwqq_async_timer_watch(g->timer_event,timeout_ms,timer_cb,g);

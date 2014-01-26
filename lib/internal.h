@@ -8,11 +8,7 @@
 #include "win32.h"
 #endif
 
-#ifndef LWQQ_ENABLE_SSL
-#define LWQQ_ENABLE_SSL 0
-#endif
-
-#if LWQQ_ENABLE_SSL
+#ifdef ENABLE_SSL
 //ssl switcher
 #define SSL_(ssl,normal) ssl
 #else

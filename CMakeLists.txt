@@ -108,6 +108,8 @@ message(STATUS "With Mozjs (Option)     : ${WITH_MOZJS}")
 message(STATUS "Build Document (Option) : ${ENABLE_DOCS}")
 message( "===============================================")
 
+string(COMPARE EQUAL "${CMAKE_BUILD_TYPE}" "Debug" USE_DEBUG)
+set(ENABLE_SSL "${SSL}")
 configure_file(config.h.in ${PROJECT_BINARY_DIR}/lwqq-config.h)
 install(FILES "${PROJECT_BINARY_DIR}/lwqq-config.h" DESTINATION include/lwqq)
 add_subdirectory(lib)

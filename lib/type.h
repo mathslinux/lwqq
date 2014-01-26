@@ -18,12 +18,6 @@
 
 #define LWQQ_MAGIC 0x4153
 
-#define USE_MSG_THREAD 1
-
-#ifndef USE_DEBUG
-#define USE_DEBUG 0
-#endif
-
 #define LWQQ_DEFAULT_CATE "My Friends"
 #define LWQQ_PASSERBY_CATE "Passerby"
 #define LWQQ_RETRY_VALUE 3
