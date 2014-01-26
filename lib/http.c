@@ -33,7 +33,7 @@ static void lwqq_http_add_file_content(LwqqHttpRequest* request,const char* name
         const char* filename,const void* data,size_t size,const char* extension);
 static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int method,
         char *body,LwqqCommand);
-static void check_handle_and_add_to_conn_link();
+static void delay_add_handle();
 
 typedef struct GLOBAL {
     CURLM* multi;
@@ -663,9 +663,10 @@ static void check_multi_info(GLOBAL *g)
             LIST_REMOVE(conn,entries);
 			
 			global.conn_length --;
-			pthread_mutex_lock(&add_lock);
-			check_handle_and_add_to_conn_link();
-			pthread_mutex_unlock(&add_lock);
+			//pthread_mutex_lock(&add_lock);
+			//check_handle_and_add_to_conn_link();
+			//pthread_mutex_unlock(&add_lock);
+			delay_add_handle();
 
             LwqqClient* lc = conn->req->lc;
 
@@ -774,21 +775,13 @@ static int sock_cb(CURL* e,curl_socket_t s,int what,void* cbp,void* sockp)
     }
     return 0;
 }
-#ifdef WITH_LIBEV
-static void delay_add_handle(LwqqAsyncIoHandle io,int fd,int act,void* data)
+static void delay_add_handle()
 {
-    pthread_mutex_lock(&add_lock);
-    //remove from pipe
-    char buf[16];
-    read(fd,buf,sizeof(buf));
-#else
-static void delay_add_handle(void* noused)
-{
-    pthread_mutex_lock(&add_lock);
-#endif
-    
-	check_handle_and_add_to_conn_link();
-    pthread_mutex_unlock(&add_lock);
+    #ifdef WITH_LIBEV
+    write(global.pipe_fd[1],"ok",3);
+    #else
+    lwqq_async_dispatch(_C_(p,delay_add_handle_cb,NULL));
+    #endif
 }
 
 static void check_handle_and_add_to_conn_link()
@@ -806,6 +799,24 @@ static void check_handle_and_add_to_conn_link()
         }
     }
 }
+
+#ifdef WITH_LIBEV
+static void delay_add_handle_cb(LwqqAsyncIoHandle io,int fd,int act,void* data)
+{
+    pthread_mutex_lock(&add_lock);
+    //remove from pipe
+    char buf[16];
+    read(fd,buf,sizeof(buf));
+#else
+static void delay_add_handle_cb(void* noused)
+{
+    pthread_mutex_lock(&add_lock);
+#endif
+    
+	check_handle_and_add_to_conn_link();
+    pthread_mutex_unlock(&add_lock);
+}
+
 
 static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int method,
                                       char *body, LwqqCommand command)
@@ -850,12 +861,8 @@ static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int 
     di->event = lwqq_async_event_new(request);
     pthread_mutex_lock(&add_lock);
     LIST_INSERT_HEAD(&global.add_link,di,entries);
-    #ifdef WITH_LIBEV
-    write(global.pipe_fd[1],"ok",3);
-    #else
-    lwqq_async_dispatch(_C_(p,delay_add_handle,NULL));
-    #endif
     pthread_mutex_unlock(&add_lock);
+	delay_add_handle();
     return di->event;
 
 failed:
@@ -973,7 +980,7 @@ void lwqq_http_global_init()
         global.add_listener = lwqq_async_io_new();
         #ifdef WITH_LIBEV
         pipe(global.pipe_fd);
-        lwqq_async_io_watch(global.add_listener, global.pipe_fd[0], LWQQ_ASYNC_READ, delay_add_handle, NULL);
+        lwqq_async_io_watch(global.add_listener, global.pipe_fd[0], LWQQ_ASYNC_READ, delay_add_handle_cb, NULL);
         #endif
 #endif
     }
