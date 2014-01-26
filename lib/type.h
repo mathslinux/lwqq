@@ -67,6 +67,16 @@ typedef int (*LWQQ_PROGRESS)(void* data,size_t now,size_t total);
  */
 
 typedef enum {
+	LWQQ_WITH_LIBEV = 1<<0,
+	LWQQ_WITH_LIBUV = 1<<1,
+	LWQQ_WITH_SQLITE = 1<<2,
+	LWQQ_WITH_MOZJS = 1<<3,
+	LWQQ_WITH_SSL = 1<<4
+}LwqqFeatures;
+
+extern const LwqqFeatures lwqq_features;
+
+typedef enum {
     LWQQ_STATUS_LOGOUT = 0,
     LWQQ_STATUS_ONLINE = 10,
     LWQQ_STATUS_OFFLINE = 20,
