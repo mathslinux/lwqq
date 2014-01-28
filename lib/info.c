@@ -147,11 +147,15 @@ static void do_modify_category(LwqqAsyncEvent* ev,LwqqBuddy* b,int cate)
     lwqq__return_if_ev_fail(ev);
     b->cate_index = cate;
 }
+static void dispatch_poll_lost(LwqqClient* lc)
+{
+	vp_do_repeat(lc->events->poll_lost, NULL);
+}
 static void do_change_status(LwqqAsyncEvent* ev,LwqqClient* lc,LwqqStatus s)
 {
     if(ev->failcode == LWQQ_CALLBACK_FAILED) return;
     if(ev->result == 108)
-        lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
+        lwqq_client_dispatch(lc,_C_(p,dispatch_poll_lost,lc));
     if(ev->result != LWQQ_EC_OK) return;
     lc->stat = s;
 }
@@ -172,8 +176,8 @@ static void do_delete_group(LwqqAsyncEvent* ev,LwqqGroup* g)
     lwqq__return_if_ev_fail(ev);
     LwqqClient* lc = ev->lc;
     LIST_REMOVE(g,entries);
-    if(lc->action && lc->action->delete_group)
-        lc->action->delete_group(lc,g);
+	lc->args->deleted_group = g;
+	vp_do_repeat(lc->events->delete_group, NULL);
     lwqq_group_free(g);
 }
 
@@ -220,7 +224,8 @@ static void do_change_discu_mem(LwqqAsyncEvent* ev,LwqqGroup* discu,LwqqDiscuMem
 done:
     if(err)
         lwqq_puts("[change discu member failed]");
-    lc->action->group_members_chg(lc,discu);
+	lc->args->group = discu;
+	vp_do_repeat(lc->events->group_member_chg, NULL);
     lwqq_discu_mem_change_free(chg);
 }
 
@@ -230,7 +235,9 @@ static void do_create_discu(LwqqAsyncEvent* ev,LwqqGroup* discu)
     lwqq__jump_if_ev_fail(ev,err);
     LwqqClient* lc = ev->lc;
     LIST_INSERT_HEAD(&lc->discus,discu,entries);
-    lc->action->new_group(lc,discu);
+    //lc->action->new_group(lc,discu);
+	lc->args->group = discu;
+	vp_do_repeat(lc->events->new_group, NULL);
 done:
     if(err){
         lwqq_group_free(discu);

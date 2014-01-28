@@ -392,8 +392,9 @@ static void command_loop()
     }
 }
 
-static void need_verify2(LwqqClient* lc,LwqqVerifyCode* code)
+static void need_verify2(LwqqClient* lc,LwqqVerifyCode** p_code)
 {
+	LwqqVerifyCode* code = *p_code;
     #ifdef WIN32
     const char *dir = NULL;
     
@@ -421,10 +422,6 @@ static void log_direct_flush(int l,const char* str)
 	fprintf(stderr,"%s\n",str);
 	fflush(stderr);
 }
-
-static LwqqAction act = {
-    .need_verify2 = need_verify2
-};
 
 int main(int argc, char *argv[])
 {
@@ -483,7 +480,8 @@ int main(int argc, char *argv[])
     
     lwqq_log_set_level(4);
     lc = lwqq_client_new(qqnumber, password);
-    lc->action = &act;
+	lwqq_add_event(lc->events->need_verify,
+			_C_(2p,need_verify2,lc, &lc->args->vf_image));
     if (!lc) {
         lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
         return -1;

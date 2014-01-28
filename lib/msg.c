@@ -227,17 +227,27 @@ static int parse_xml_content(const char* xml,LwqqMsgMessage* msg)
     return 0;
 }
 
+static void dispatch_poll_msg(LwqqClient* lc)
+{
+	vp_do_repeat(lc->events->poll_msg, NULL);
+}
+static void dispatch_poll_lost(LwqqClient* lc)
+{
+	vp_do_repeat(lc->events->poll_lost, NULL);
+}
+
 static void insert_msg_delay_by_request_content(LwqqRecvMsgList* list,LwqqMsg* msg)
 {
     insert_recv_msg_with_order(list,msg);
     LwqqClient* lc = list->lc;
-    lwqq_client_dispatch(lc,_C_(p,lc->action->poll_msg,list->lc));
+	lwqq_client_dispatch(lc, _C_(p,dispatch_poll_msg,lc));
 }
 static void add_passerby(LwqqClient* lc,LwqqBuddy* buddy)
 {
     buddy->cate_index = LWQQ_FRIEND_CATE_IDX_PASSERBY;
     LIST_INSERT_HEAD(&lc->friends,buddy,entries);
-    lc->action->new_friend(lc,buddy);
+	lc->args->buddy = buddy;
+	vp_do_repeat(lc->events->new_friend, NULL);
 }
 static int process_simple_response(LwqqHttpRequest* req)
 {
@@ -1481,7 +1491,7 @@ void check_connection_lost(LwqqAsyncEvent* ev)
         LwqqRecvMsgList_* msg_list = (LwqqRecvMsgList_*)lc->msg_list;
         lwqq_msglist_poll(lc->msg_list, msg_list->flags);
     }else{
-        lc->action->poll_lost(lc);
+		vp_do_repeat(lc->events->poll_lost, NULL);
     }
 }
 
@@ -1505,13 +1515,13 @@ static int process_poll_message_cb(LwqqHttpRequest* req)
 	if(!lwqq_client_logined(lc)) return LWQQ_EC_ERROR;
 	switch(retcode){
 		case LWQQ_EC_OK:
-			lwqq_client_dispatch(lc,_C_(p,lc->action->poll_msg,lc));
+			lwqq_client_dispatch(lc,_C_(p,dispatch_poll_msg,lc));
 			break;
 		case LWQQ_EC_NO_MESSAGE:
 			return LWQQ_EC_OK;
 			break;
 		case 109:
-			lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
+			lwqq_client_dispatch(lc,_C_(p,dispatch_poll_lost,lc));
 			break;
 		case 120:
 		case 121:
@@ -1525,7 +1535,7 @@ static int process_poll_message_cb(LwqqHttpRequest* req)
 			lwqq_http_set_cookie(req, "ptwebqq", lc->new_ptwebqq);
 			break;
 		case LWQQ_EC_NOT_JSON_FORMAT:
-			lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
+			lwqq_client_dispatch(lc,_C_(p,dispatch_poll_lost,lc));
 			break;
 		default:break;
 	}
@@ -1586,49 +1596,8 @@ static void *start_poll_msg(void *msg_list)
     while(1) {
         req->do_request(req, 1, msg);
 		if(process_poll_message_cb(req)==LWQQ_EC_ERROR) break;
-#if 0
-        if(!lwqq_client_logined(lc)) break;
-        if(ret != LWQQ_EC_OK){
-            //some thing is wrong. try relogin first. 
-            ev = lwqq_relink(lc);
-            lwqq_async_add_event_listener(ev, _C_(p,check_connection_lost,ev));
-            break;
-        }
-
-        if (ret || req->http_code != 200) continue;
-        req->response[req->resp_len] = '\0';
-        retcode = parse_recvmsg_from_json(list, req->response);
-        if(!lwqq_client_logined(lc)) break;
-        switch(retcode){
-            case LWQQ_EC_OK:
-                lwqq_client_dispatch(lc,_C_(p,lc->action->poll_msg,lc));
-                break;
-            case LWQQ_EC_NO_MESSAGE:
-                continue;
-                break;
-            case 109:
-                lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
-                break;
-            case 120:
-            case 121:
-                ev = lwqq_relink(lc);
-                lwqq_async_add_event_listener(ev, _C_(p,check_connection_lost,ev));
-                goto failed;
-                break;
-            case LWQQ_EC_PTWEBQQ:
-                //just need do some things when relogin
-                //lwqq_set_cookie(lc->cookies, "ptwebqq", lc->new_ptwebqq);
-                lwqq_http_set_cookie(req, "ptwebqq", lc->new_ptwebqq);
-                break;
-            case LWQQ_EC_NOT_JSON_FORMAT:
-                lwqq_client_dispatch(lc,_C_(p,lc->action->poll_lost,lc));
-                break;
-            default:break;
-        }
-#endif
     }
     lwqq_puts("quit the msg_thread");
-failed:
     if(req) lwqq_http_request_free(req);
     list_->req = NULL;
     return NULL;
@@ -1815,7 +1784,10 @@ static int upload_offline_pic_back(LwqqHttpRequest* req,LwqqMsgContent* c,const 
     c->data.img.file_path = s_strdup(json_parse_simple_value(json,"filepath"));
     if(!strcmp(c->data.img.file_path,"")){
         LwqqClient* lc = req->lc;
-        lc->action->upload_fail(lc,to,c,LWQQ_EC_ERROR);
+		lc->args->serv_id = to;
+		lc->args->content = c;
+		lc->args->err = LWQQ_EC_ERROR;
+		vp_do_repeat(lc->events->upload_fail, NULL);
     }
     s_free(c->data.img.name);
     c->data.img.name = s_strdup(json_parse_simple_value(json,"filename"));
@@ -1893,7 +1865,10 @@ static int upload_cface_back(LwqqHttpRequest *req,LwqqMsgContent* c,const char* 
 done:
     if(err){
         LwqqClient* lc = req->lc;
-        lc->action->upload_fail(lc,to,c,err);
+		lc->args->serv_id = to;
+		lc->args->content = c;
+		lc->args->err = err;
+		vp_do_repeat(lc->events->upload_fail, NULL);
         s_free(c->data.cface.name);
     }
     s_free(c->data.cface.data);

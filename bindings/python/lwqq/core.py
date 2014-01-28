@@ -5,7 +5,7 @@ from .http import HttpHandle
 
 from . import enumerations
 
-from ctypes import c_long,c_char_p,c_int,c_voidp,c_size_t
+from ctypes import c_long,c_char_p,c_int,c_voidp,c_size_t,c_ulong
 from ctypes import Structure,CFUNCTYPE,POINTER,cast
 
 __all__ = [
@@ -16,42 +16,6 @@ __all__ = [
         ]
 
 lib = get_library()
-
-#class Status(object):
-#    """Represents an individual OpCode enumeration."""
-#
-#    _value_map = {}
-#
-#    def __init__(self, name, value):
-#        self.name = name
-#        self.value = value
-#
-#    def __repr__(self):
-#        return 'Status.%s' % self.name
-#
-#    @staticmethod
-#    def from_value(value):
-#        """Obtain an OpCode instance from a numeric value."""
-#        result = Status._value_map.get(value, None)
-#
-#        if result is None:
-#            raise ValueError('Unknown OpCode: %d' % value)
-#
-#        return result
-#
-#    @staticmethod
-#    def register(name, value):
-#        """Registers a new OpCode enumeration.
-#
-#        This is called by this module for each enumeration defined in
-#        enumerations. You should not need to call this outside this module.
-#        """
-#        if value in Status._value_map:
-#            raise ValueError('OpCode value already registered: %d' % value)
-#
-#        status = Status(name, value)
-#        Status._value_map[value] = status
-#        setattr(Status, name, status)
 
 class vp_list(Structure):
     _fields_ = [
@@ -72,6 +36,9 @@ class Command(Structure):
     def make(self,closure):
         CLOSURE = CFUNCTYPE(None)
         return lib.vp_make_command(lib.vp_func_void,CLOSURE(closure))
+
+    def invoke(self):
+        lib.vp_do(self,0)
 
 
 class Event(object):
@@ -118,6 +85,33 @@ class Evset(object):
         return self
 
 class Lwqq(object):
+    DISPATCH_T = CFUNCTYPE(None,Command,c_ulong)
+    class T(Structure):
+        _fields_ = [
+                ('username',c_char_p),
+                ('password',c_char_p),
+                ('version',c_char_p),
+                ('clientid',c_char_p),
+                ('seskey',c_char_p),
+                ('cip',c_char_p),
+                ('index',c_char_p),
+                ('port',c_char_p),
+                ('vfwebqq',c_char_p),
+                ('psessionid',c_char_p),
+                ('last_err',c_char_p),
+                ('gface_key',c_char_p),
+                ('gface_sig',c_char_p),
+                ('login_sig',c_char_p),
+                ('stat',c_long),
+                ('error_description',c_char_p),
+                ('new_ptwebqq',c_char_p),
+
+                ('myself',c_object_p),
+                ('vc',c_object_p),
+                ('action',c_object_p),
+                ('dispatch',CFUNCTYPE(None,Command,c_ulong))
+                ]
+    PT = POINTER(T)
     lc_ = None
 
     def __init__(self,username,password):
@@ -127,6 +121,16 @@ class Lwqq(object):
 
     def __del_(self):
         lib.lwqq_client_free(self.lc_)
+
+    @property
+    def raw(self):
+        return self.lc_[0];
+
+    def setDispatcher(self,dispatcher):
+        self.raw.dispatch = self.DISPATCH_T(dispatcher)
+
+    def dispatch(cmd,delay = 50):
+        self.raw.dispatch(cmd,delay)
 
     def http(self):
         return lib.lwqq_get_http_handle(self.lc_)[0]
@@ -174,6 +178,9 @@ def register_library(library):
     lib.vp_make_command.argtypes = [c_voidp,c_voidp]
     lib.vp_make_command.restype = Command
 
+    lib.vp_do.argtypes = [Command,c_voidp]
+    lib.vp_do.restype = None
+
     lib.vp_func_void.argtypes = [c_voidp,c_voidp,c_voidp]
     lib.vp_func_void.restype = None
 
@@ -200,9 +207,9 @@ def register_library(library):
 
 
     lib.lwqq_client_new.argtypes = [c_char_p,c_char_p]
-    lib.lwqq_client_new.restype = c_object_p
+    lib.lwqq_client_new.restype = Lwqq.PT
 
-    lib.lwqq_client_free.argtypes = [c_object_p]
+    lib.lwqq_client_free.argtypes = [Lwqq.PT]
     lib.lwqq_client_free.restype = None
 
     lib.lwqq_buddy_new.argtypes = []
@@ -217,13 +224,13 @@ def register_library(library):
     lib.lwqq_simple_buddy_free.argtypes = [c_object_p]
     lib.lwqq_simple_buddy_free.restype = None
 
-    lib.lwqq_login.argtypes = [c_object_p,c_int,c_int]
+    lib.lwqq_login.argtypes = [Lwqq.PT,c_int,c_int]
     lib.lwqq_login.restype = None
 
-    lib.lwqq_logout.argtypes = [c_object_p,c_int]
+    lib.lwqq_logout.argtypes = [Lwqq.PT,c_int]
     lib.lwqq_logout.restype = None
 
-    lib.lwqq_relink.argtypes = [c_object_p]
+    lib.lwqq_relink.argtypes = [Lwqq.PT]
     lib.lwqq_relink.restype = Event.PT
 
     lib.lwqq_log_set_level.argtypes = [c_int]

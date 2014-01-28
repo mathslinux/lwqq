@@ -78,8 +78,9 @@ static int check_need_verify_back(LwqqHttpRequest* req)
     int err = LWQQ_EC_OK;
     LwqqClient* lc = req->lc;
     if(req->failcode != LWQQ_CALLBACK_VALID){
-        lwqq_call_action(lc,login_complete)(lc,LWQQ_EC_NETWORK_ERROR);
         err = LWQQ_EC_NETWORK_ERROR;
+		lc->args->login_ec = err;
+		vp_do_repeat(lc->events->login_complete, NULL);
         goto done;
     }
     lwqq__jump_if_http_fail(req, err);
@@ -150,7 +151,8 @@ static int request_captcha_back(LwqqHttpRequest* req,LwqqVerifyCode* code)
     code->data = req->response;
     code->size = req->resp_len;
     req->response = NULL;
-    lwqq_call_action(lc,need_verify2)(lc,code);
+	lc->args->vf_image = code;
+	vp_do_repeat(lc->events->need_verify, NULL);
 done:
     lwqq_http_request_free(req);
     return err;
@@ -615,7 +617,8 @@ static void login_stage_3(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
         case LWQQ_EC_NETWORK_ERROR:
             lwqq_log(LOG_ERROR, "Network error\n");
             lc->stat = LWQQ_STATUS_LOGOUT;
-            lwqq_call_action(lc,login_complete)(lc,err);
+			lc->args->login_ec = err;
+			vp_do_repeat(lc->events->login_complete, NULL);
             return ;
 
         case LWQQ_EC_OK:
@@ -625,7 +628,8 @@ static void login_stage_3(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
         default:
             lwqq_log(LOG_ERROR, "Unknown error\n");
             lc->stat = LWQQ_STATUS_LOGOUT;
-            lwqq_call_action(lc,login_complete)(lc,err);
+			lc->args->login_ec = err;
+			vp_do_repeat(lc->events->login_complete, NULL);
             return ;
     }
 
@@ -656,7 +660,8 @@ static void login_stage_5(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
 
     if(err != LWQQ_EC_OK){
         lc->stat = LWQQ_STATUS_LOGOUT;
-        lwqq_call_action(lc,login_complete)(lc,err);
+		lc->args->login_ec = err;
+		vp_do_repeat(lc->events->login_complete, NULL);
         return;
     }
     LwqqAsyncEvent* event = set_online_status(lc, lwqq_status_to_str(lc->stat));
@@ -672,7 +677,8 @@ static void login_stage_f(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
     lwqq_vc_free(lc->vc);
     lc->vc = NULL;
     if(err) lc->stat = LWQQ_STATUS_LOGOUT;
-    lwqq_call_action(lc,login_complete)(lc,err);
+	lc->args->login_ec = err;
+	vp_do_repeat(lc->events->login_complete, NULL);
 }
 
 /** 
@@ -782,17 +788,17 @@ static int process_login2(LwqqHttpRequest* req)
             break;
         case 103:
             lwqq_puts("[Not Relogin]");
-            lwqq_call_action(lc,poll_lost)(lc);
+			vp_do_repeat(lc->events->poll_lost, NULL);
             goto done;
         case 113:
         case 115:
         case 112:
             lwqq_puts("[RelinkFailure]");
-            lwqq_call_action(lc,poll_lost)(lc);
+			vp_do_repeat(lc->events->poll_lost, NULL);
             goto done;
         default:
             lwqq_puts("[RelinkStop]");
-            lwqq_call_action(lc,poll_lost)(lc);
+			vp_do_repeat(lc->events->poll_lost, NULL);
             goto done;
     }
     if(result){

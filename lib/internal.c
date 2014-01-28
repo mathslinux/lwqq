@@ -17,7 +17,8 @@ static int request_captcha_back(LwqqHttpRequest* req,LwqqVerifyCode* code)
     code->data = req->response;
     code->size = req->resp_len;
     req->response = NULL;
-    lc->action->need_verify2(lc,code);
+	lc->args->vf_image = code;
+	vp_do_repeat(lc->events->need_verify, NULL);
 done:
     lwqq_http_request_free(req);
     return err;

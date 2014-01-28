@@ -32,7 +32,8 @@
 
 
 struct LwqqMsgContent;
-struct LwqqAction;
+struct LwqqArguments;
+struct LwqqEvents;
 
 typedef struct _LwqqHttpRequest LwqqHttpRequest;
 typedef LIST_HEAD(,LwqqAsyncEntry) LwqqAsyncQueue;
@@ -298,13 +299,12 @@ typedef struct LwqqVerifyCode {
 typedef enum {LWQQ_NO,LWQQ_YES,LWQQ_EXTRA_ANSWER,LWQQ_IGNORE} LwqqAnswer;
 #define LWQQ_ALLOW_AND_ADD LWQQ_EXTRA_ANSWER
 
+
 /* LwqqClient API */
 struct LwqqClient {
     char *username;             /**< Username */
     char *password;             /**< Password */
-    LwqqBuddy *myself;          /**< Myself */
     char *version;              /**< WebQQ version */
-    LwqqVerifyCode *vc;         /**< Verify Code */
     char *clientid;
     char *seskey;
     char *cip;
@@ -316,11 +316,15 @@ struct LwqqClient {
     char *gface_key;                  /**< use at cface */
     char *gface_sig;                  /**<use at cfage */
     char *login_sig;
-    const struct LwqqAction* action;
-
-    LwqqStatus stat;
     char *error_description;
     char *new_ptwebqq;              /**< this only used when relogin */
+    LwqqBuddy *myself;          /**< Myself */
+    LwqqVerifyCode *vc;         /**< Verify Code */
+	struct LwqqEvents * events;
+	struct LwqqArguments * args;
+    void (*dispatch)(LwqqCommand,unsigned long timeout);
+
+    LwqqStatus stat;
 
     LwqqFriendList friends; /**< QQ friends */
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
@@ -337,7 +341,6 @@ struct LwqqClient {
     /** non data area **/
 
     void* data;                     /**< user defined data*/
-    void (*dispatch)(LwqqCommand,unsigned long timeout);
 
     int magic;          /**< 0x4153 **/
 };
@@ -350,42 +353,50 @@ struct LwqqClient {
  * and most of async option require gui display some information.
  *
  */
-typedef struct LwqqAction {
+typedef struct LwqqEvents
+{
     /**
      * this is login complete .whatever successed or failed
      * except need verify code
      */
-    void (*login_complete)(LwqqClient* lc,LwqqErrorCode ec);
+	LwqqCommand login_complete;
     /* this is very important when poll message come */
-    void (*poll_msg)(LwqqClient* lc);
+	LwqqCommand poll_msg;
     /* this is poll lost after recv retcode 112 or 108 */
-    void (*poll_lost)(LwqqClient* lc);
+	LwqqCommand poll_lost;
     /* this is upload content failed such as lwqq offline pic */
-    void (*upload_fail)(LwqqClient* lc,const char* serv_id,struct LwqqMsgContent* c,int extra_reason);
+	LwqqCommand upload_fail;
     /* this is you confirmed a friend request 
      * you should add buddy to gui level.
      */
-    void (*new_friend)(LwqqClient* lc,LwqqBuddy* buddy);
-    void (*new_group)(LwqqClient* lc,LwqqGroup* g);
-    void (*need_verify2)(LwqqClient* lc,LwqqVerifyCode* code);
+	LwqqCommand new_friend;
+	LwqqCommand new_group;
+	LwqqCommand need_verify;
     /* this called when successfully delete group from server
      * and the last chance to visit group
      * do not delete group in this function
      * it would deleted later.
      */
-    void (*delete_group)(LwqqClient* lc,const LwqqGroup* g);
+	LwqqCommand delete_group;
     /** this called when group member changes
      * you need flush displayed group member
      */
-    void (*group_members_chg)(LwqqClient* lc,LwqqGroup* g);
-    /** this called when a discu account would change
-     * you need update database with lwdb_userdb_update_discu_account
-     * you need flush displayed group member
-     */
-    //void (*discu_account_chg)(LwqqClient* lc,LwqqGroup* discu,int old_account);
-}LwqqAction;
+	LwqqCommand group_member_chg;
+}LwqqEvents;
+typedef struct LwqqArguments
+{
+	LwqqErrorCode login_ec;
+	LwqqBuddy* buddy;
+	LwqqGroup* group;
+	LwqqVerifyCode* vf_image;
+	const LwqqGroup* deleted_group;
+	const char* serv_id;
+	struct LwqqMsgContent* content;
+	LwqqErrorCode err;
+}LwqqArguments;
 
-#define lwqq_call_action(lc,act)  if(lc->action->act) lc->action->act
+void lwqq_add_event_listener(LwqqCommand* event,LwqqCommand cmd);
+#define lwqq_add_event(event,cmd) lwqq_add_event_listener(&event,cmd);
 
 /* Struct defination end */
 

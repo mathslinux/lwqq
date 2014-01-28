@@ -59,16 +59,6 @@ LwqqStatus lwqq_status_from_str(const char* str)
     return lwqq_util_mapto_type(status_type_map, str);
 }
 
-
-static void null_action(LwqqClient* lc)
-{
-}
-
-static LwqqAction default_async_opt = {
-    .poll_msg = null_action,
-    .poll_lost = null_action,
-};
-
 typedef struct LwqqClient_
 {
     LwqqClient parent;
@@ -113,7 +103,8 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     my_friend->name = s_strdup("My Friend");
     LIST_INSERT_HEAD(&lc->categories, my_friend, entries);
 
-    lc->action = &default_async_opt;
+	lc->events = s_malloc0(sizeof(*lc->events));
+	lc->args = s_malloc0(sizeof(*lc->args));
 
     lc->find_buddy_by_uin = lwqq_buddy_find_buddy_by_uin;
     lc->find_buddy_by_qqnumber = lwqq_buddy_find_buddy_by_qqnumber;
@@ -197,6 +188,18 @@ void lwqq_client_free(LwqqClient *client)
     s_free(client->new_ptwebqq);
     s_free(client->login_sig);
     lwqq_buddy_free(client->myself);
+
+	vp_cancel(client->events->login_complete);
+	vp_cancel(client->events->poll_msg);
+	vp_cancel(client->events->poll_lost);
+	vp_cancel(client->events->upload_fail);
+	vp_cancel(client->events->new_friend);
+	vp_cancel(client->events->new_group);
+	vp_cancel(client->events->need_verify);
+	vp_cancel(client->events->delete_group);
+	vp_cancel(client->events->group_member_chg);
+	s_free(client->events);
+	s_free(client->args);
         
     /* Free friends list */
     LIST_FOREACH_SAFE(b_entry, &client->friends, entries, b_next) {
@@ -502,4 +505,9 @@ long lwqq_time()
     long ret;
     ret = tv.tv_sec*1000+tv.tv_usec/1000;
     return ret;
+}
+
+void lwqq_add_event_listener(LwqqCommand* inko,LwqqCommand cmd)
+{
+	vp_link(inko, &cmd);
 }

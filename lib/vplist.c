@@ -47,6 +47,21 @@ void vp_do(vp_command cmd,void* retval)
         free(p);
     }
 }
+
+void vp_do_repeat(vp_command cmd,void* retval)
+{
+	if(cmd.dsph && cmd.func){
+		vp_start(cmd.data);
+		cmd.dsph(cmd.func,&cmd.data,retval);
+	}
+
+    vp_command* n = cmd.next;
+    while(n){
+        vp_start(n->data);
+        n->dsph(n->func,&n->data,NULL);
+        n = n->next;
+    }
+}
 void vp_cancel(vp_command cmd)
 {
     vp_start(cmd.data);

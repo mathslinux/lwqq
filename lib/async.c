@@ -50,7 +50,6 @@ typedef struct LwqqAsyncEvent_{
     LwqqHttpRequest* req;
 }LwqqAsyncEvent_;
 
-
 static void dispatch_wrap(LwqqAsyncTimerHandle timer,void* p)
 {
     async_dispatch_data* data = (async_dispatch_data*)p;
