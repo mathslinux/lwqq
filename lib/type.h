@@ -355,6 +355,7 @@ struct LwqqClient {
  */
 typedef struct LwqqEvents
 {
+	LwqqCommand start_login;
     /**
      * this is login complete .whatever successed or failed
      * except need verify code
@@ -382,7 +383,11 @@ typedef struct LwqqEvents
      * you need flush displayed group member
      */
 	LwqqCommand group_member_chg;
+	/** for test only**/
 }LwqqEvents;
+
+LwqqEvents* lwqq_client_get_events(LwqqClient* lc);
+
 typedef struct LwqqArguments
 {
 	LwqqErrorCode login_ec;
