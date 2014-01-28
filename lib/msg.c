@@ -1945,7 +1945,7 @@ void msg_send_continue(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* event)
 }
 
 static 
-void msg_send_delay(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* event, unsigned long delay)
+void msg_send_delay(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* event, long delay)
 {
 	lc->dispatch(_C_(3p,msg_send_continue,lc,msg,event),delay);
 }
@@ -1999,6 +1999,7 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
             if(event){
                 if(evset==NULL)evset = lwqq_async_evset_new();
                 lwqq_async_evset_add_event(evset,event);
+				will_upload = 1;
             }
         }
     }
