@@ -116,27 +116,50 @@ char *ucs4toutf8(const char *from)
         return NULL;
     }
     
-    char *out = NULL;
+    /* Assuming *from at least contains a single byte of '\0', in that case
+     * we return the same.
+     * As strlen("\uXXXX") = 6 >= strlen(utf8("\uXXXX")), the converted
+     * string would never be longer than the original one, thus
+     * (strlen(from) + 1) could be a proper size to be initially allocated. */
+    char *out = s_realloc(NULL, strlen(from) + 1);
+    if (!out) {
+        /* allocation failed */
+        return NULL;
+    }
     int outlen = 0;
     const char *c;
     
     for (c = from; *c != '\0'; ++c) {
         char *s;
-        if (*c == '\\' && *(c + 1) == 'u') {
-            s = do_ucs4toutf8(c);
-            out = s_realloc(out, outlen + strlen(s) + 1);
-            snprintf(out + outlen, strlen(s) + 1, "%s", s);
-            outlen = strlen(out);
-            s_free(s);
-            c += 5;
+        if (*c == '\\') {
+            switch (*(c + 1)) {
+            case 'u':
+                s = do_ucs4toutf8(c);
+                snprintf(out + outlen, strlen(s) + 1, "%s", s);
+                outlen += strlen(s);
+                s_free(s);
+                c += 5;
+                break;
+            case 'n':
+                /* treat "\\n \0" as only "\0" */
+                out[outlen++] = (*(c+3) == '\0') ? '\0' : '\n';
+                c += 1;
+                break;
+            case '\\':
+                c += 1;
+                /* fall through */
+            default:
+                /* XXX: unknown escape, keep the content */
+                out[outlen++] = '\\';
+                break;
+            }
         } else {
-            out = s_realloc(out, outlen + 2);
-            out[outlen] = *c;
-            out[outlen + 1] = '\0';
-            outlen++;
-            continue;
+            out[outlen++] = *c;
         }
     }
 
+    /* always end a string even if it's empty */
+    out[outlen++] = '\0';
+    out = s_realloc(out, outlen);
     return out;
 }
