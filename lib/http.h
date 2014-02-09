@@ -165,6 +165,7 @@ void  lwqq_http_set_cookie(LwqqHttpRequest *request, const char *name,const char
 /** 
  * force stop a request 
  * require set LWQQ_HTTP_CANCELABLE option first
+ * invoke callback with failcode = LWQQ_EC_CANCELED
  */
 void lwqq_http_cancel(LwqqHttpRequest* req);
 

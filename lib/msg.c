@@ -1625,7 +1625,9 @@ void lwqq_msglist_close(LwqqRecvMsgList* list)
     LwqqRecvMsgList_* list_= (LwqqRecvMsgList_*)list;
     if(list_->running == 0) return;
     lwqq_http_cancel(list_->req);
+#if USE_MSG_THREAD
     pthread_join(list_->tid,NULL);
+#endif
     list_->running = 0;
 }
 
