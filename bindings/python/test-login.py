@@ -1,7 +1,7 @@
 from lwqq.core import *
 from lwqq.enumerations import *
 from lwqq.vplist import *
-from ctypes import c_voidp,cast,POINTER,c_int,byref,c_char_p
+from ctypes import c_voidp,cast,POINTER,c_int,byref,c_char_p,pointer
 
 from gevent.core import loop
 from gevent import with_timeout,spawn,joinall
@@ -9,11 +9,14 @@ import gevent as g
 
 def load_complete(err):
     print("===load_complete===")
-    print(err)
+    args = cast(err,POINTER(Arguments))
+    print(args[0])
     print()
 
 def init_listener(lc):
-    lc.addListener(lc.events.login_complete,Command.make('p',load_complete,1))
+    print(type(lc.args.login_ec))
+    lc.addListener(lc.events.login_complete,
+            Command.make('p',load_complete,byref(lc.args)))
     #lc.addListener(lc.events.contents.start_login,Command.make(load_complete))
 
 print(Lwqq.time())

@@ -17,9 +17,15 @@ class vp_list(Structure):
 vp_func = {
     'void' : (lib.vp_func_void,CFUNCTYPE(None)),
     'p'    : (lib.vp_func_p,CFUNCTYPE(None,c_voidp)),
+    'pi'   : (lib.vp_func_pi,CFUNCTYPE(None,c_voidp,c_int)),
     '2p'   : (lib.vp_func_2p,CFUNCTYPE(None,c_voidp,c_voidp)),
     '2pi'  : (lib.vp_func_2pi,CFUNCTYPE(None,c_voidp,c_voidp,c_int)),
-    '3p'   : (lib.vp_func_3p,CFUNCTYPE(None,c_voidp,c_voidp,c_voidp))
+    '3p'   : (lib.vp_func_3p,CFUNCTYPE(None,c_voidp,c_voidp,c_voidp)),
+    '3pi'  : (lib.vp_func_3pi,CFUNCTYPE(None,c_voidp,c_voidp,c_voidp,c_int)),
+    '4p'   : (lib.vp_func_4p,CFUNCTYPE(None,c_voidp,c_voidp,c_voidp,c_voidp)),
+    'p_i'  : (lib.vp_func_p_i,CFUNCTYPE(c_int,c_voidp)),
+    '2p_i' : (lib.vp_func_2p_i,CFUNCTYPE(c_int,c_voidp,c_voidp)),
+    '3p_i' : (lib.vp_func_3p_i,CFUNCTYPE(c_int,c_voidp,c_voidp,c_voidp))
     }
 
 

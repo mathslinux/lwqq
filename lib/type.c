@@ -515,3 +515,7 @@ LwqqEvents* lwqq_client_get_events(LwqqClient* lc)
 {
 	return lc->events;
 }
+LwqqArguments* lwqq_client_get_args(LwqqClient* lc)
+{
+	return lc->args;
+}

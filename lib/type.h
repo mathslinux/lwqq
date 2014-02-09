@@ -355,6 +355,7 @@ struct LwqqClient {
  */
 typedef struct LwqqEvents
 {
+	/** for test only**/
 	LwqqCommand start_login;
     /**
      * this is login complete .whatever successed or failed
@@ -383,7 +384,8 @@ typedef struct LwqqEvents
      * you need flush displayed group member
      */
 	LwqqCommand group_member_chg;
-	/** for test only**/
+	/** set this to involve hash_function */
+	LwqqCommand hash_func;
 }LwqqEvents;
 
 LwqqEvents* lwqq_client_get_events(LwqqClient* lc);
@@ -398,7 +400,10 @@ typedef struct LwqqArguments
 	const char* serv_id;
 	struct LwqqMsgContent* content;
 	LwqqErrorCode err;
+	char* hash_result;
 }LwqqArguments;
+
+LwqqArguments* lwqq_client_get_args(LwqqClient* lc);
 
 void lwqq_add_event_listener(LwqqCommand* event,LwqqCommand cmd);
 #define lwqq_add_event(event,cmd) lwqq_add_event_listener(&event,cmd);

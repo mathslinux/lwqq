@@ -11,6 +11,8 @@ from ctypes import Structure,CFUNCTYPE,POINTER,cast,pointer,byref
 
 __all__ = [
         'Event',
+        'Events',
+        'Arguments',
         'Lwqq',
         'Buddy',
         'SimpleBuddy'
@@ -133,6 +135,9 @@ class Lwqq(object):
     @property
     def events(self):
         return lib.lwqq_client_get_events(self.lc_)[0]
+    @property
+    def args(self):
+        return lib.lwqq_client_get_args(self.lc_)[0]
 
     def setDispatcher(self,dispatcher):
         self.raw.dispatch = self.DISPATCH_T(dispatcher)
@@ -189,6 +194,8 @@ def register_library(lib):
 
     lib.lwqq_client_get_events.argtypes= [Lwqq.PT]
     lib.lwqq_client_get_events.restype = POINTER(Events)
+    lib.lwqq_client_get_args.argtypes= [Lwqq.PT]
+    lib.lwqq_client_get_args.restype = POINTER(Arguments)
 
     lib.lwqq_add_event_listener.argtypes = [POINTER(Command),Command]
     lib.lwqq_add_event_listener.restype = None

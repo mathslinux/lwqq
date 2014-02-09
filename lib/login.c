@@ -568,6 +568,7 @@ void lwqq_login(LwqqClient *client, LwqqStatus status,LwqqErrorCode *err)
 
     client->stat = status;
 
+	client->args->login_ec = LWQQ_EC_NO_RESULT;
 	vp_do_repeat(client->events->start_login, NULL);
     /* optional: get webqq version */
     //get_version(client, err);

@@ -161,6 +161,13 @@ void lwqq_async_init(LwqqClient* lc);
 void lwqq_async_global_quit();
 
 
+//=========================PLUGIN API===========================//
+typedef struct LwqqPlugin{
+	void (*init)(struct LwqqPlugin* pl,LwqqClient* lc);
+	void (*remove)(struct LwqqPlugin* pl,LwqqClient* lc);
+}LwqqPlugin;
+
+
 //=========================LOW LEVEL EVENT LOOP API====================//
 /** watch an io socket for special event
  * implement by libev or libpurple
