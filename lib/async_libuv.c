@@ -10,25 +10,25 @@ struct LwqqAsyncIo_ {
     LwqqAsyncIo super;
     uv_poll_t h;
 };
-static uv_loop_t* ev_default = NULL;
+static uv_loop_t* loop = NULL;
 static void (loop_create)()
 {
-    if(ev_default) return;
-    ev_default = uv_loop_new();
+    if(loop) return;
+    loop = uv_loop_new();
 }
 static void (loop_run)()
 {
-    uv_run(ev_default,0);
+    uv_run(loop,UV_RUN_DEFAULT);
 }
 
 static void (loop_stop)()
 {
-    uv_stop(ev_default);
+    uv_stop(loop);
 }
 static void (loop_free)()
 {
-    uv_loop_delete(ev_default);
-    ev_default = NULL;
+    uv_loop_delete(loop);
+    loop = NULL;
 }
 static void* (io_new)()
 {
@@ -50,7 +50,7 @@ static void  (io_start)(void* io,int fd,int action)
 {
     struct LwqqAsyncIo_ * io_ = (struct LwqqAsyncIo_*) io;
     io_->h.data = io;
-    uv_poll_init(ev_default, &io_->h, fd);
+    uv_poll_init(loop, &io_->h, fd);
     uv_poll_start(&io_->h, action, io_cb_wrap);
 }
 
@@ -81,8 +81,8 @@ static void  (timer_start)(void* t,unsigned int ms)
 {
     struct LwqqAsyncTimer_ * t_ = (struct LwqqAsyncTimer_*) t;
     t_->h.data = t;
-    uv_timer_init(ev_default,&t_->h);
-    uv_timer_start(&t_->h,timer_cb_wrap,ms,ms);
+    uv_timer_init(loop,&t_->h);
+    uv_timer_start(&t_->h,timer_cb_wrap,ms/10,ms/10);
 }
 
 static void  (timer_stop)(void* t)

@@ -276,34 +276,6 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
     s_free(recvmsg);
 }
 
-static void *recvmsg_thread(void *list)
-{
-    LwqqRecvMsgList *l = (LwqqRecvMsgList *)list;
-
-    /* Poll to receive message */
-    lwqq_msglist_poll(l, 0);
-
-    /* Need to wrap those code so look like more nice */
-    while (1) {
-        LwqqRecvMsg *recvmsg;
-        pthread_mutex_lock(&l->mutex);
-        if (TAILQ_EMPTY(&l->head)) {
-            /* No message now, wait 100ms */
-            pthread_mutex_unlock(&l->mutex);
-            usleep(100000);
-            continue;
-        }
-        recvmsg = TAILQ_FIRST(&l->head);
-        TAILQ_REMOVE(&l->head,recvmsg, entries);
-        pthread_mutex_unlock(&l->mutex);
-        handle_new_msg(recvmsg);
-		fflush(stdout);
-    }
-
-    pthread_exit(NULL);
-    return NULL;
-}
-
 static void *info_thread(void *lc)
 {
     LwqqHttpRequest* req = lwqq_http_request_new("http://pidginlwqq.sinaapp.com/hash.js");
@@ -435,6 +407,7 @@ static void log_direct_flush(int l,const char* str)
 {
 	fprintf(stderr,"%s\n",str);
 	fflush(stderr);
+    fflush(stdout);
 }
 
 int main(int argc, char *argv[])
@@ -445,8 +418,6 @@ int main(int argc, char *argv[])
     char *qqnumber = NULL, *password = NULL;
     LwqqErrorCode err;
     int i, c, e = 0;
-    pthread_t tid[2];
-    pthread_attr_t attr[2];
     
     if (argc == 1) {
         usage();
@@ -513,18 +484,13 @@ int main(int argc, char *argv[])
 
     lwqq_log(LOG_NOTICE, "Login successfully\n");
 
-    /* Initialize thread */
-    for (i = 0; i < 2; ++i) {
-        pthread_attr_init(&attr[i]);
-        pthread_attr_setdetachstate(&attr[i], PTHREAD_CREATE_DETACHED);
-    }
-
     /* Create a thread to receive message */
     lwqq_msglist_poll(lc->msg_list,0);
     info_thread(lc);
 
     /* Enter command loop  */
-    command_loop();
+    //command_loop();
+    while(1);
     
     /* Logout */
     lwqq_msglist_close(lc->msg_list);
