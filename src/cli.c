@@ -394,8 +394,8 @@ static void need_verify2(LwqqClient* lc,LwqqVerifyCode** p_code)
     lwqq_util_save_img(code->data,code->size,fname,dir);
 
     lwqq_log(LOG_NOTICE,"Need verify code to login, please check "
-            "image file %s%s, and input below.\n",
-            dir?:"",fname);
+            "image file %s%c%s, and input below.\n",
+            dir?:"",dir?'/':' ',fname);
     printf("Verify Code:");
 	fflush(stdout);
     scanf("%s",vcode);
@@ -489,8 +489,8 @@ int main(int argc, char *argv[])
     info_thread(lc);
 
     /* Enter command loop  */
-    //command_loop();
-    while(1);
+    command_loop();
+    //while(1);
     
     /* Logout */
     lwqq_msglist_close(lc->msg_list);
