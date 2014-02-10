@@ -85,10 +85,14 @@ void lwqq_async_init(LwqqClient* lc)
 #ifdef WITH_LIBUV
     LWQQ_ASYNC_IMPLEMENT(impl_libuv);
 #endif
+    //if we doesn't need async, 
+    //we don't check default settings
+#ifndef WITHOUT_ASYNC
     //check async_impl
     assert(LWQQ__ASYNC_IMPL(loop_create));
     assert(LWQQ__ASYNC_IMPL(io_new));
     assert(LWQQ__ASYNC_IMPL(timer_new));
+#endif
 }
 
 LwqqAsyncEvent* lwqq_async_event_new(void* req)

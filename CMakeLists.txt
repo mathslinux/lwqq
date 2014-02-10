@@ -9,13 +9,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 add_definitions(-Wall)
 add_definitions(-DINST_PREFIX="${CMAKE_INSTALL_PREFIX}")
 option(SSL "Enable SSL Support " On)
-option(WITHOUT_ASYNC "Disable Async " Off)
-option(WITH_LIBUV "Use Libuv To Provide Async " Off)
+option(WITHOUT_ASYNC "Fully Disable Async Ability, Only Sync mode" Off)
 option(LWQQ_INSTALL "Install Lwqq Library"      On)
 
 find_package(Sphinx)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	find_package(PkgConfig REQUIRED)
+    #recommand libcurl>=7.22.0
 	pkg_check_modules(CURL REQUIRED libcurl)
 	pkg_check_modules(SQLITE REQUIRED sqlite3)
 	pkg_check_modules(ZLIB REQUIRED zlib)
@@ -26,10 +26,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         set(MOZJS_17 ${MOZJS_FOUND})
     endif()
 	find_package(EV)
-	#recommand libcurl>=7.22.0
-    if(WITH_LIBUV)
-        find_package(Libuv REQUIRED)
-    endif()
 endif()
 
 if(APPLE)
@@ -60,13 +56,11 @@ if(WIN32)
 		"${WIN32_LIBS_DIR}/zlib/lib"
 		)
 	find_package(ZLIB REQUIRED)
-    if(WITH_LIBUV)
-        set(CMAKE_PREFIX_PATH 
-            "${WIN32_LIBS_DIR}/libuv/include" 
-            "${WIN32_LIBS_DIR}/libuv/Release" 
-            "${WIN32_LIBS_DIR}/libuv/Debug")
-        find_package(Libuv REQUIRED)
-    endif()
+    set(CMAKE_PREFIX_PATH 
+        "${WIN32_LIBS_DIR}/libuv/include" 
+        "${WIN32_LIBS_DIR}/libuv/Release" 
+        "${WIN32_LIBS_DIR}/libuv/Debug")
+    find_package(Libuv)
     set(CMAKE_PREFIX_PATH 
         "${WIN32_LIBS_DIR}/js-1.8.5-mingw32/include/js" 
         "${WIN32_LIBS_DIR}/js-1.8.5-mingw32/lib"
@@ -78,6 +72,11 @@ endif(WIN32)
 option(WITH_LIBEV "Use Libev To Provide Async " ${EV_FOUND})
 if(WITH_LIBEV AND NOT EV_FOUND)
 	message(FATAL_ERROR "Required package libev not found")
+endif()
+
+option(WITH_LIBUV "Use Libuv To Provide Async " ${UV_FOUND})
+if(WITH_LIBUV AND NOT UV_FOUND)
+    message(FATAL_ERROR "Required package libuv not found")
 endif()
 
 if(WITH_LIBEV)
@@ -103,7 +102,11 @@ endif()
 set(WITH_SQLITE True)
 
 message( "================lwqq flags=====================")
+if(WIN32)
+message(STATUS "With Libuv (Option)     : ${WITH_LIBUV}")
+else()
 message(STATUS "With Libev (Option)     : ${WITH_LIBEV}")
+endif()
 message(STATUS "With Mozjs (Option)     : ${WITH_MOZJS}")
 message(STATUS "Build Document (Option) : ${ENABLE_DOCS}")
 message( "===============================================")

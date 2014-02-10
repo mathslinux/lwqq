@@ -63,7 +63,7 @@ endif(SSL)
 
 if(WITH_LIBEV)
     include_directories(${EV_INCLUDE_DIRS})
-    set(LWQQ_OTHER_LIBS ${LWQQ_OTHER_LIBS} ${EV_LIBRARIES})
+    set(LWQQ_OTHER_LIBS ${EV_LIBRARIES} ${LWQQ_OTHER_LIBS})
 endif()
 if(WITH_LIBUV)
     include_directories(${UV_INCLUDE_DIRS})

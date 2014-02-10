@@ -14,7 +14,14 @@ static struct ev_loop* ev_default = NULL;
 static void (loop_create)()
 {
     if(ev_default) return;
+    #ifdef WIN32
+    //check libev has any backends
+    assert(ev_supported_backends());
+    ev_default = ev_loop_new(EVBACKEND_SELECT);
+    #else
+    assert(ev_supported_backends() & EVBACKEND_POLL);
     ev_default = ev_loop_new(EVBACKEND_POLL);
+    #endif
     ev_set_timeout_collect_interval(ev_default, 0.1);
     ev_set_io_collect_interval(ev_default, 0.05);
 }

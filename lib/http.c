@@ -9,6 +9,8 @@
 
 #ifdef WIN32
 #undef SLIST_ENTRY
+//only libev use pipe
+#define pipe ev_pipe
 #endif
 
 #include "async.h"
@@ -770,14 +772,6 @@ static int sock_cb(CURL* e,curl_socket_t s,int what,void* cbp,void* sockp)
     }
     return 0;
 }
-static void delay_add_handle()
-{
-    #ifdef WITH_LIBEV
-    write(global.pipe_fd[1],"ok",3);
-    #else
-    lwqq_async_dispatch(_C_(p,delay_add_handle_cb,NULL));
-    #endif
-}
 
 static void check_handle_and_add_to_conn_link()
 {
@@ -811,7 +805,14 @@ static void delay_add_handle_cb(void* noused)
 	check_handle_and_add_to_conn_link();
     pthread_mutex_unlock(&add_lock);
 }
-
+static void delay_add_handle()
+{
+    #ifdef WITH_LIBEV
+    write(global.pipe_fd[1],"ok",3);
+    #else
+    lwqq_async_dispatch(_C_(p,delay_add_handle_cb,NULL));
+    #endif
+}
 
 static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int method,
                                       char *body, LwqqCommand command)
