@@ -28,6 +28,10 @@
 #include "info.h"
 
 #define LWQQ_MT_BITS  (~((-1)<<8))
+#ifdef WITHOUT_ASYNC
+#undef USE_MSG_THREAD
+#define USE_MSG_THREAD 1
+#endif
 
 static void *start_poll_msg(void *msg_list);
 static json_t *get_result_json_object(json_t *json);
@@ -1501,6 +1505,7 @@ static int process_poll_message_cb(LwqqHttpRequest* req)
 	LwqqRecvMsgList* list = lc->msg_list;
 	LwqqAsyncEvent* ev = NULL;
 	int ret = req->failcode;
+    if(ret == LWQQ_EC_CANCELED) return LWQQ_EC_ERROR;
 	if(!lwqq_client_logined(lc)) return LWQQ_EC_ERROR;
 	if(ret != LWQQ_EC_OK){
 		//some thing is wrong. try relogin first. 

@@ -280,7 +280,8 @@ static LwqqAsyncEvent* do_login(LwqqClient *lc, const char *md5, LwqqErrorCode *
 
     LwqqAsyncEvent* ret = lwqq_async_event_new(NULL);
     /* Send request */
-    req->do_request_async(req, lwqq__hasnot_post(),_C_(2p_i,do_login_back,req,ret));
+    LwqqAsyncEvent* ev = req->do_request_async(req, lwqq__hasnot_post(),_C_(2p_i,do_login_back,req,ret));
+    lwqq_async_add_event_chain(ev,ret);
     return ret;
 }
 
@@ -387,11 +388,6 @@ static int do_login_back(LwqqHttpRequest* req,LwqqAsyncEvent* event)
     }
 
 done:
-    if(err){
-        event->result = err;
-        event->lc = lc;
-        lwqq_async_event_finish(event);
-    }
     lwqq_http_request_free(req);
     return err;
 }

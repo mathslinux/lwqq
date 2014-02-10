@@ -69,6 +69,11 @@ lwqq_jso_t* lwqq_js_load(lwqq_js_t* js,const char* file)
     JS_ExecuteScript(js->context, global, script, NULL);
     return (lwqq_jso_t*)script;
 }
+void lwqq_js_load_buffer(lwqq_js_t* js,const char* content)
+{
+    JSObject* global = JS_GetGlobalObject(js->context);
+    JS_EvaluateScript(js->context,global,content,strlen(content),NULL,0,NULL);
+}
 void lwqq_js_unload(lwqq_js_t* js,lwqq_jso_t* obj)
 {
     //JS_DecompileScriptObject(js->context, obj, <#const char *name#>, <#uintN indent#>);

@@ -900,6 +900,7 @@ retry:
         if(set_error_code(request, ret, &ec)){
             goto retry;
         }
+        request->failcode = ec;
         return ec;
     }
     //perduce timeout.
@@ -1115,7 +1116,7 @@ static int lwqq_http_progress_trans(void* d,double dt,double dn,double ut,double
 {
     LwqqHttpRequest* req = d;
     LwqqHttpRequest_* req_ = d;
-    if(req_->retry_ == 0) return 1;
+    if(req_->retry_ == 0||req_->bits&HTTP_FORCE_CANCEL) return 1;
     time_t ct = time(NULL);
     if(ct<=req->last_prog) return 0;
 

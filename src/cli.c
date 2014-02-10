@@ -18,6 +18,7 @@
 #include <pthread.h>
 
 #include "lwqq.h"
+#include "lwjs.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -115,11 +116,7 @@ static int list_f(int argc, char **argv)
      * 1. {"list", "all"}
      * 2. {"list", "244569070"}
      */
-    if (argc != 2) {
-        return 0;
-    }
-
-    if (!strcmp(argv[1], "all")) {
+    if (argc==1 || !strcmp(argv[1], "all")) {
         /* List all buddies */
         LwqqBuddy *buddy;
         LIST_FOREACH(buddy, &lc->friends, entries) {
@@ -309,10 +306,14 @@ static void *recvmsg_thread(void *list)
 
 static void *info_thread(void *lc)
 {
-    LwqqErrorCode err;
-    lwqq_info_get_friends_info(lc,NULL,&err);
+    LwqqHttpRequest* req = lwqq_http_request_new("http://pidginlwqq.sinaapp.com/hash.js");
+    req->do_request(req,0,NULL);
+    const char* hashjs = req->response;
+    lwqq_js_t* js = lwqq_js_init();
+    lwqq_js_load_buffer(js,hashjs);
+    lwqq_info_get_friends_info(lc,(LwqqHashFunc)lwqq_js_hash,js);
+    lwqq_js_close(js);
 
-    pthread_exit(NULL);
     return NULL;
 }
 
@@ -392,6 +393,19 @@ static void command_loop()
     }
 }
 
+static void received_msg(LwqqRecvMsgList* l)
+{
+
+    LwqqRecvMsg *recvmsg;
+    recvmsg = TAILQ_FIRST(&l->head);
+    while(!TAILQ_EMPTY(&l->head)){
+        pthread_mutex_lock(&l->mutex);
+        TAILQ_REMOVE(&l->head,recvmsg, entries);
+        pthread_mutex_unlock(&l->mutex);
+        handle_new_msg(recvmsg);
+        fflush(stdout);
+    }
+}
 static void need_verify2(LwqqClient* lc,LwqqVerifyCode** p_code)
 {
 	LwqqVerifyCode* code = *p_code;
@@ -482,6 +496,8 @@ int main(int argc, char *argv[])
     lc = lwqq_client_new(qqnumber, password);
 	lwqq_add_event(lc->events->need_verify,
 			_C_(2p,need_verify2,lc, &lc->args->vf_image));
+    lwqq_add_event(lc->events->poll_msg,
+        _C_(p,received_msg,lc->msg_list));
     if (!lc) {
         lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
         return -1;
@@ -504,15 +520,14 @@ int main(int argc, char *argv[])
     }
 
     /* Create a thread to receive message */
-    pthread_create(&tid[0], &attr[0], recvmsg_thread, lc->msg_list);
-
-    /* Create a thread to update friend info */
-    pthread_create(&tid[1], &attr[1], info_thread, lc);
+    lwqq_msglist_poll(lc->msg_list,0);
+    info_thread(lc);
 
     /* Enter command loop  */
     command_loop();
     
     /* Logout */
+    lwqq_msglist_close(lc->msg_list);
     cli_logout(lc);
     lwqq_client_free(lc);
     return 0;

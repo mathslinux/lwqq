@@ -13,6 +13,7 @@
 
 #include <pthread.h>
 #include <stdarg.h>
+#include "lwqq-config.h"
 #include "queue.h"
 #include "vplist.h"
 
