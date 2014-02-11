@@ -421,7 +421,7 @@ int main(int argc, char *argv[])
 
     char *qqnumber = NULL, *password = NULL;
     LwqqErrorCode err;
-    int i, c, e = 0;
+    int c, e = 0;
     
     if (argc == 1) {
         usage();

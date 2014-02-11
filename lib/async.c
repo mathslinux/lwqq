@@ -48,6 +48,7 @@ typedef struct LwqqAsyncEvent_{
     LwqqAsyncEvset* host_lock;
     LwqqCommand cmd;
     LwqqHttpRequest* req;
+	LwqqAsyncEvent* chained;
 }LwqqAsyncEvent_;
 
 static void dispatch_wrap(LwqqAsyncTimerHandle timer,void* p)
@@ -198,14 +199,22 @@ void lwqq_async_add_event_chain(LwqqAsyncEvent* caller,LwqqAsyncEvent* called)
 {
     /**indeed caller->lc may be NULL when recursor */
     called->lc = caller->lc;
+	LwqqAsyncEvent_* called_ = (LwqqAsyncEvent_*)called;
+	//cancel previous chained event
+	if(called_->chained){
+		LwqqAsyncEvent_* chained_ = (LwqqAsyncEvent_*)called_->chained;
+		vp_cancel0(chained_->cmd);
+	}
+	called_->chained = caller;
     if(caller->failcode == LWQQ_CALLBACK_SYNCED){
         //when sync enabled, caller and called must finished already.
         //so free caller ,and do not trigger anything
         called->result = caller->result;
         called->failcode = caller->failcode;
         lwqq_async_event_finish(caller);
-    }else
+    }else{
         lwqq_async_add_event_listener(caller,_C_(2p,on_chain,caller,called));
+	}
 }
 void lwqq_async_add_evset_listener(LwqqAsyncEvset* evset,LwqqCommand cmd)
 {
