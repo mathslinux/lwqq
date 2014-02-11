@@ -278,6 +278,7 @@ static void handle_new_msg(LwqqRecvMsg *recvmsg)
 
 static void *info_thread(void *lc)
 {
+#ifdef WITH_MOZJS
     LwqqHttpRequest* req = lwqq_http_request_new("http://pidginlwqq.sinaapp.com/hash.js");
     req->do_request(req,0,NULL);
     const char* hashjs = req->response;
@@ -285,6 +286,9 @@ static void *info_thread(void *lc)
     lwqq_js_load_buffer(js,hashjs);
     lwqq_info_get_friends_info(lc,(LwqqHashFunc)lwqq_js_hash,js);
     lwqq_js_close(js);
+#else
+    lwqq_info_get_friends_info(lc,NULL,NULL);
+#endif
 
     return NULL;
 }
