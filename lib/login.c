@@ -557,10 +557,14 @@ done:
  */
 void lwqq_login(LwqqClient *client, LwqqStatus status,LwqqErrorCode *err)
 {
-    if (!client || !status) {
+    if (!client) {
         lwqq_log(LOG_ERROR, "Invalid pointer\n");
         return ;
     }
+	if(status == LWQQ_STATUS_LOGOUT || status == LWQQ_STATUS_OFFLINE){
+		lwqq_log(LOG_WARNING, "Invalid online status\n");
+		return;
+	}
 
     client->stat = status;
 

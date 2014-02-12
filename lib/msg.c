@@ -233,10 +233,12 @@ static int parse_xml_content(const char* xml,LwqqMsgMessage* msg)
 
 static void dispatch_poll_msg(LwqqClient* lc)
 {
+	if(!lwqq_client_valid(lc)) return;
 	vp_do_repeat(lc->events->poll_msg, NULL);
 }
 static void dispatch_poll_lost(LwqqClient* lc)
 {
+	if(!lwqq_client_valid(lc)) return;
 	vp_do_repeat(lc->events->poll_lost, NULL);
 }
 
