@@ -1687,6 +1687,7 @@ static char* content_parse_string(LwqqMsgMessage* msg,int msg_type,int *has_cfac
     static char buf[8192];
     strcpy(buf,"\"[");
     LwqqMsgContent* c;
+	int notext = 1;
 
     TAILQ_FOREACH(c,&msg->content,entries){
         switch(c->type){
@@ -1712,12 +1713,18 @@ static char* content_parse_string(LwqqMsgMessage* msg,int msg_type,int *has_cfac
                 }
                 break;
             case LWQQ_CONTENT_STRING:
+				notext = 0;
                 strcat(buf,LEFT);
                 parse_unescape(c->data.str,buf+strlen(buf),sizeof(buf)-strlen(buf));
                 strcat(buf,RIGHT",");
                 break;
         }
     }
+	//it looks like webqq server need at list one string
+	if(notext){
+		strcat(buf, LEFT);
+		strcat(buf, RIGHT",");
+	}
     snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),
             "["KEY("font")",{"
             KEY("name")":"KEY("%s")","
@@ -1977,7 +1984,9 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
             if(c->type == LWQQ_CONTENT_CFACE && c->data.cface.data > 0){
                 event = lwqq_msg_upload_cface(lc,c,mmsg->super.super.type,
                         mmsg->super.to);
-                if(!lc->gface_sig) lwqq_async_evset_add_event(evset,query_gface_sig(lc));
+				//only group message need gface sig
+                if(msg->super.super.type != LWQQ_MS_BUDDY_MSG&&!lc->gface_sig) 
+					lwqq_async_evset_add_event(evset,query_gface_sig(lc));
             } else if(c->type == LWQQ_CONTENT_OFFPIC && c->data.img.data > 0)
                 event = lwqq_msg_upload_offline_pic(lc,c,mmsg->super.to);
             if(event){
@@ -2048,12 +2057,7 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
     req->set_header(req, "Content-Transfer-Encoding", "binary");
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
 
-    LwqqAsyncEvent* ev = req->do_request_async(req, lwqq__has_post(),_C_(2p_i,msg_send_back,req,lc));
-    /*if(msg->super.super.type == LWQQ_MS_BUDDY_MSG && has_cface)
-        //delete server cface after upload
-        lwqq_async_add_event_listener(ev, _C_(2p,clean_cface_of_im,lc,msg));*/
-    
-    return ev;
+    return req->do_request_async(req, lwqq__has_post(),_C_(2p_i,msg_send_back,req,lc));
 failed:
     lwqq_http_request_free(req);
     return NULL;
