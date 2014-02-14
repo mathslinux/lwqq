@@ -1191,6 +1191,7 @@ void lwqq_http_cancel(LwqqHttpRequest* req)
 LwqqHttpHandle* lwqq_http_handle_new()
 {
     LwqqHttpHandle_* h_ = s_malloc0(sizeof(LwqqHttpHandle_));
+	h_->parent.ssl = 1;
     h_->share = curl_share_init();
     CURLSH* share = h_->share;
     curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_DNS);

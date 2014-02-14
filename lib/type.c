@@ -127,7 +127,7 @@ failed:
     return NULL;
 }
 
-void* lwqq_get_http_handle(LwqqClient* lc)
+struct LwqqHttpHandle* lwqq_get_http_handle(LwqqClient* lc)
 {
     return ((LwqqClient_*)lc)->http;
 }

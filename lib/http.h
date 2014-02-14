@@ -89,7 +89,7 @@ struct _LwqqHttpRequest {
     time_t last_prog;
 } ;
 
-typedef struct {
+typedef struct LwqqHttpHandle{
     struct {
         enum {
             LWQQ_HTTP_PROXY_NOT_SET = -1, //let curl auto set proxy
@@ -105,6 +105,7 @@ typedef struct {
     }proxy;
     int quit;
     int synced;
+	int ssl;
 }LwqqHttpHandle;
 
 LwqqHttpHandle* lwqq_http_handle_new();
@@ -118,6 +119,14 @@ do{\
     h->proxy.username = s_strdup(_username);\
     h->proxy.password = s_strdup(_password);\
 }while(0);
+
+#define lwqq_http_ssl(lc) (lwqq_get_http_handle(lc)->ssl)
+#define __SSL lwqq_http_ssl(lc)
+#define __H(url) __SSL?"https://"url:"http://"url
+#define WEBQQ_D_REF_URL (__SSL)?\
+							"https://d.web2.qq.com/cfproxy.html?v=20110331002&callback=1":\
+							"http://d.web2.qq.com/proxy.html?v=20110331002&callback=1"
+#define WEBQQ_D_HOST        __H("d.web2.qq.com")
 
 void lwqq_http_proxy_apply(LwqqHttpHandle* handle,LwqqHttpRequest* req);
 

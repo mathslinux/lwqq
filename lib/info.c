@@ -1364,9 +1364,9 @@ LwqqAsyncEvent* lwqq_info_get_group_detail_info(LwqqClient *lc, LwqqGroup *group
     }else if(group->type == LWQQ_GROUP_DISCU){
 
         snprintf(url,sizeof(url),
-                WEBQQ_D_HOST"/channel/get_discu_info?"
+                "%s/channel/get_discu_info?"
                 "did=%s&clientid=%s&psessionid=%s&t=%ld",
-                group->did,lc->clientid,lc->psessionid,time(NULL));
+                WEBQQ_D_HOST,group->did,lc->clientid,lc->psessionid,time(NULL));
         req = lwqq_http_create_default_request(lc,url,NULL);
         req->set_header(req,"Referer",WEBQQ_D_REF_URL);
     }else
@@ -1608,8 +1608,8 @@ LwqqAsyncEvent* lwqq_info_get_online_buddies(LwqqClient *lc, LwqqErrorCode *err)
 
     /* Create a GET request */
     snprintf(url, sizeof(url),
-             WEBQQ_D_HOST"/channel/get_online_buddies2?clientid=%s&psessionid=%s",
-             lc->clientid, lc->psessionid);
+             "%s/channel/get_online_buddies2?clientid=%s&psessionid=%s",
+             WEBQQ_D_HOST,lc->clientid, lc->psessionid);
     req = lwqq_http_create_default_request(lc,url, err);
     if (!req) {
         goto done;
@@ -1660,7 +1660,7 @@ LwqqAsyncEvent* lwqq_info_change_discu_topic(LwqqClient* lc,LwqqGroup* group,con
     if(!lc || !group || !alias) return NULL;
     char url[256];
     char post[512];
-    snprintf(url,sizeof(url),WEBQQ_D_HOST"/channel/modify_discu_info");
+    snprintf(url,sizeof(url),"%s/channel/modify_discu_info",WEBQQ_D_HOST);
     snprintf(post,sizeof(post),"r={\"did\":\"%s\",\"discu_name\":\"%s\","
             "\"dtype\":1,\"clientid\":\"%s\",\"psessionid\":\"%s\",\"vfwebqq\":\"%s\"}",
             group->did,alias,lc->clientid,lc->psessionid,lc->vfwebqq);
@@ -1759,14 +1759,14 @@ LwqqAsyncEvent* lwqq_info_get_group_sig(LwqqClient* lc,LwqqGroup* group,const ch
     LwqqSimpleBuddy* sb = lwqq_group_find_group_member_by_uin(group,to_uin);
     if(sb==NULL) return NULL;
     char url[512];
-    snprintf(url,sizeof(url),WEBQQ_D_HOST"/channel/get_c2cmsg_sig2?"
+    snprintf(url,sizeof(url),"%s/channel/get_c2cmsg_sig2?"
             "id=%s&"
             "to_uin=%s&"
             "service_type=%d&"
             "clientid=%s&"
             "psessionid=%s&"
             "t=%ld",
-            group->gid,to_uin,(group->type == LWQQ_GROUP_DISCU),lc->clientid,lc->psessionid,time(NULL));
+            WEBQQ_D_HOST,group->gid,to_uin,(group->type == LWQQ_GROUP_DISCU),lc->clientid,lc->psessionid,time(NULL));
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
 	
@@ -1777,12 +1777,12 @@ LwqqAsyncEvent* lwqq_info_change_status(LwqqClient* lc,LwqqStatus status)
 {
     if(!lc||!status) return NULL;
     char url[512];
-    snprintf(url,sizeof(url),WEBQQ_D_HOST"/channel/change_status2?"
+    snprintf(url,sizeof(url),"%s/channel/change_status2?"
             "newstatus=%s&"
             "clientid=%s&"
             "psessionid=%s&"
             "t=%ld",
-            lwqq_status_to_str(status),lc->clientid,lc->psessionid,time(NULL));
+            WEBQQ_D_HOST,lwqq_status_to_str(status),lc->clientid,lc->psessionid,time(NULL));
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
 
@@ -2015,9 +2015,9 @@ LwqqAsyncEvent* lwqq_info_answer_request_join_group(LwqqClient* lc,LwqqMsgSysGMs
     if(reason==NULL) reason="";
     char url[512];
     int op = (answer)?2:3;
-    snprintf(url,sizeof(url),WEBQQ_D_HOST"/channel/op_group_join_req?"
+    snprintf(url,sizeof(url),"%s/channel/op_group_join_req?"
             "group_uin=%s&req_uin=%s&msg=%s&op_type=%d&clientid=%s&psessionid=%s&t=%ld",
-            msg->group_uin,msg->member_uin,reason,op,lc->clientid,lc->psessionid,time(NULL));
+            WEBQQ_D_HOST,msg->group_uin,msg->member_uin,reason,op,lc->clientid,lc->psessionid,time(NULL));
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
 
@@ -2126,8 +2126,8 @@ LwqqAsyncEvent* lwqq_info_delete_group(LwqqClient* lc,LwqqGroup* group)
 
         ev = req->do_request_async(req,lwqq__has_post(),_C_(p_i,process_simple_response,req));
     }else{
-        snprintf(url,sizeof(url),WEBQQ_D_HOST"/channel/quit_discu?did=%s&clientid=%s&psessionid=%s&vfwebqq=%s&t=%ld",
-                group->did,lc->clientid,lc->psessionid,lc->vfwebqq,time(NULL));
+        snprintf(url,sizeof(url),"%s/channel/quit_discu?did=%s&clientid=%s&psessionid=%s&vfwebqq=%s&t=%ld",
+                WEBQQ_D_HOST,group->did,lc->clientid,lc->psessionid,lc->vfwebqq,time(NULL));
         req = lwqq_http_create_default_request(lc, url, NULL);
         req->set_header(req,"Referer",WEBQQ_D_REF_URL);
         ev = req->do_request_async(req,lwqq__hasnot_post(),_C_(p_i,process_simple_response,req));
@@ -2155,7 +2155,7 @@ LwqqAsyncEvent* lwqq_info_recent_list(LwqqClient* lc,LwqqRecentList* list)
     if(!lc||!list) return NULL;
     char url[512];
     char post[512];
-    snprintf(url,sizeof(url),WEBQQ_D_HOST"/channel/get_recent_list2");
+    snprintf(url,sizeof(url),"%s/channel/get_recent_list2",WEBQQ_D_HOST);
     snprintf(post,sizeof(post),"r={\"vfwebqq\":\"%s\",\"clientid\":\"%s\",\"psessionid\":\"%s\"}",
             lc->vfwebqq,lc->clientid,lc->psessionid);
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
@@ -2246,7 +2246,7 @@ LwqqAsyncEvent* lwqq_info_change_discu_mem(LwqqClient* lc,LwqqGroup* discu,LwqqD
     if(discu->type != LWQQ_GROUP_DISCU) return NULL;
     char url[128];
     char post[1024];
-    snprintf(url, sizeof(url), WEBQQ_D_HOST"/channel/change_discu_mem");
+    snprintf(url, sizeof(url), "%s/channel/change_discu_mem",WEBQQ_D_HOST);
     snprintf(post, sizeof(post), "r={\"did\":\"%s\",",discu->did);
 
     lwqq_discu_mem_change_to_str(chg, post, sizeof(post)-strlen(post));
@@ -2311,7 +2311,7 @@ static void create_discu_stage_2(LwqqAsyncEvent* called,LwqqVerifyCode* code,Lwq
     LwqqClient* lc = called->lc;
     char url[128];
     char post[1024];
-    snprintf(url, sizeof(url), WEBQQ_D_HOST"/channel/create_discu");
+    snprintf(url, sizeof(url), "%s/channel/create_discu",WEBQQ_D_HOST);
     snprintf(post, sizeof(post), "r={\"discu_name\":\"%s\",",dname);
 
     lwqq_discu_mem_change_to_str(chg, post, sizeof(post)-strlen(post));

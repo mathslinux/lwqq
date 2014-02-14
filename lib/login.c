@@ -508,7 +508,8 @@ static LwqqAsyncEvent* set_online_status(LwqqClient *lc,const char *status)
     s_free(ptwebqq);
 
     /* Create a POST request */
-	const char* url = WEBQQ_D_HOST"/channel/login2";
+	char url[512] ={0};
+	snprintf(url,sizeof(url),"%s/channel/login2",WEBQQ_D_HOST);
     req = lwqq_http_create_default_request(lc,url, NULL);
 
     /* Set header needed by server */
@@ -691,6 +692,7 @@ static void login_stage_f(LwqqAsyncEvent* ev,LwqqErrorCode* ec)
  */
 void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
 {
+	LwqqClient* lc = client;
     char url[512];
     LwqqHttpRequest *req = NULL;  
     int ret;
@@ -713,9 +715,9 @@ void lwqq_logout(LwqqClient *client, LwqqErrorCode *err)
     re = tv.tv_usec / 1000;
     re += tv.tv_sec;
     
-    snprintf(url, sizeof(url), WEBQQ_D_HOST"/channel/logout2"
+    snprintf(url, sizeof(url), "%s/channel/logout2"
             "?clientid=%s&psessionid=%s&t=%ld",
-             client->clientid, client->psessionid, re);
+			WEBQQ_D_HOST, client->clientid, client->psessionid, re);
 
     /* Create a GET request */
     req = lwqq_http_create_default_request(client,url, err);
@@ -825,7 +827,7 @@ LwqqAsyncEvent* lwqq_relink(LwqqClient* lc)
     if(!lc->new_ptwebqq){
         lc->new_ptwebqq = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "ptwebqq");
     }
-    snprintf(url, sizeof(url), WEBQQ_D_HOST"/channel/login2");
+    snprintf(url, sizeof(url), "%s/channel/login2",WEBQQ_D_HOST);
     snprintf(post, sizeof(post), "r={\"status\":\"%s\",\"ptwebqq\":\"%s\",\"passwd_sig\":\"\",\"clientid\":\"%s\",\"psessionid\":\"%s\"}",lwqq_status_to_str(lc->stat),lc->new_ptwebqq,lc->clientid,lc->psessionid);
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
     req->set_header(req,"Referer",WEBQQ_D_REF_URL);
