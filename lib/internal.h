@@ -8,8 +8,6 @@
 #include "win32.h"
 #endif
 
-
-
 #define WEBQQ_LOGIN_UI_HOST "https://ui.ptlogin2.qq.com"
 #define WEBQQ_CAPTCHA_HOST  "https://ssl.captcha.qq.com"
 #define WEBQQ_LOGIN_HOST    "https://ssl.ptlogin2.qq.com"
