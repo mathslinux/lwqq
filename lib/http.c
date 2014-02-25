@@ -9,6 +9,8 @@
 
 #ifdef WIN32
 #undef SLIST_ENTRY
+//only libev use pipe
+#define pipe ev_pipe
 #endif
 
 #ifdef __MINGW32__
@@ -809,7 +811,6 @@ static void delay_add_handle_cb(void* noused)
 	check_handle_and_add_to_conn_link();
     pthread_mutex_unlock(&add_lock);
 }
-
 static void delay_add_handle()
 {
     #ifdef WITH_LIBEV
@@ -906,6 +907,7 @@ retry:
         if(set_error_code(request, ret, &ec)){
             goto retry;
         }
+        request->failcode = ec;
         return ec;
     }
     //perduce timeout.
@@ -1121,7 +1123,7 @@ static int lwqq_http_progress_trans(void* d,double dt,double dn,double ut,double
 {
     LwqqHttpRequest* req = d;
     LwqqHttpRequest_* req_ = d;
-    if(req_->retry_ == 0) return 1;
+    if(req_->retry_ == 0||req_->bits&HTTP_FORCE_CANCEL) return 1;
     time_t ct = time(NULL);
     if(ct<=req->last_prog) return 0;
 
@@ -1196,6 +1198,7 @@ void lwqq_http_cancel(LwqqHttpRequest* req)
 LwqqHttpHandle* lwqq_http_handle_new()
 {
     LwqqHttpHandle_* h_ = s_malloc0(sizeof(LwqqHttpHandle_));
+	h_->parent.ssl = 1;
     h_->share = curl_share_init();
     CURLSH* share = h_->share;
     curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_DNS);

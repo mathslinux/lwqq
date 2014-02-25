@@ -13,6 +13,7 @@
 
 #include <pthread.h>
 #include <stdarg.h>
+#include "lwqq-config.h"
 #include "queue.h"
 #include "vplist.h"
 
@@ -31,6 +32,7 @@
 #endif
 
 
+struct LwqqHttpHandle;
 struct LwqqMsgContent;
 struct LwqqArguments;
 struct LwqqEvents;
@@ -355,6 +357,8 @@ struct LwqqClient {
  */
 typedef struct LwqqEvents
 {
+	/** for test only**/
+	LwqqCommand start_login;
     /**
      * this is login complete .whatever successed or failed
      * except need verify code
@@ -382,7 +386,12 @@ typedef struct LwqqEvents
      * you need flush displayed group member
      */
 	LwqqCommand group_member_chg;
+	/** set this to involve hash_function */
+	LwqqCommand hash_func;
 }LwqqEvents;
+
+LwqqEvents* lwqq_client_get_events(LwqqClient* lc);
+
 typedef struct LwqqArguments
 {
 	LwqqErrorCode login_ec;
@@ -393,7 +402,10 @@ typedef struct LwqqArguments
 	const char* serv_id;
 	struct LwqqMsgContent* content;
 	LwqqErrorCode err;
+	char* hash_result;
 }LwqqArguments;
+
+LwqqArguments* lwqq_client_get_args(LwqqClient* lc);
 
 void lwqq_add_event_listener(LwqqCommand* event,LwqqCommand cmd);
 #define lwqq_add_event(event,cmd) lwqq_add_event_listener(&event,cmd);
@@ -428,7 +440,7 @@ void lwqq_vc_free(LwqqVerifyCode *vc);
  * @param client LwqqClient instance
  */
 void lwqq_client_free(LwqqClient *client);
-void* lwqq_get_http_handle(LwqqClient* lc);
+struct LwqqHttpHandle* lwqq_get_http_handle(LwqqClient* lc);
 
 /* LwqqClient API end */
 

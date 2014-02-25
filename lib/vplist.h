@@ -28,6 +28,8 @@ void vp_do(vp_command,void* retval);
 void vp_do_repeat(vp_command cmd,void* retval);
 void vp_link(vp_command* head,vp_command* elem);
 void vp_cancel(vp_command);
+//cancel and clear memory to pass vp_do 
+#define vp_cancel0(cmd) {vp_cancel(cmd);memset(&cmd,0,sizeof(cmd));}
 
 vp_list* vp_make_params(VP_DISPATCH,...);
 /**

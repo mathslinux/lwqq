@@ -9,6 +9,7 @@ lwqq_js_t* lwqq_js_init();
 void lwqq_js_close(lwqq_js_t* js);
 #ifdef WITH_MOZJS
 lwqq_jso_t* lwqq_js_load(lwqq_js_t* js,const char* file);
+void lwqq_js_load_buffer(lwqq_js_t* js,const char* content);
 void lwqq_js_unload(lwqq_js_t* js,lwqq_jso_t* obj);
 #endif
 

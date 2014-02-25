@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+typedef struct LwjsPlugin{
+	LwqqPlugin super;
+	LwqqCommand hash_backup;
+	lwqq_js_t* js;
+}LwjsPlugin;
+
 #ifdef WITH_MOZJS
 
 #include <jsapi.h>
@@ -63,6 +69,11 @@ lwqq_jso_t* lwqq_js_load(lwqq_js_t* js,const char* file)
     JS_ExecuteScript(js->context, global, script, NULL);
     return (lwqq_jso_t*)script;
 }
+void lwqq_js_load_buffer(lwqq_js_t* js,const char* content)
+{
+    JSObject* global = JS_GetGlobalObject(js->context);
+    JS_EvaluateScript(js->context,global,content,strlen(content),NULL,0,NULL);
+}
 void lwqq_js_unload(lwqq_js_t* js,lwqq_jso_t* obj)
 {
     //JS_DecompileScriptObject(js->context, obj, <#const char *name#>, <#uintN indent#>);
@@ -93,6 +104,48 @@ void lwqq_js_close(lwqq_js_t* js)
     JS_ShutDown();
     s_free(js);
 }
+#if 0
+
+static void hash_func(char** result,LwqqClient* lc,LwjsPlugin* pl)
+{
+	s_free(*result);
+	const char* uin = lc->myself->uin;
+	const char* ptwebqq = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "ptwebqq");
+	char* res = lwqq_js_hash(uin, ptwebqq, pl->js);
+	*result = res;
+}
+
+static void plugin_init(LwqqPlugin* plugin,LwqqClient* lc)
+{
+	LwjsPlugin* pl = (LwjsPlugin*)plugin;
+	memcpy(&pl->hash_backup,&lc->events->hash_func,sizeof(LwqqCommand));
+	memset(&lc->events->hash_func,0,sizeof(LwqqCommand));
+	lwqq_add_event(lc->events->hash_func,_C_(3p,hash_func,&lc->args->hash_result,lc));
+}
+
+static void plugin_remove(LwqqPlugin* plugin,LwqqClient* lc)
+{
+	LwjsPlugin* pl = (LwjsPlugin*)plugin;
+	vp_cancel(lc->events->hash_func);
+	memcpy(&lc->events->hash_func,&pl->hash_backup,sizeof(LwqqCommand));
+	memset(&pl->hash_backup,0,sizeof(LwqqCommand));
+}
+LwqqPlugin* lwjs_make_plugin(const char* filepath)
+{
+	LwjsPlugin* jsp = s_malloc0(sizeof(*jsp));
+	lwqq_js_t* js = lwqq_js_init();
+	lwqq_js_load(js,filepath);
+	jsp->js = js;
+	jsp->super.init = plugin_init;
+	jsp->super.remove = plugin_remove;
+	return (LwqqPlugin*)jsp;
+}
+void lwjs_clean_plugin(LwqqPlugin* pl)
+{
+	LwjsPlugin* jsp = (LwjsPlugin*)pl;
+	s_free(pl);
+}
+#endif
 #else
 
 struct lwqq_js_t{
@@ -105,3 +158,4 @@ void lwqq_js_close(lwqq_js_t* js)
 {
 }
 #endif
+
