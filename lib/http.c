@@ -13,6 +13,11 @@
 #define pipe ev_pipe
 #endif
 
+#ifdef __MINGW32__
+#define PIPE_SIZE 4096
+#define pipe(fd)  _pipe(fd,PIPE_SIZE,0)
+#endif
+
 #include "async.h"
 #include "smemory.h"
 #include "http.h"
@@ -773,6 +778,7 @@ static int sock_cb(CURL* e,curl_socket_t s,int what,void* cbp,void* sockp)
     return 0;
 }
 
+
 static void check_handle_and_add_to_conn_link()
 {
     D_ITEM* di,*tvar;
@@ -813,6 +819,7 @@ static void delay_add_handle()
     lwqq_async_dispatch(_C_(p,delay_add_handle_cb,NULL));
     #endif
 }
+
 
 static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int method,
                                       char *body, LwqqCommand command)
