@@ -149,7 +149,8 @@ typedef enum {
     LWQQ_EC_NO_MESSAGE       = 102,
     LWQQ_EC_COOKIE_WRONG     = 103,
     LWQQ_EC_PTWEBQQ          = 116,
-    LWQQ_EC_LOST_CONN        = 121
+    LWQQ_EC_LOST_CONN        = 121,
+	LWQQ_EC_LOGIN_NEED_BARCODE   = 10005
 } LwqqErrorCode;
 typedef enum {
     LWQQ_OP_OK = 1,

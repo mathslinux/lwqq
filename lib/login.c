@@ -318,10 +318,13 @@ static int do_login_back(LwqqHttpRequest* req,LwqqAsyncEvent* event)
     int status,param2;
     char url[512];
     int param4;
-    char msg[64];
+    char msg[512];
     char user[64];
-    sscanf(response,"ptuiCB('%d','%d','%[^']','%d','%[^']','%[^']');",
+	//void url is '' which makes sscanf failed
+	//%*c is for eat a blank before 'user'
+    sscanf(response,"ptuiCB('%d','%d','%[^,],'%d','%[^']',%*c'%[^']');",
             &status,&param2,url,&param4,msg,user);
+	url[strlen(url)-1]=0;
     switch (status) {
     case 0:
         {
@@ -379,6 +382,11 @@ static int do_login_back(LwqqHttpRequest* req,LwqqAsyncEvent* event)
         lc->last_err = "Too many logins on this IP.Please try again";
         err = LWQQ_EC_ERROR;
         goto done;
+	case LWQQ_EC_LOGIN_NEED_BARCODE:
+		lwqq_log(LOG_ERROR, "%s\n",msg);
+		lc->error_description = s_strdup(msg);
+		err = LWQQ_EC_LOGIN_NEED_BARCODE;
+		goto done;
 
     default:
         err = LWQQ_EC_ERROR;
