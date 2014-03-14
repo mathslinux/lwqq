@@ -13,6 +13,9 @@
 //use a single thread to poll message
 #define USE_MSG_THREAD 1
 
+//detach thread without join it
+#define DETACH_THREAD 1
+
 //enable additional debug function
 #define USE_DEBUG @USE_DEBUG@
 

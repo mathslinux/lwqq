@@ -1616,11 +1616,20 @@ static void *start_poll_msg(void *msg_list)
 
 void lwqq_msglist_poll(LwqqRecvMsgList *list,LwqqPollOption flags)
 {
+	static pthread_attr_t attr;
+	static int init = 0;
     LwqqRecvMsgList_* internal = (LwqqRecvMsgList_*)list;
     internal->flags = flags;
     internal->running = 1;
+	pthread_attr_init(&attr);
 #if USE_MSG_THREAD
-    pthread_create(&internal->tid, NULL/*&list->attr*/, start_poll_msg, list);
+#if DETACH_THREAD
+	if(!init){
+		init=1;
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	}
+#endif
+    pthread_create(&internal->tid, &attr, start_poll_msg, list);
 #else
     start_poll_msg(list);
 #endif
@@ -1632,7 +1641,7 @@ void lwqq_msglist_close(LwqqRecvMsgList* list)
     LwqqRecvMsgList_* list_= (LwqqRecvMsgList_*)list;
     if(list_->running == 0) return;
     lwqq_http_cancel(list_->req);
-#if USE_MSG_THREAD
+#if USE_MSG_THREAD && !DETACH_THREAD
     pthread_join(list_->tid,NULL);
 #endif
     list_->running = 0;
