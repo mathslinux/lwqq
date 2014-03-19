@@ -1,7 +1,15 @@
 
 __all__ = [
-        'Status'
+        'Status',
+        'Features',
+        'ErrorCode',
         ]
+
+class Features():
+    WITH_LIBEV  = 1<<0
+    WITH_LIBUV  = 1<<1
+    WITH_SQLITE = 1<<2
+    WITH_MOZJS  = 1<<3
 
 class Status(object):
     LOGOUT  = 0

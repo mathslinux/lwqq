@@ -1,14 +1,19 @@
 from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref
+import ctypes
 from .common import lib
 from .vplist import Command
 from .core import *
 from .http import HttpHandle
+
+from .lwjs import *
 
 __all__ = [
         'Lwqq',
         'Buddy',
         'SimpleBuddy'
         ]
+
+HASHFUNC = CFUNCTYPE(c_voidp,c_char_p,c_char_p,c_voidp)
 
 class Lwqq(object):
     DISPATCH_T = CFUNCTYPE(None,Command,c_ulong)
@@ -41,8 +46,12 @@ class Lwqq(object):
     PT = POINTER(T)
     lc_ = None
     events_ref = [] #keep reference registerd events
+    username = None
+    password = None
 
     def __init__(self,username,password):
+        self.username = username
+        self.password = password
         u = c_char_p(username)
         p = c_char_p(password)
         self.lc_ = lib.lwqq_client_new(u,p)
@@ -84,6 +93,9 @@ class Lwqq(object):
 
     def relink(self):
         return Event(lib.lwqq_relink(self.lc_))
+
+    def get_friends_info(self,hashfunc,data):
+        return lib.lwqq_info_get_friends_info(self.lc_,HASHFUNC(hashfunc),data)
 
     @classmethod
     def time(cls):
@@ -145,5 +157,8 @@ def register_library(lib):
     lib.lwqq_client_get_args.restype = Arguments.PT
     lib.lwqq_get_http_handle.argtypes = [c_voidp]
     lib.lwqq_get_http_handle.restype = POINTER(HttpHandle)
+
+    lib.lwqq_info_get_friends_info.argtypes = [Lwqq.PT,HASHFUNC,c_voidp]
+    lib.lwqq_info_get_friends_info.restype = Event.PT
 
 register_library(lib)

@@ -717,7 +717,6 @@ LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqHashFunc hash, vo
 
     char* ptwebqq = lwqq_http_get_cookie(lwqq_get_http_handle(lc), "ptwebqq");
     char* h = hash(lc->myself->uin, ptwebqq,userdata);
-	vp_do_repeat(lc->events->hash_func, NULL);
     if(h == NULL) 
         // hash failed, fake it with empty and wait for server error return.
         h = s_strdup("");

@@ -400,11 +400,11 @@ static void need_verify2(LwqqClient* lc,LwqqVerifyCode** p_code)
     lwqq_log(LOG_NOTICE,"Need verify code to login, please check "
             "image file %s%c%s, and input below.\n",
             dir?:"",dir?'/':' ',fname);
-    printf("Verify Code:");
-	fflush(stdout);
-    scanf("%s",vcode);
-    code->str = s_strdup(vcode);
-    vp_do(code->cmd,NULL);
+	 printf("Verify Code:");
+	 fflush(stdout);
+	 scanf("%s",vcode);
+	 code->str = s_strdup(vcode);
+	 vp_do(code->cmd,NULL);
 }
 /**fix mingw and mintty and utf-8 no output */
 static void log_direct_flush(int l,const char* str)
@@ -467,16 +467,16 @@ int main(int argc, char *argv[])
         exit(1);
     }
     
-    lwqq_log_set_level(4);
-    lc = lwqq_client_new(qqnumber, password);
-	lwqq_add_event(lc->events->need_verify,
-			_C_(2p,need_verify2,lc, &lc->args->vf_image));
-    lwqq_add_event(lc->events->poll_msg,
-        _C_(p,received_msg,lc->msg_list));
-    if (!lc) {
-        lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
-        return -1;
-    }
+	 lwqq_log_set_level(4);
+	 lc = lwqq_client_new(qqnumber, password);
+	 lwqq_add_event(lc->events->need_verify,
+			 _C_(2p,need_verify2,lc, &lc->args->vf_image));
+	 lwqq_add_event(lc->events->poll_msg,
+			 _C_(p,received_msg,lc->msg_list));
+	 if (!lc) {
+		 lwqq_log(LOG_NOTICE, "Create lwqq client failed\n");
+		 return -1;
+	 }
 
     /* Login to server */
     err = cli_login();

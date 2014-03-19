@@ -1,13 +1,22 @@
-from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref
+from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref,c_size_t
+import ctypes
 from .common import lib
 from .vplist import Command
+from .smemory import s_strdup
 
 
 __all__ = [
         'Event',
         'Events',
         'Arguments',
+        'has_feature',
+        'VerifyCode'
         ]
+
+lwqq_feature = c_long.in_dll(lib,"lwqq_features")
+
+def has_feature(feature):
+    return lwqq_feature.value&feature
 
 class Event(object):
     class T(Structure):
@@ -124,6 +133,32 @@ class Arguments():
     @property
     def err(self): return pointer(c_int.from_buffer(self.ref[0],self.T.err.offset))
 
+class VerifyCode():
+    class T(Structure):
+        _fields_ = [
+                ('str_',POINTER(ctypes.c_char)),
+                ('uin',c_char_p),
+                ('data',c_voidp),
+                ('size',c_size_t),
+                ('lc',c_voidp),
+                ('cmd',Command)
+                ]
+    PT = POINTER(T)
+    ref = None
+    def __init__(self,ref):
+        self.ref = ref
+    def save(self,path):
+        import os
+        filename = c_char_p(os.path.basename(path).encode("utf-8"))
+        dirname = c_char_p(os.path.dirname(path).encode("utf-8"))
+        return lib.lwqq_util_save_img(self.ref[0].data,self.ref[0].size,filename,dirname)
+    def input(self,code):
+        s = c_char_p(code)
+        ds = s_strdup(s)
+        self.ref[0].str_ = ds
+        self.ref[0].cmd.invoke()
+
+
 
 def register_library(lib):
     #============LOW LEVEL ASYNC PART===============#
@@ -142,6 +177,9 @@ def register_library(lib):
     lib.lwqq_async_evset_new.restype = c_voidp
 
     lib.lwqq_async_evset_free.argtypes = [c_voidp]
+
+    lib.lwqq_util_save_img.argtypes = [c_voidp,c_size_t,c_char_p,c_char_p]
+    lib.lwqq_util_save_img.restype = c_long
 
 
 register_library(lib)
