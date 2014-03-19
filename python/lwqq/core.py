@@ -27,6 +27,7 @@ class Event(object):
                 ]
     PT = POINTER(T)
     ptr_ = None
+    eventsref = []
 
     def __init__(self,event):
         self.ptr_ = event
@@ -39,8 +40,9 @@ class Event(object):
     def new(self,http_req):
         return Event(lib.lwqq_async_event_new(http_req))
 
-    def addListener(self,closure):
-        lib.lwqq_async_add_event_listener(self.ptr_,Command.make(closure))
+    def addListener(self,event):
+        self.eventsref.append(event)
+        lib.lwqq_async_add_event_listener(self.ptr_,event)
         return self
 
     def finish(self):

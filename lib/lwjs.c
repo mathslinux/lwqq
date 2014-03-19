@@ -2,6 +2,7 @@
 #include "lwjs.h"
 
 #include <stdint.h>
+#include <string.h>
 
 typedef struct LwjsPlugin{
 	LwqqPlugin super;
@@ -93,8 +94,10 @@ char* lwqq_js_hash(const char* uin,const char* ptwebqq,lwqq_js_t* js)
     JS_CallFunctionName(js->context, global, "P", 2, argv, &res);
 
     res_ = JS_EncodeString(js->context,JSVAL_TO_STRING(res));
+	 char* ret = strdup(res_);
+	 JS_free(js->context,res_);
 
-    return res_;
+    return ret;
 }
 
 void lwqq_js_close(lwqq_js_t* js)

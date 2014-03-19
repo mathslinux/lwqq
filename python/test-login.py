@@ -47,7 +47,7 @@ def load_info(lc):
         hashjs = urllib.request.urlopen("http://pidginlwqq.sinaapp.com/hash.js")
         js.load(hashjs.read())
         ev = Event(lc.get_friends_info(js.hashfunc,js.js))
-        ev.addListener(load_complete)
+        ev.addListener(Command.make('void',load_complete))
     pass
 
 

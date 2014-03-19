@@ -723,7 +723,7 @@ LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqHashFunc hash, vo
     s_free(ptwebqq);
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
     snprintf(post, sizeof(post), "r={\"h\":\"hello\",\"hash\":\"%s\",\"vfwebqq\":\"%s\"}",h,lc->vfwebqq);
-    s_free(h);
+	 s_free(h);
 
     /* Create a POST request */
     const char* url = WEBQQ_S_HOST"/api/get_user_friends2";

@@ -1,4 +1,5 @@
 from .common import lib
+from .smemory import s_strdup
 import ctypes
 
 __all__ =['Lwjs']
@@ -6,12 +7,14 @@ __all__ =['Lwjs']
 class Lwjs():
     js = None
     jso = None
+    hashref = None #keep reference
     @classmethod
     def hashfunc(self,uin,ptwebqq,data):
-        uinp = ctypes.cast(uin,ctypes.c_char_p)
-        ptwebqqp = ctypes.cast(ptwebqq,ctypes.c_char_p)
-        datap = ctypes.cast(data,ctypes.c_void_p)
-        return lib.lwqq_js_hash(uinp,ptwebqqp,datap)
+        uinp = ctypes.c_char_p(uin)
+        ptwebqqp = ctypes.c_char_p(ptwebqq)
+        datap = ctypes.c_voidp(data)
+        pointer = lib.lwqq_js_hash(uinp,ptwebqqp,datap)
+        return pointer
     def __init__(self):
         self.js = lib.lwqq_js_init()
     def __del__(self):
@@ -33,6 +36,6 @@ def register_library(lib):
     lib.lwqq_js_load_buffer.argtypes = [ctypes.c_void_p,ctypes.c_char_p]
 
     lib.lwqq_js_hash.argtypes = [ctypes.c_char_p,ctypes.c_char_p,ctypes.c_void_p]
-    lib.lwqq_js_hash.restype = ctypes.POINTER(ctypes.c_char)
+    lib.lwqq_js_hash.restype = ctypes.c_void_p
 
 register_library(lib)
