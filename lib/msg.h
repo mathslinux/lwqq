@@ -138,6 +138,15 @@ typedef struct LwqqMsgMessage {
     LwqqMsgSeq super;
     time_t time;
     int upload_retry;
+
+    /* For font  */
+    char *f_name;
+    int f_size;
+    LwqqFontStyle f_style;
+    char f_color[7];
+
+    LwqqMsgContentHead content;
+
     union{
         struct {
             LwqqBuddy* from;
@@ -160,14 +169,6 @@ typedef struct LwqqMsgMessage {
             char *did;
         }discu;
     };
-
-    /* For font  */
-    char *f_name;
-    int f_size;
-    LwqqFontStyle f_style;
-    char f_color[7];
-
-    LwqqMsgContentHead content;
 } LwqqMsgMessage;
 
 typedef struct LwqqGroupWebMessage {

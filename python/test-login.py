@@ -4,9 +4,10 @@ from lwqq.lwqq import *
 from lwqq.core import Event
 from lwqq import core
 from lwqq import lwjs
+from lwqq.msg import *
 from ctypes import c_voidp,cast,POINTER,c_int,byref,c_char_p,pointer,CFUNCTYPE,py_object
 from tornado.ioloop import IOLoop
-import urllib.request 
+import urllib.request
 
 loop = IOLoop.instance()
 
@@ -25,7 +26,18 @@ def need_verify(p_vf_image):
     pass
 
 def message_cb():
-    pass
+    for msg in lc.msg_list.read():
+        print(msg.trycast(BuddyMessage))
+        print(msg.typeid)
+        if msg.trycast(BuddyMessage):
+            bm = cast(pointer(msg),POINTER(BuddyMessage))[0]
+            print(bm.sender)
+            #bm = BuddyMessage(msg)
+            print("[BuddyMessage:]")
+            #print(bm.sender)
+            #bm = BuddyMessage.from_buffer(msg)
+        msg.destroy()
+
 
 def init_listener(lc):
     lc.addListener(lc.events.start_login,Command.make('p',start_login,lc.args.login_ec))
@@ -67,3 +79,4 @@ lc.setDispatcher(dispatch)
 init_listener(lc)
 loop.add_callback(main)
 loop.start()
+

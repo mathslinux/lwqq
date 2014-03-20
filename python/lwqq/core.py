@@ -1,8 +1,10 @@
 from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref,c_size_t
 import ctypes
+
 from .common import lib
 from .vplist import Command
 from .smemory import s_strdup
+from .msg import Msg
 
 
 __all__ = [
@@ -121,7 +123,7 @@ class Arguments():
     ref = None
     def __init__(self,ref): self.ref = cast(ref,self.PT)
 
-    @property 
+    @property
     def login_ec(self): return pointer(c_int.from_buffer(self.ref[0],self.T.login_ec.offset))
     @property
     def buddy(self): return pointer(c_voidp.from_buffer(self.ref[0],self.T.buddy.offset))
@@ -172,9 +174,10 @@ class RecvMsgList():
     def close(self):
         lib.lwqq_msglist_close(self.ref)
     def read(self):
-        return 
-        pass
-
+        while True:
+            msg = lib.lwqq_msglist_read(self.ref)
+            if not msg: break
+            yield msg[0]
 
 
 def register_library(lib):
@@ -200,6 +203,7 @@ def register_library(lib):
 
     lib.lwqq_msglist_poll.argtypes = [c_voidp,c_long]
     lib.lwqq_msglist_close.argtypes = [c_voidp]
-
+    lib.lwqq_msglist_read.argtypes = [c_voidp]
+    lib.lwqq_msglist_read.restype = POINTER(Msg)
 
 register_library(lib)
