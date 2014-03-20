@@ -321,11 +321,11 @@ struct LwqqClient {
     char *login_sig;
     char *error_description;
     char *new_ptwebqq;              /**< this only used when relogin */
-    LwqqBuddy *myself;          /**< Myself */
-    LwqqVerifyCode *vc;         /**< Verify Code */
-	struct LwqqEvents * events;
-	struct LwqqArguments * args;
-    void (*dispatch)(LwqqCommand,unsigned long timeout);
+	 LwqqBuddy *myself;          /**< Myself */
+	 LwqqVerifyCode *vc;         /**< Verify Code */
+	 struct LwqqEvents * events;
+	 struct LwqqArguments * args;
+	 void (*dispatch)(LwqqCommand,unsigned long timeout);
 
     LwqqStatus stat;
 

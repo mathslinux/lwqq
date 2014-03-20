@@ -4,17 +4,16 @@ from lwqq.lwqq import *
 from lwqq.core import Event
 from lwqq import core
 from lwqq import lwjs
-from ctypes import c_voidp,cast,POINTER,c_int,byref,c_char_p,pointer,CFUNCTYPE
+from ctypes import c_voidp,cast,POINTER,c_int,byref,c_char_p,pointer,CFUNCTYPE,py_object
 from tornado.ioloop import IOLoop
 import urllib.request 
+
+loop = IOLoop.instance()
 
 def start_login(p_login_ec):
     login_ec = cast(p_login_ec,POINTER(c_int))[0]
     print("login_ec",login_ec)
     print("===start_login===")
-
-def start_login2():
-    print("===start login 2===")
 
 def need_verify(p_vf_image):
     vf = core.VerifyCode(cast(p_vf_image,POINTER(core.VerifyCode.PT))[0])
@@ -25,21 +24,12 @@ def need_verify(p_vf_image):
     vf.input(code.encode("utf-8"))
     pass
 
-
-def login_complete():
-    load_info(lc)
-    ev = lc.relink()
-    lc.logout()
-
-def load_complete():
-    print("===load complete===")
-
 def init_listener(lc):
     lc.addListener(lc.events.start_login,Command.make('p',start_login,lc.args.login_ec))
     lc.addListener(lc.events.need_verify,Command.make('p',need_verify,lc.args.vf_image))
-    lc.addListener(lc.events.login_complete,Command.make('void',login_complete))
+    lc.addListener(lc.events.login_complete,load_info)
 
-def load_info(lc):
+def load_info():
     if not core.has_feature(Features.WITH_MOZJS):
         print("not support js")
         exit(-1)
@@ -47,8 +37,12 @@ def load_info(lc):
         js = lwjs.Lwjs()
         hashjs = urllib.request.urlopen("http://pidginlwqq.sinaapp.com/hash.js")
         js.load(hashjs.read())
-        ev = Event(lc.get_friends_info(js.hashfunc,js.js))
-        ev.addListener(Command.make('void',load_complete))
+        ev = lc.get_friends_info(js.hashfunc,js.js)
+        ev.addListener(load_complete)
+    pass
+
+#def start_pollmsg():
+def load_complete():
     pass
 
 def local_thread(cmd):
@@ -56,7 +50,7 @@ def local_thread(cmd):
     pass
 
 def dispatch(cmd,timeout):
-    IOLoop.add_callback(localthread,cmd)
+    loop.add_callback(local_thread,cmd)
     pass
 
 def main():
@@ -69,6 +63,5 @@ Lwqq.log_level(3)
 lc = Lwqq(b'2501542492',b'1234567890+12345')
 lc.setDispatcher(dispatch)
 init_listener(lc)
-loop = IOLoop.instance()
 loop.add_callback(main)
 loop.start()

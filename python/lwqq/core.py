@@ -41,6 +41,8 @@ class Event(object):
         return Event(lib.lwqq_async_event_new(http_req))
 
     def addListener(self,event):
+        if not isinstance(event,Command):
+            event = Command.make('void',event)
         self.eventsref.append(event)
         lib.lwqq_async_add_event_listener(self.ptr_,event)
         return self
@@ -80,7 +82,7 @@ class Events():
                 ]
     PT = POINTER(T)
     ref = None
-    def __init__(self,ref): self.ref = ref
+    def __init__(self,ref): self.ref = cast(ref,self.PT)
     @property
     def start_login(self): return self.ref[0].start_login
     @property

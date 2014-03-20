@@ -14,9 +14,9 @@ __all__ = [
         ]
 
 HASHFUNC = CFUNCTYPE(c_voidp,c_char_p,c_char_p,c_voidp)
+DISPATCH_FUNC = CFUNCTYPE(None,Command,c_ulong)
 
 class Lwqq(object):
-    DISPATCH_T = CFUNCTYPE(None,Command,c_ulong)
     class T(Structure):
         _fields_ = [
                 ('username',c_char_p),
@@ -33,7 +33,6 @@ class Lwqq(object):
                 ('gface_key',c_char_p),
                 ('gface_sig',c_char_p),
                 ('login_sig',c_char_p),
-                ('stat',c_long),
                 ('error_description',c_char_p),
                 ('new_ptwebqq',c_char_p),
 
@@ -41,61 +40,60 @@ class Lwqq(object):
                 ('vc',c_voidp),
                 ('events',Events.PT),
                 ('args',Arguments.PT),
-                ('dispatch',CFUNCTYPE(None,Command,c_ulong))
+                ('dispatch',DISPATCH_FUNC),
+                ('stat',c_long),
                 ]
+    _events_ref = [] #keep reference registerd events
     PT = POINTER(T)
-    lc_ = None
-    events_ref = [] #keep reference registerd events
+    ref = None
     username = None
     password = None
+
+    events = None #events
+    args = None 
 
     def __init__(self,username,password):
         self.username = username
         self.password = password
         u = c_char_p(username)
         p = c_char_p(password)
-        self.lc_ = lib.lwqq_client_new(u,p)
+        self.ref = lib.lwqq_client_new(u,p)
+
+        self.events = Events(self.ref[0].events)
+        self.args = Arguments(self.ref[0].args)
 
     def __del_(self):
-        lib.lwqq_client_free(self.lc_)
-
-    @property
-    def raw(self):
-        return self.lc_[0];
-    @property
-    def events(self):
-        return Events(lib.lwqq_client_get_events(self.lc_))
-    @property
-    def args(self):
-        return Arguments(lib.lwqq_client_get_args(self.lc_))
+        lib.lwqq_client_free(self.ref)
 
     def setDispatcher(self,dispatcher):
-        self.raw.dispatch = self.DISPATCH_T(dispatcher)
+        self.ref[0].dispatch = DISPATCH_FUNC(dispatcher)
 
     def dispatch(self,cmd,delay = 50):
-        self.raw.dispatch(cmd,delay)
+        self.ref[0].dispatch(cmd,delay)
 
     def addListener(self,events,called):
-        self.events_ref.append(called)
+        if not isinstance(called,Command):
+            called = Command.make('void',called)
+        self._events_ref.append(called)
         lib.lwqq_add_event_listener(byref(events),called)
 
     def http(self):
-        return lib.lwqq_get_http_handle(self.lc_)[0]
+        return lib.lwqq_get_http_handle(self.ref)[0]
 
     def sync(self,yes):
         self.http().synced = yes
 
     def login(self,status):
-        lib.lwqq_login(self.lc_,status,0)
+        lib.lwqq_login(self.ref,status,0)
 
     def logout(self):
-        lib.lwqq_logout(self.lc_,0)
+        lib.lwqq_logout(self.ref,0)
 
     def relink(self):
-        return Event(lib.lwqq_relink(self.lc_))
+        return Event(lib.lwqq_relink(self.ref))
 
     def get_friends_info(self,hashfunc,data):
-        return lib.lwqq_info_get_friends_info(self.lc_,HASHFUNC(hashfunc),data)
+        return Event(lib.lwqq_info_get_friends_info(self.ref,HASHFUNC(hashfunc),data))
 
     @classmethod
     def time(cls):
@@ -151,10 +149,6 @@ def register_library(lib):
     lib.lwqq_time.argtypes = []
     lib.lwqq_time.restype = c_long
 
-    lib.lwqq_client_get_events.argtypes= [Lwqq.PT]
-    lib.lwqq_client_get_events.restype = Events.PT
-    lib.lwqq_client_get_args.argtypes= [Lwqq.PT]
-    lib.lwqq_client_get_args.restype = Arguments.PT
     lib.lwqq_get_http_handle.argtypes = [c_voidp]
     lib.lwqq_get_http_handle.restype = POINTER(HttpHandle)
 
