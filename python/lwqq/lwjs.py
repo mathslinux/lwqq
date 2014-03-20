@@ -1,5 +1,7 @@
 from .common import lib
 from .smemory import s_strdup
+from .core import has_feature
+from .types import Features
 import ctypes
 
 __all__ =['Lwjs']
@@ -30,12 +32,13 @@ class Lwjs():
 def register_library(lib):
     lib.lwqq_js_init.restype = ctypes.c_voidp
     lib.lwqq_js_close.argtypes = [ctypes.c_voidp]
-    lib.lwqq_js_load.argtypes = [ctypes.c_voidp,ctypes.c_char_p]
-    lib.lwqq_js_load.restype = ctypes.c_voidp
-    lib.lwqq_js_unload.argtypes = [ctypes.c_void_p,ctypes.c_void_p]
-    lib.lwqq_js_load_buffer.argtypes = [ctypes.c_void_p,ctypes.c_char_p]
+    if has_feature(Features.WITH_MOZJS):
+        lib.lwqq_js_load.argtypes = [ctypes.c_voidp,ctypes.c_char_p]
+        lib.lwqq_js_load.restype = ctypes.c_voidp
+        lib.lwqq_js_unload.argtypes = [ctypes.c_void_p,ctypes.c_void_p]
+        lib.lwqq_js_load_buffer.argtypes = [ctypes.c_void_p,ctypes.c_char_p]
 
-    lib.lwqq_js_hash.argtypes = [ctypes.c_char_p,ctypes.c_char_p,ctypes.c_void_p]
-    lib.lwqq_js_hash.restype = ctypes.c_void_p
+        lib.lwqq_js_hash.argtypes = [ctypes.c_char_p,ctypes.c_char_p,ctypes.c_void_p]
+        lib.lwqq_js_hash.restype = ctypes.c_void_p
 
 register_library(lib)

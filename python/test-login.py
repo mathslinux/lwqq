@@ -1,10 +1,11 @@
-from lwqq.enumerations import *
+from lwqq.types import *
 from lwqq.vplist import *
 from lwqq.lwqq import *
 from lwqq.core import Event
 from lwqq import core
 from lwqq import lwjs
-from ctypes import c_voidp,cast,POINTER,c_int,byref,c_char_p,pointer
+from ctypes import c_voidp,cast,POINTER,c_int,byref,c_char_p,pointer,CFUNCTYPE
+from tornado.ioloop import IOLoop
 import urllib.request 
 
 def start_login(p_login_ec):
@@ -50,13 +51,24 @@ def load_info(lc):
         ev.addListener(Command.make('void',load_complete))
     pass
 
+def local_thread(cmd):
+    cmd.invoke()
+    pass
+
+def dispatch(cmd,timeout):
+    IOLoop.add_callback(localthread,cmd)
+    pass
+
+def main():
+    lc.login(Status.ONLINE)
+    pass
 
 
 print(Lwqq.time())
 Lwqq.log_level(3)
 lc = Lwqq(b'2501542492',b'1234567890+12345')
+lc.setDispatcher(dispatch)
 init_listener(lc)
-lc.sync(1)
-
-
-lc.login(Status.ONLINE)
+loop = IOLoop.instance()
+loop.add_callback(main)
+loop.start()
