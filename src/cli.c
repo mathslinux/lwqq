@@ -371,7 +371,6 @@ static void command_loop()
 
 static void received_msg(LwqqRecvMsgList* l)
 {
-
     LwqqRecvMsg *recvmsg;
     recvmsg = TAILQ_FIRST(&l->head);
     while(!TAILQ_EMPTY(&l->head)){

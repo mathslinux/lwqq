@@ -321,30 +321,29 @@ struct LwqqClient {
     char *login_sig;
     char *error_description;
     char *new_ptwebqq;              /**< this only used when relogin */
+
 	 LwqqBuddy *myself;          /**< Myself */
 	 LwqqVerifyCode *vc;         /**< Verify Code */
 	 struct LwqqEvents * events;
 	 struct LwqqArguments * args;
-	 void (*dispatch)(LwqqCommand,unsigned long timeout);
+    struct LwqqRecvMsgList *msg_list;
 
+    long msg_id;            /**< Used to send message */
     LwqqStatus stat;
+
+	 void (*dispatch)(LwqqCommand,unsigned long timeout);
+    LwqqBuddy* (*find_buddy_by_uin)(struct LwqqClient* lc,const char* uin);
+    LwqqBuddy* (*find_buddy_by_qqnumber)(struct LwqqClient* lc,const char* qqnumber);
+
 
     LwqqFriendList friends; /**< QQ friends */
     LIST_HEAD(, LwqqFriendCategory) categories; /**< QQ friends categories */
     LIST_HEAD(, LwqqGroup) groups; /**< QQ groups */
     LIST_HEAD(, LwqqGroup) discus; /**< QQ discus */
-    struct LwqqRecvMsgList *msg_list;
-    long msg_id;            /**< Used to send message */
 
     LwqqAsyncQueue ev_queue;
-
-    LwqqBuddy* (*find_buddy_by_uin)(struct LwqqClient* lc,const char* uin);
-    LwqqBuddy* (*find_buddy_by_qqnumber)(struct LwqqClient* lc,const char* qqnumber);
-
     /** non data area **/
-
     void* data;                     /**< user defined data*/
-
     int magic;          /**< 0x4153 **/
 };
 #define lwqq_client_userdata(lc) (lc->data)

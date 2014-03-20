@@ -511,11 +511,3 @@ void lwqq_add_event_listener(LwqqCommand* inko,LwqqCommand cmd)
 {
 	vp_link(inko, &cmd);
 }
-LwqqEvents* lwqq_client_get_events(LwqqClient* lc)
-{
-	return lc->events;
-}
-LwqqArguments* lwqq_client_get_args(LwqqClient* lc)
-{
-	return lc->args;
-}

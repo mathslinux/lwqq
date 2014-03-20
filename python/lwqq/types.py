@@ -48,3 +48,10 @@ class ErrorCode(object):
     PTWEBQQ             = 116
     LOST_CONN           = 121
 
+class PollFlags():
+    AUTO_DOWN_GROUP_PIC   = 1<<0
+    AUTO_DOWN_BUDDY_PIC   = 1<<1
+    AUTO_DOWN_DISCU_PIC   = 1<<2
+    REMOVE_DUPLICATED_MSG = 1<<3
+
+

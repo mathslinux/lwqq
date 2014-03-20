@@ -10,7 +10,8 @@ __all__ = [
         'Events',
         'Arguments',
         'has_feature',
-        'VerifyCode'
+        'VerifyCode',
+        'RecvMsgList'
         ]
 
 lwqq_feature = c_long.in_dll(lib,"lwqq_features")
@@ -71,8 +72,8 @@ class Events():
         _fields_ = [
                 ('start_login',Command),
                 ('login_complete',Command),
-                ('pull_msg',Command),
-                ('pull_lost',Command),
+                ('poll_msg',Command),
+                ('poll_lost',Command),
                 ('upload_fail',Command),
                 ('new_friend',Command),
                 ('new_group',Command),
@@ -88,9 +89,9 @@ class Events():
     @property
     def login_complete(self): return self.ref[0].login_complete
     @property
-    def pull_msg(self): return self.ref[0].pull_msg
+    def poll_msg(self): return self.ref[0].poll_msg
     @property
-    def pull_lost(self): return self.ref[0].pull_lost
+    def poll_lost(self): return self.ref[0].poll_lost
     @property
     def upload_fail(self): return self.ref[0].upload_fail
     @property
@@ -162,6 +163,18 @@ class VerifyCode():
         self.ref[0].str_ = ds
         self.ref[0].cmd.invoke()
 
+class RecvMsgList():
+    ref = None
+    def __init__(self,ref):
+        self.ref = ref
+    def poll(self,flags):
+        lib.lwqq_msglist_poll(self.ref,flags)
+    def close(self):
+        lib.lwqq_msglist_close(self.ref)
+    def read(self):
+        return 
+        pass
+
 
 
 def register_library(lib):
@@ -184,6 +197,9 @@ def register_library(lib):
 
     lib.lwqq_util_save_img.argtypes = [c_voidp,c_size_t,c_char_p,c_char_p]
     lib.lwqq_util_save_img.restype = c_long
+
+    lib.lwqq_msglist_poll.argtypes = [c_voidp,c_long]
+    lib.lwqq_msglist_close.argtypes = [c_voidp]
 
 
 register_library(lib)

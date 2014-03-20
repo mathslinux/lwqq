@@ -369,8 +369,8 @@ typedef struct LwqqRecvMsgList {
 LwqqRecvMsgList *lwqq_msglist_new(void *client);
 void lwqq_msglist_free(LwqqRecvMsgList *list);
 void lwqq_msglist_poll(LwqqRecvMsgList* list,LwqqPollOption flags);
-void lwqq_msglist_close(LwqqRecvMsgList* list);
 LwqqMsg* lwqq_msglist_read(LwqqRecvMsgList* list);
+void lwqq_msglist_close(LwqqRecvMsgList* list);
 
 typedef struct LwqqHistoryMsgList {
     int row;

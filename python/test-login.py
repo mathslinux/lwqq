@@ -24,10 +24,14 @@ def need_verify(p_vf_image):
     vf.input(code.encode("utf-8"))
     pass
 
+def message_cb():
+    pass
+
 def init_listener(lc):
     lc.addListener(lc.events.start_login,Command.make('p',start_login,lc.args.login_ec))
     lc.addListener(lc.events.need_verify,Command.make('p',need_verify,lc.args.vf_image))
     lc.addListener(lc.events.login_complete,load_info)
+    lc.addListener(lc.events.poll_msg,message_cb)
 
 def load_info():
     if not core.has_feature(Features.WITH_MOZJS):
@@ -37,13 +41,11 @@ def load_info():
         js = lwjs.Lwjs()
         hashjs = urllib.request.urlopen("http://pidginlwqq.sinaapp.com/hash.js")
         js.load(hashjs.read())
-        ev = lc.get_friends_info(js.hashfunc,js.js)
-        ev.addListener(load_complete)
+        lc.get_friends_info(js.hashfunc,js.js).addListener(poll_msg)
     pass
 
-#def start_pollmsg():
-def load_complete():
-    pass
+def poll_msg():
+    lc.msg_list.poll(0)
 
 def local_thread(cmd):
     cmd.invoke()

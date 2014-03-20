@@ -40,8 +40,12 @@ class Lwqq(object):
                 ('vc',c_voidp),
                 ('events',Events.PT),
                 ('args',Arguments.PT),
-                ('dispatch',DISPATCH_FUNC),
+                ('msg_list',c_voidp),
+
+                ('msg_id',c_long),
                 ('stat',c_long),
+
+                ('dispatch',DISPATCH_FUNC),
                 ]
     _events_ref = [] #keep reference registerd events
     PT = POINTER(T)
@@ -51,6 +55,7 @@ class Lwqq(object):
 
     events = None #events
     args = None 
+    msg_list = None
 
     def __init__(self,username,password):
         self.username = username
@@ -61,6 +66,7 @@ class Lwqq(object):
 
         self.events = Events(self.ref[0].events)
         self.args = Arguments(self.ref[0].args)
+        self.msg_list = RecvMsgList(self.ref[0].msg_list)
 
     def __del_(self):
         lib.lwqq_client_free(self.ref)
@@ -83,15 +89,9 @@ class Lwqq(object):
     def sync(self,yes):
         self.http().synced = yes
 
-    def login(self,status):
-        lib.lwqq_login(self.ref,status,0)
-
-    def logout(self):
-        lib.lwqq_logout(self.ref,0)
-
-    def relink(self):
-        return Event(lib.lwqq_relink(self.ref))
-
+    def login(self,status): lib.lwqq_login(self.ref,status,0)
+    def logout(self): lib.lwqq_logout(self.ref,0)
+    def relink(self): return Event(lib.lwqq_relink(self.ref))
     def get_friends_info(self,hashfunc,data):
         return Event(lib.lwqq_info_get_friends_info(self.ref,HASHFUNC(hashfunc),data))
 
@@ -154,5 +154,6 @@ def register_library(lib):
 
     lib.lwqq_info_get_friends_info.argtypes = [Lwqq.PT,HASHFUNC,c_voidp]
     lib.lwqq_info_get_friends_info.restype = Event.PT
+
 
 register_library(lib)
