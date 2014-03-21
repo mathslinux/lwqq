@@ -60,7 +60,10 @@ class Buddy():
                 ]
     PT = POINTER(T)
     ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
+    lc = None
+    def __init__(self,ref,client=None): 
+        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
+        if client: self.lc = client.ref
     def destroy(self): lib.lwqq_buddy_free(self.ref)
     @property
     def uin(self): return self.ref[0].uin
@@ -132,6 +135,13 @@ class Buddy():
     def level(self): return self.ref[0].level
     @property
     def entries(self): return self.ref[0].entries
+    def get_qqnumber(self):
+        if not self.lc: return None
+        qqnumber = ctypes.addressof(self.ref[0])+self.T.qqnumber.offset
+        return Event(lib.lwqq_info_get_qqnumber(self.lc,self.ref[0].uin,qqnumber))
+    def get_detail(self):
+        if not self.lc: return None
+        return Event(lib.lwqq_info_get_friend_detail_info(self.lc,self.ref))
 
 
 class Lwqq(object):
@@ -214,13 +224,21 @@ class Lwqq(object):
 
     def friends(self):
         for item in self.friend_list.foreach():
-            yield Buddy(item)
+            yield Buddy(item,self)
 
     def http(self):
         return lib.lwqq_get_http_handle(self.ref)[0]
 
     def sync(self,yes):
         self.http().synced = yes
+    def find_buddy(self,uin=None,qqnumber=None):
+        found = None
+        if uin:
+            found = self.ref[0].find_buddy_by_uin(self.ref,uin)
+        if qqnumber:
+            found = self.ref[0].find_buddy_by_qqnumber(self.ref,uin)
+        if found:
+            return Buddy(cast(found,Buddy.PT),self)
     ###### http actions ######
     def login(self,status): lib.lwqq_login(self.ref,status,0)
     def logout(self): lib.lwqq_logout(self.ref,0)
@@ -228,6 +246,8 @@ class Lwqq(object):
 
     def get_friends_info(self,hashfunc,data):
         return Event(lib.lwqq_info_get_friends_info(self.ref,HASHFUNC(hashfunc),data))
+    def get_all_friend_qqnumbers(self):
+        return Event(lib.lwqq_info_get_all_friend_qqnumber(self.ref,None))
 
     @classmethod
     def time(cls):
@@ -310,6 +330,12 @@ def register_library(lib):
 
     lib.lwqq_info_get_friends_info.argtypes = [Lwqq.PT,HASHFUNC,c_voidp]
     lib.lwqq_info_get_friends_info.restype = Event.PT
+    lib.lwqq_info_get_qqnumber.argtypes = [Lwqq.PT,c_char_p,c_void_p]
+    lib.lwqq_info_get_qqnumber.restype = Event.PT
+    lib.lwqq_info_get_all_friend_qqnumbers.argtypes = [Lwqq.PT,c_void_p]
+    lib.lwqq_info_get_all_friend_qqnumbers.restype = None
+    lib.lwqq_info_get_friend_detail_info.argtypes = [Lwqq.PT,Buddy.PT]
+    lib.lwqq_info_get_friend_detail_info.restype = Event.PT
 
 
 register_library(lib)
