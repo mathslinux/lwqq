@@ -2,7 +2,8 @@ from ctypes import c_int
 
 __all__ = [ 'Status', 'Features', 'ErrorCode', 'PollFlags', 'MsgType',
         'ContentType', 'FontStyle', 'ServiceType', 'MsgSystemType',
-        'MsgSysGType' ]
+        'MsgSysGType', 'Constel', 'BloodType', 'ShengXiao', 'Gender',
+        'ClientType', 'MemberFlag' ]
 
 class Features(c_int):
     WITH_LIBEV  = 1<<0
@@ -117,3 +118,51 @@ class MsgSysGType(c_int):
     GROUP_REQUEST_JOIN_AGREE = 4  #only member get this msg
     GROUP_REQUEST_JOIN_DENY  = 5  #only member get this msg
     GROUP_UNKNOW             = 6
+
+class Constel(c_int):
+    AQUARIUS    = 1
+    PISCES      = 2
+    ARIES       = 3
+    TAURUS      = 4
+    GEMINI      = 5
+    CANCER      = 6
+    LEO         = 7
+    VIRGO       = 8
+    LIBRA       = 9
+    SCORPIO     = 10
+    SAGITTARIUS = 11
+    CAPRICORNUS = 12
+
+class BloodType(c_int):
+    A     = 1
+    B     = 2
+    O     = 3
+    AB    = 4
+    OTHER = 5
+
+class ShengXiao(c_int):
+    MOUTH  = 1
+    CATTLE = 2
+    TIGER  = 3
+    RABBIT = 4
+    DRAGON = 5
+    SNACK  = 6
+    HORSE  = 7
+    SHEEP  = 8
+    MONKEY = 9
+    CHOOK  = 10
+    DOG    = 11
+    PIG    = 12
+
+class Gender(c_int):
+    FEMALE = 1
+    MALE   = 2
+
+class ClientType(c_int):
+    PC       = 1  # /*1-10*/
+    MOBILE   = 21 # /*21-24*/
+    WEBQQ    = 41
+    QQFORPAD = 42
+
+class MemberFlag(c_int):
+    IS_ADMIN = 0x1

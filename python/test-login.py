@@ -7,9 +7,21 @@ from lwqq import lwjs
 from lwqq.msg import *
 from ctypes import c_voidp,cast,POINTER,c_int,byref,c_char_p,pointer,CFUNCTYPE,py_object
 from tornado.ioloop import IOLoop
+from os import read
 import urllib.request
+import sys
+import argparse
 
 loop = IOLoop.instance()
+lc = Lwqq(b'2501542492',b'1234567890+12345')
+
+class ArgsParser(argparse.ArgumentParser):
+    def error(self, message):
+        print(message,file=sys.stderr)
+
+def prompt():
+    print('>>>',end='')
+    sys.stdout.flush()
 
 def start_login(p_login_ec):
     login_ec = cast(p_login_ec,POINTER(c_int))[0]
@@ -34,6 +46,7 @@ def message_cb():
             print(m.sender)
             print(str(m))
         msg.destroy()
+    prompt()
 
 def message_lost():
     lc.logout()
@@ -59,6 +72,32 @@ def load_info():
 
 def poll_msg():
     lc.msg_list.poll(0)
+    prompt()
+
+def ignore():
+    return
+
+ls = ArgsParser(prog='ls',description='list friends',add_help=False)
+ls.add_argument('who',help='friends uin',nargs='?')
+ls.add_argument('--all',help='list all friends',action='store_true')
+ls.add_argument('-h',help='print help',action='store_true')
+
+def list_friend(argv):
+    args = ls.parse_args(argv)
+    if args.h:
+        ls.print_help()
+        return
+    if args.all:
+        for b in lc.friends():
+            print('[Buddy uin:{} nick:{}]'.format(b.uin,b.nick.decode('utf-8')))
+
+
+def command(fd,events):
+    argv = read(fd,100).decode('utf-8').rstrip().split(' ')
+    if argv[0]=='ls':
+        list_friend(argv)
+    print()
+    prompt()
 
 def local_thread(cmd):
     cmd.invoke()
@@ -75,9 +114,9 @@ def main():
 
 print(Lwqq.time())
 Lwqq.log_level(3)
-lc = Lwqq(b'2501542492',b'1234567890+12345')
 lc.setDispatcher(dispatch)
 init_listener(lc)
 loop.add_callback(main)
+loop.add_handler(0,command,loop.READ)
 loop.start()
 
