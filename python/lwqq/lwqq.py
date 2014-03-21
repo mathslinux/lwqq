@@ -19,6 +19,28 @@ HASHFUNC = CFUNCTYPE(c_voidp,c_char_p,c_char_p,c_voidp)
 DISPATCH_FUNC = CFUNCTYPE(None,Command,c_ulong)
 FIND_BUDDY_FUNC = CFUNCTYPE(c_void_p,c_void_p,c_char_p)
 
+class Category():
+    class T(Structure):
+        _fields_ = [
+                ('index',c_int),
+                ('sort',c_int),
+                ('name',c_char_p),
+                ('count',c_int),
+                ('entries',LIST_ENTRY)
+                ]
+    PT = POINTER(T)
+    ref = None
+    def __init__(self,ref):
+        self.ref = cast(ref,self.PT)
+    @property
+    def index(self): return self.ref[0].index
+    @property
+    def sort(self): return self.ref[0].sort
+    @property
+    def name(self): return self.ref[0].name
+    @property
+    def count(self): return self.ref[0].count
+
 class Buddy():
     class T(Structure):
         _fields_ = [
@@ -61,9 +83,12 @@ class Buddy():
     PT = POINTER(T)
     ref = None
     lc = None
+    cate_list = None
     def __init__(self,ref,client=None): 
         self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
-        if client: self.lc = client.ref
+        if client: 
+            self.lc = client.ref
+            self.cate_list = client.cate_list
     def destroy(self): lib.lwqq_buddy_free(self.ref)
     @property
     def uin(self): return self.ref[0].uin
@@ -133,8 +158,6 @@ class Buddy():
     def data(self): return self.ref[0].data
     @property
     def level(self): return self.ref[0].level
-    @property
-    def entries(self): return self.ref[0].entries
     def __str__(self):
         ret = ""
         for field,_ in self.T._fields_:
@@ -142,6 +165,13 @@ class Buddy():
             val = val.decode() if isinstance(val,bytes) else str(val)
             ret +=field+':\t'+ val +'\n'
         return ret
+    def get_category(self):
+        if not self.cate_list: return None
+        for item in self.cate_list.foreach():
+            c = Category(item)
+            if c.index == self.cate_index:
+                return c
+
     def get_qqnumber(self):
         if not self.lc: return None
         qqnumber = ctypes.addressof(self.ref[0])+self.T.qqnumber.offset
@@ -200,6 +230,7 @@ class Lwqq(object):
     msg_list = None
 
     friend_list = None
+    cate_list = None
 
     def __init__(self,username,password):
         self.username = username
@@ -213,6 +244,7 @@ class Lwqq(object):
         self.msg_list = RecvMsgList(self.ref[0].msg_list)
 
         self.friend_list = LIST_HEAD(self.ref[0].friends,Buddy.T.entries)
+        self.cate_list = LIST_HEAD(self.ref[0].categories,Category.T.entries)
 
     def __del_(self):
         lib.lwqq_client_free(self.ref)
@@ -232,6 +264,9 @@ class Lwqq(object):
     def friends(self):
         for item in self.friend_list.foreach():
             yield Buddy(item,self)
+    def categories(self):
+        for item in self.cate_list.foreach():
+            yield Category(item)
 
     def http(self):
         return lib.lwqq_get_http_handle(self.ref)[0]
@@ -263,7 +298,6 @@ class Lwqq(object):
     @classmethod
     def log_level(cls,level):
         lib.lwqq_log_set_level(level)
-
 
 class SimpleBuddy():
     class T(Structure):
@@ -301,8 +335,6 @@ class SimpleBuddy():
     def cate_index(self): return self.ref[0].cate_index
     @property
     def group_sig(self): return self.ref[0].group_sig
-    @property
-    def entries(self): return self.ref[0].entries
 
 def register_library(lib):
     lib.lwqq_client_new.argtypes = [c_char_p,c_char_p]

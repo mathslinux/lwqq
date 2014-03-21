@@ -103,6 +103,8 @@ def list_friend(argv):
                 )
         print("waiting for a while, fetch from server")
         return
+    c = b.get_category()
+    if c: print('in Category:'+c.name.decode())
     print(str(b))
 
 quit = ArgsParser(prog='quit',description='quit program',add_help=False)
