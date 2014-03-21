@@ -103,7 +103,7 @@ def list_friend(argv):
                 )
         print("waiting for a while, fetch from server")
         return
-    print(b.qqnumber)
+    print(str(b))
 
 quit = ArgsParser(prog='quit',description='quit program',add_help=False)
 quit.add_argument('-h',help='print help',action='store_true')
@@ -118,7 +118,7 @@ def quit_program(argv):
 
 def command(fd,events):
     argv = read(fd,100).decode('utf-8').rstrip().split(' ')
-    if argv[0]=='ls':
+    if argv[0]=='ls' or argv[0] == 'l':
         list_friend(argv[1:])
     elif argv[0]=='quit' or argv[0]=='q':
         quit_program(argv[1:])

@@ -135,6 +135,13 @@ class Buddy():
     def level(self): return self.ref[0].level
     @property
     def entries(self): return self.ref[0].entries
+    def __str__(self):
+        ret = ""
+        for field,_ in self.T._fields_:
+            val = getattr(self.ref[0],field)
+            val = val.decode() if isinstance(val,bytes) else str(val)
+            ret +=field+':\t'+ val +'\n'
+        return ret
     def get_qqnumber(self):
         if not self.lc: return None
         qqnumber = ctypes.addressof(self.ref[0])+self.T.qqnumber.offset
