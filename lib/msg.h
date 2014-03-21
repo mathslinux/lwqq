@@ -32,17 +32,21 @@ typedef enum LwqqMsgType {
     LWQQ_MT_STATUS_CHANGE = 2<<3,
     LWQQ_MT_KICK_MESSAGE = 3<<3,
     LWQQ_MT_SYSTEM = LWQQ_MF_SEQ|(4<<3),
+#if 0
     LWQQ_MS_ADD_BUDDY = LWQQ_MT_SYSTEM|(1<<8),
     LWQQ_MS_VERIFY_PASS = LWQQ_MT_SYSTEM|(2<<8),
     LWQQ_MS_VERIFY_PASS_ADD = LWQQ_MT_SYSTEM|(3<<8),
     LWQQ_MS_VERIFY_REQUIRE = LWQQ_MT_SYSTEM|(4<<8),
+#endif
 
     LWQQ_MT_BLIST_CHANGE = 5<<3,
     LWQQ_MT_SYS_G_MSG = LWQQ_MF_SEQ|(6<<3),
+#if 0
     LWQQ_MS_G_CREATE = LWQQ_MT_SYS_G_MSG|(1<<8),
     LWQQ_MS_G_JOIN = LWQQ_MT_SYS_G_MSG|(2<<8),
     LWQQ_MS_G_LEAVE = LWQQ_MT_SYS_G_MSG|(3<<8),
     LWQQ_MS_G_REQUIRE = LWQQ_MT_SYS_G_MSG|(4<<8),
+#endif
 
     LWQQ_MT_OFFFILE = LWQQ_MF_SEQ|(7<<3),
     LWQQ_MT_FILETRANS = LWQQ_MF_SEQ|(8<<3),
@@ -171,6 +175,7 @@ typedef struct LwqqMsgMessage {
     };
 } LwqqMsgMessage;
 
+#if 0
 typedef struct LwqqGroupWebMessage {
     LwqqMsgSeq super;
     char* group_code;
@@ -180,6 +185,7 @@ typedef struct LwqqGroupWebMessage {
 
     LwqqMsgContentHead content;
 }LwqqGroupWebMessage;
+#endif
 
 typedef struct LwqqMsgStatusChange {
     LwqqMsg super;

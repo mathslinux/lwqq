@@ -29,21 +29,22 @@ def message_cb():
     for msg in lc.msg_list.read():
         print(msg.trycast(BuddyMessage))
         print(msg.typeid)
-        if msg.trycast(BuddyMessage):
-            bm = BuddyMessage(msg.ref)
-            print(bm.sender)
-            for c in bm.contents():
-                if c.trycast(Text):
-                    txt = Text(c.ref)
-                    print(txt.text)
+        if msg.trycast(Message):
+            m = Message(msg.ref)
+            print(m.sender)
+            print(str(m))
         msg.destroy()
 
+def message_lost():
+    lc.logout()
+    exit(0)
 
 def init_listener(lc):
     lc.addListener(lc.events.start_login,Command.make('p',start_login,lc.args.login_ec))
     lc.addListener(lc.events.need_verify,Command.make('p',need_verify,lc.args.vf_image))
     lc.addListener(lc.events.login_complete,load_info)
     lc.addListener(lc.events.poll_msg,message_cb)
+    lc.addListener(lc.events.poll_lost,message_lost)
 
 def load_info():
     if not core.has_feature(Features.WITH_MOZJS):
