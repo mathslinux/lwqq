@@ -177,7 +177,7 @@ class RecvMsgList():
         while True:
             msg = lib.lwqq_msglist_read(self.ref)
             if not msg: break
-            yield msg[0]
+            yield Msg(msg)
 
 
 def register_library(lib):
@@ -204,6 +204,6 @@ def register_library(lib):
     lib.lwqq_msglist_poll.argtypes = [c_voidp,c_long]
     lib.lwqq_msglist_close.argtypes = [c_voidp]
     lib.lwqq_msglist_read.argtypes = [c_voidp]
-    lib.lwqq_msglist_read.restype = POINTER(Msg)
+    lib.lwqq_msglist_read.restype = Msg.PT
 
 register_library(lib)

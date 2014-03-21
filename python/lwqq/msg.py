@@ -1,62 +1,84 @@
 from .common import lib
 from .queue import *
 from .types import MsgType,ContentType,FontStyle,ServiceType
+from ctypes import POINTER,cast
 import ctypes
 
 __all__ = [ 'Msg', 'MsgSeq', 'MsgContent', 'Face', 'Text', 'Img', 'CFace',
-    'Message', 'BuddyMessage', 'GroupMessage', 'GroupWebMessage',
-    'SessMessage', 'DiscuMessage' ]
+    'Message', 'BuddyMessage'
+           ]
+           #, 'GroupMessage', 'GroupWebMessage',
+    # 'SessMessage', 'DiscuMessage'
 
 c_time_t = ctypes.c_long
 
-
-class Msg(ctypes.Structure):
-    _fields_ = [('_typeid',MsgType)]
-
+class Msg():
+    class T(ctypes.Structure):
+        _fields_ = [('typeid',MsgType)]
+    PT = ctypes.POINTER(T)
+    ref = None
+    def __init__(self,ref):
+        self.ref = cast(ref,self.PT)
     def destroy(self):
-        lib.lwqq_msg_free(ctypes.byref(self))
+        lib.lwqq_msg_free(self.ref)
     @property
-    def typeid(self): return self._typeid.value
+    def typeid(self): return self.ref[0].typeid.value
 
     def trycast(self,dest_type):
         return self.typeid == dest_type.TypeID
 
 
 class MsgSeq(Msg):
-    _fields_ = [
-            ('_super',Msg),
-            ('_from',ctypes.c_char_p),
-            ('_to',ctypes.c_char_p),
-            ('_msg_id',ctypes.c_int),
-            ('_msg_id2',ctypes.c_int)]
+    class T(ctypes.Structure):
+        _fields_ = Msg.T._fields_ + [
+            ('sender',ctypes.c_char_p),
+            ('to',ctypes.c_char_p),
+            ('msg_id',ctypes.c_int),
+            ('msg_id2',ctypes.c_int)]
+    PT = ctypes.POINTER(T)
+    ref = None
+    def __init__(self,ref):
+        self.ref = cast(ref,self.PT)
     @property
-    def super(self): return self._super
+    def super(self): return self.ref[0].parent
     @property
-    def sender(self): return self._from
+    def sender(self): return self.ref[0].sender
     @property
-    def to(self): return self._to
+    def to(self): return self.ref[0].to
     @property
-    def msg_id(self): return self._msg_id
+    def msg_id(self): return self.ref[0].msg_id
     @property
-    def msg_id2(self): return self._msg_id2
+    def msg_id2(self): return self.ref[0].msg_id2
 
-class MsgContent(ctypes.Structure):
-    _fields_ = [
-            ('typeid',ContentType)
+class MsgContent():
+    class T(ctypes.Structure):
+        _fields_ = [
+            ('typeid',ContentType),
+            ('entries',TAILQ_ENTRY)
             ]
+    PT = ctypes.POINTER(T)
+    ref = None
+    def __init__(self,ref): self.ref = ref
+    @property 
+    def typeid(self): return self.ref[0].typeid
 
 class Face(MsgContent):
-    _fields_ = MsgContent._fields_ + [
-        ('face',ctypes.c_int),
-        ]
+    class T(ctypes.Structure):
+        _fields_ = MsgContent.T._fields_ + [
+            ('face',ctypes.c_int),
+            ]
+    PT = ctypes.POINTER(T)
 
 class Text(MsgContent):
-    _fields_ = MsgContent._fields_ + [
-        ('text',ctypes.c_char_p)
-        ]
+    class T(ctypes.Structure):
+        _fields_ = MsgContent.T._fields_ + [
+            ('text',ctypes.c_char_p)
+            ]
+    PT = ctypes.POINTER(T)
 
 class Img(MsgContent):
-    _fields_ = MsgContent._fields_+ [
+    class T(ctypes.Structure):
+        _fields_ = MsgContent.T._fields_+ [
             ('name',ctypes.c_char_p),
             ('data',ctypes.c_voidp),
             ('size',ctypes.c_size_t),
@@ -64,9 +86,11 @@ class Img(MsgContent):
             ('file_path',ctypes.c_char_p),
             ('url',ctypes.c_char_p)
             ]
+    PT = ctypes.POINTER(T)
 
 class CFace(MsgContent):
-    _fields_ = MsgContent._fields_ + [
+    class T(ctypes.Structure):
+        _fields_ = MsgContent.T._fields_ + [
             ('name',ctypes.c_char_p),
             ('data',ctypes.c_voidp),
             ('size',ctypes.c_size_t),
@@ -76,10 +100,11 @@ class CFace(MsgContent):
             ('serv_port',ctypes.c_char * 8),
             ('url',ctypes.c_char_p)
             ]
+    PT = ctypes.POINTER(T)
 
 class Message(MsgSeq):
-    _fields_ = [
-            ('super',MsgSeq),
+    class T(ctypes.Structure):
+        _fields_ = MsgSeq.T._fields_ + [
             ('time',c_time_t),
             ('upload_retry',ctypes.c_int),
 
@@ -87,34 +112,54 @@ class Message(MsgSeq):
             ('f_size',ctypes.c_int),
             ('f_style',FontStyle),
             ('f_color',ctypes.c_char * 7),
-            ('content',TAILQ_HEAD),
+            ('content',TAILQ_HEAD.T),
             ]
+    PT = ctypes.POINTER(T)
+    ref = None
+    content = None
+    def __init__(self,ref):
+        self.ref = cast(ref,self.PT)
+        content = TAILQ_HEAD(self.ref[0].content,MsgContent.T.entries)
+    def contents(self):
+        for item in self.content.foreach():
+            yield MsgContent(item)
 
 class BuddyMessage(Message):
-    _fields_ = Message._fields_ + [
+    class T(ctypes.Structure):
+        _fields_ = Message.T._fields_ + [
             ('from',ctypes.c_void_p)
             ]
+    PT = ctypes.POINTER(T)
+    ref = None
+    def __init__(self,ref):
+        self.ref = cast(ref,self.PT)
     TypeID = MsgType.MS_BUDDY_MSG
 
 class GroupMessage(Message):
-    _fields_ = Message._fields_ + [
+    class T(ctypes.Structure):
+        _fields_ = Message.T._fields_ + [
             ('send',ctypes.c_char_p),
             ('group_code',ctypes.c_char_p)
             ]
+    PT = ctypes.POINTER(T)
 
 GroupWebMessage = GroupMessage
 
 class SessMessage(Message):
-    _fields_ = Message._fields_ + [
+    class T(ctypes.Structure):
+        _fields_ = Message.T._fields_ + [
             ('id',ctypes.c_char_p),
             ('group_sig',ctypes.c_char_p),
             ('service_type',ServiceType)
             ]
+    PT = ctypes.POINTER(T)
 
 class DiscuMessage(GroupMessage):
-    _fields_ = GroupMessage._fields_
+    class T(ctypes.Structure):
+        _fields_ = GroupMessage.T._fields_
+    PT = ctypes.POINTER(T)
 
 def register_library(lib):
-    lib.lwqq_msg_free.argtypes = [ctypes.POINTER(Msg)]
+    lib.lwqq_msg_free.argtypes = [Msg.PT]
 
 register_library(lib)

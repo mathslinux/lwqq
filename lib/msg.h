@@ -96,6 +96,7 @@ typedef struct LwqqMsgSeq {
 
 typedef struct LwqqMsgContent {
     LwqqContentType type;
+    TAILQ_ENTRY(LwqqMsgContent) entries;
     union {
         int face;
         char *str;
@@ -120,7 +121,6 @@ typedef struct LwqqMsgContent {
             char* url;
         }cface;
     } data;
-    TAILQ_ENTRY(LwqqMsgContent) entries;
 }LwqqMsgContent;
 
 typedef TAILQ_HEAD(LwqqMsgContentHead, LwqqMsgContent) LwqqMsgContentHead;

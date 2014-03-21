@@ -30,12 +30,10 @@ def message_cb():
         print(msg.trycast(BuddyMessage))
         print(msg.typeid)
         if msg.trycast(BuddyMessage):
-            bm = cast(pointer(msg),POINTER(BuddyMessage))[0]
+            bm = BuddyMessage(msg.ref)
             print(bm.sender)
-            #bm = BuddyMessage(msg)
-            print("[BuddyMessage:]")
-            #print(bm.sender)
-            #bm = BuddyMessage.from_buffer(msg)
+            for c in bm.contents():
+                print(c.typeid)
         msg.destroy()
 
 
