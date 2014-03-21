@@ -22,7 +22,7 @@ class TAILQ_HEAD():
         item = self.ref.tqh_first
         while item:
             yield item
-            entry = TAILQ_ENTRY.from_buffer(item[0],entries)
+            entry = TAILQ_ENTRY.from_address(item+self.entries)
             item = entry.tqe_next
         pass
 

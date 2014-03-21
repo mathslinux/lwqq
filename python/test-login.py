@@ -33,7 +33,9 @@ def message_cb():
             bm = BuddyMessage(msg.ref)
             print(bm.sender)
             for c in bm.contents():
-                print(c.typeid)
+                if c.trycast(Text):
+                    txt = Text(c.ref)
+                    print(txt.text)
         msg.destroy()
 
 

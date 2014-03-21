@@ -85,7 +85,7 @@ class MsgType(c_int):
     MT_UNKNOW = MT_SHAKE_MESSAGE+1
 
 class ContentType(c_int):
-    STRING = 0
+    TEXT   = 0
     FACE   = 1
     OFFPIC = 2
     CFACE  = 3
