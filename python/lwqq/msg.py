@@ -5,7 +5,10 @@ from ctypes import POINTER,cast
 import ctypes
 
 __all__ = [ 'Msg', 'MsgSeq', 'MsgContent', 'Face', 'Text', 'Img', 'CFace',
-    'Message', 'BuddyMessage', 'GroupMessage', 'SessMessage', 'DiscuMessage']
+    'Message', 'BuddyMessage', 'GroupMessage', 'SessMessage', 'DiscuMessage',
+    'GroupWebMessage', 'StatusChange', 'KickMessage', 'SystemMessage',
+    'MsgAddBuddy', 'MsgVerifyRequired', 'MsgVerifyPass', 'MsgVerifyPassAdd',
+    'GroupSystemMessage', 'BlistChange', 'InputNotify', 'ShakeMessage' ]
 
 c_time_t = ctypes.c_long
 
@@ -207,7 +210,7 @@ class SessMessage(Message):
         _fields_ = Message.T._fields_ + [
             ('id',ctypes.c_char_p),
             ('group_sig',ctypes.c_char_p),
-            ('service_type',ServiceType)
+            ('service_type',GroupType)
             ]
     PT = ctypes.POINTER(T)
     TypeID = MsgType.MS_SESS_MSG
@@ -231,6 +234,9 @@ class DiscuMessage(GroupMessage):
     def __init__(self,ref): 
         super().__init__(self,ref)
         self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
+
+class GroupWebMessage(GroupMessage):
+    TypeID = MsgType.MS_GROUP_WEB_MSG
 
 class StatusChange(Msg):
     class T(ctypes.Structure):
@@ -268,7 +274,7 @@ class KickMessage(Msg):
     @property
     def way(self): return self.ref[0].way
 
-class MsgSystem(MsgSeq):
+class SystemMessage(MsgSeq):
     class T(ctypes.Structure):
         _fields_ = MsgSeq.T._fields_ + [
             ('seq',ctypes.c_char_p),
@@ -293,9 +299,9 @@ class MsgSystem(MsgSeq):
     @property
     def client_type(self): return self.ref[0].client_type
 
-class MsgAddBuddy(MsgSystem):
+class MsgAddBuddy(SystemMessage):
     class T(ctypes.Structure):
-        _fields_ = MsgSystem.T._fields_ + [('sig',ctypes.c_char_p)]
+        _fields_ = SystemMessage.T._fields_ + [('sig',ctypes.c_char_p)]
     PT = POINTER(T)
     SubTypeID = MsgSystemType.ADDED_BUDDY_SIG
     ref = None
@@ -303,9 +309,9 @@ class MsgAddBuddy(MsgSystem):
     @property
     def sig(self): return self.ref[0].sig
 
-class MsgVerifyRequired(MsgSystem):
+class MsgVerifyRequired(SystemMessage):
     class T(ctypes.Structure):
-        _fields_ = MsgSystem.T._fields_ + [
+        _fields_ = SystemMessage.T._fields_ + [
                 ('msg',ctypes.c_char_p),
                 ('allow',ctypes.c_char_p)]
     PT = POINTER(T)
@@ -317,9 +323,9 @@ class MsgVerifyRequired(MsgSystem):
     @property
     def allow(self): return self.ref[0].allow
 
-class MsgVerifyPass(MsgSystem):
+class MsgVerifyPass(SystemMessage):
     class T(ctypes.Structure):
-        _fields_ = MsgSystem.T._fields_ + [('group_id',ctypes.c_char_p)]
+        _fields_ = SystemMessage.T._fields_ + [('group_id',ctypes.c_char_p)]
     PT = POINTER(T)
     SubTypeID = MsgSystemType.VERIFY_PASS
     ref = None
@@ -330,7 +336,7 @@ class MsgVerifyPass(MsgSystem):
 class MsgVerifyPassAdd(MsgVerifyPass):
     SubTypeID = MsgSystemType.VERIFY_PASS_ADD
 
-class MsgSysGMsg(MsgSeq):
+class GroupSystemMessage(MsgSeq):
     class T(ctypes.Structure):
         _fields_ = MsgSeq.T._fields_ + [
                 ('typeid',MsgSysGType),
@@ -371,6 +377,13 @@ class MsgSysGMsg(MsgSeq):
     def is_my_self(self):return self.ref[0].is_my_self
     @property
     def group(self):return self.ref[0].group
+
+    def get_stranger_info(self,client,out):
+        if self.typeid == MsgSysGType.GROUP_REQUEST_JOIN:
+            return Event(lwqq_info_get_stranger_info_by_msg(client.ref,self.ref,out.ref))
+    def anser_request(self,client,answer,reason):
+        if self.typeid == MsgSysGType.GROUP_REQUEST_JOIN:
+            return Event(lwqq_info_answer_request_join_group(client.ref,self.ref,answer,reason))
 
 class BlistChange(Msg):
     class T(ctypes.Structure):
@@ -415,5 +428,6 @@ class ShakeMessage(MsgSeq):
 
 def register_library(lib):
     lib.lwqq_msg_free.argtypes = [Msg.PT]
+    
 
 register_library(lib)

@@ -120,6 +120,10 @@ typedef enum {
     LWQQ_DEL_KEEP_OTHER = 1,/* delete buddy and keep myself from other buddy list */
     LWQQ_DEL_FROM_OTHER = 2/* delete buddy and remove myself from other buddy list */
 }LwqqDelFriendType;
+typedef enum {
+    LWQQ_GROUP_QUN = 0,
+    LWQQ_GROUP_DISCU = 1
+}LwqqGroupType;
 
 
 /* Lwqq Error Code */
@@ -238,10 +242,7 @@ typedef struct LwqqSimpleBuddy{
 
 /* QQ group */
 typedef struct LwqqGroup {
-    enum{
-        LWQQ_GROUP_QUN,
-        LWQQ_GROUP_DISCU,
-    }type;
+	 LwqqGroupType type;
     char *name;                  /**< QQ Group name */
     union{
     char *gid;                   /**< QQ Group id */

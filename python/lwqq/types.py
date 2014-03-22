@@ -1,9 +1,9 @@
 from ctypes import c_int
 
 __all__ = [ 'Status', 'Features', 'ErrorCode', 'PollFlags', 'MsgType',
-        'ContentType', 'FontStyle', 'ServiceType', 'MsgSystemType',
+        'ContentType', 'FontStyle', 'GroupType', 'MsgSystemType',
         'MsgSysGType', 'Constel', 'BloodType', 'ShengXiao', 'Gender',
-        'ClientType', 'MemberFlag' ]
+        'ClientType', 'MemberFlag', 'MaskType', 'DelType', 'Answer' ]
 
 class Features(c_int):
     WITH_LIBEV  = 1<<0
@@ -99,7 +99,7 @@ class FontStyle(c_int):
     ITALIC    = 1<<1
     UNDERLINE = 1<<0
 
-class ServiceType(c_int):
+class GroupType(c_int):
     GROUP = 0
     DISCU = 1
 
@@ -166,3 +166,19 @@ class ClientType(c_int):
 
 class MemberFlag(c_int):
     IS_ADMIN = 0x1
+
+class MaskType(c_int):
+    NONE = 0
+    ONE  = 1
+    ALL  = 2
+
+class DelType(c_int):
+    KEEP_OTHER = 1 #/* delete buddy and keep myself from other buddy list */
+    FROM_OTHER = 2 #/* delete buddy and remove myself from other buddy list */
+
+class Answer(c_int):
+    NO            = 0
+    YES           = 1
+    EXTRA_ANSWER  = 2
+    IGNORE        = 3
+    ALLOW_ANS_ADD = EXTRA_ANSWER
