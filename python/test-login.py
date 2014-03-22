@@ -136,6 +136,7 @@ def quit_program(argv):
 
 talk = ArgsParser(prog='talk', description='talk to some one',add_help=False)
 talk.add_argument('to', help='some one you want to talk')
+talk_tg = None
 
 def talk_mode(fd,events):
     print()
@@ -145,16 +146,19 @@ def talk_mode(fd,events):
         loop.remove_handler(0)
         loop.add_handler(0,command,loop.READ)
     else:
-        txt = Text.T(send)
-        BuddyMessage().append(txt)
+        txt = Text.new(text=send)
+        BuddyMessage.new().append(txt).send(talk_tg)
 
 def talk_to(argv):
+    global talk_tg
     args = talk.parse_args(argv)
     if args.to:
-        b = lc.find_buddy(uin=args.to)
+        b = lc.find_buddy(uin=args.to.encode())
         if b:
             loop.remove_handler(0)
             loop.add_handler(0,talk_mode,loop.READ)
+            talk_tg = b
+            prompt("Input:")
 
 
 def command(fd,events):
@@ -163,6 +167,8 @@ def command(fd,events):
         list_friend(argv[1:])
     elif argv[0]=='quit' or argv[0]=='q':
         quit_program(argv[1:])
+    elif argv[0]=='talk' or argv[0]=='t':
+        talk_to(argv[1:])
     print()
     prompt()
 

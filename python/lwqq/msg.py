@@ -2,13 +2,15 @@ from .base import lib,LwqqBase
 from .queue import *
 from .types import *
 from ctypes import POINTER,cast
+from .core import Event
+
 import ctypes
 
 __all__ = [ 'Msg', 'MsgSeq', 'MsgContent', 'Face', 'Text', 'Img', 'CFace',
     'Message', 'BuddyMessage', 'GroupMessage', 'SessMessage', 'DiscuMessage',
     'GroupWebMessage', 'StatusChange', 'KickMessage', 'SystemMessage',
     'MsgAddBuddy', 'MsgVerifyRequired', 'MsgVerifyPass', 'MsgVerifyPassAdd',
-    'GroupSystemMessage', 'BlistChange', 'InputNotify', 'ShakeMessage' ]
+    'GroupSystemMessage', 'BlistChange', 'InputNotify', 'ShakeMessage', 'RecvMsgList' ]
 
 c_time_t = ctypes.c_long
 
@@ -167,6 +169,7 @@ class Message(MsgSeq):
             yield MsgContent(item)
     def append(self,content):
         self.content.insert_tail(content.ref)
+        return self
     def __str__(self):
         ret = ""
         for item in self.contents():
@@ -175,9 +178,14 @@ class Message(MsgSeq):
                 if not t: continue
                 ret+=Text(item.ref).text.decode("utf-8")
         return ret
+    def send(self,client):
+        client = client.ref if hasattr(client,'ref') else client
+        return Event(lib.lwqq_msg_send(client,self.ref))
     @classmethod
     def new(cls,**kw):
-        ins = super().new(**kw)
+        opt = {'upload_retry':3, 'f_color':b'000000', 'f_name':b'Arial',
+                'f_size':11 }
+        ins = super().new(**dict(opt,**kw))
         ins.content.init()
         return ins
 
@@ -189,6 +197,9 @@ class BuddyMessage(Message):
             ]
     PT = ctypes.POINTER(T)
     TypeID = MsgType.MS_BUDDY_MSG
+    def send(self,buddy):
+        self.ref[0].to = buddy.uin
+        super().send(buddy.lc)
 
 class GroupMessage(Message):
     class T(Message.T):
@@ -389,7 +400,28 @@ class ShakeMessage(MsgSeq):
     @property
     def reply_ip(self): return self.ref[0].reply_ip
 
+class RecvMsgList():
+    ref = None
+    def __init__(self,ref):
+        self.ref = ref
+    def poll(self,flags):
+        lib.lwqq_msglist_poll(self.ref,flags)
+    def close(self):
+        lib.lwqq_msglist_close(self.ref)
+    def read(self):
+        while True:
+            msg = lib.lwqq_msglist_read(self.ref)
+            if not msg: break
+            yield Msg(msg)
+
 def register_library(lib):
     lib.lwqq_msg_free.argtypes = [Msg.PT]
+
+    lib.lwqq_msglist_poll.argtypes = [ctypes.c_voidp,ctypes.c_long]
+    lib.lwqq_msglist_close.argtypes = [ctypes.c_voidp]
+    lib.lwqq_msglist_read.argtypes = [ctypes.c_voidp]
+    lib.lwqq_msglist_read.restype = Msg.PT
+
+    
 
 register_library(lib)

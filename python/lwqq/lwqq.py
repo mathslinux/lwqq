@@ -6,7 +6,7 @@ from .core import *
 from .http import HttpHandle
 from .types import *
 from .queue import *
-from .msg import GroupSystemMessage
+from .msg import Message,GroupSystemMessage,RecvMsgList
 
 from .lwjs import *
 
@@ -34,7 +34,6 @@ class Category(LwqqBase):
     def name(self): return self.ref[0].name
     @property
     def count(self): return self.ref[0].count
-
 class Buddy(LwqqBase):
     class T(Structure):
         _fields_ = [
@@ -346,7 +345,6 @@ class Group(LwqqBase):
 
 
 Discu = Group
-
 class Lwqq(LwqqBase):
     class T(Structure):
         _fields_ = [
@@ -509,7 +507,6 @@ class Lwqq(LwqqBase):
 def register_library(lib):
     lib.lwqq_client_new.argtypes = [c_char_p,c_char_p]
     lib.lwqq_client_new.restype = Lwqq.PT
-
     lib.lwqq_client_free.argtypes = [Lwqq.PT]
 
     lib.lwqq_buddy_new.argtypes = []
@@ -592,5 +589,8 @@ def register_library(lib):
     lib.lwqq_info_get_stranger_info_by_msg.restype = Event.PT
     lib.lwqq_info_answer_request_join_group.argtypes = [Lwqq.PT,GroupSystemMessage.PT,Answer,ctypes.c_char_p]
     lib.lwqq_info_answer_request_join_group.restype = Event.PT
+
+    lib.lwqq_msg_send.argtypes = [Lwqq.PT,Message.PT]
+    lib.lwqq_msg_send.restype = Event.PT
 
 register_library(lib)

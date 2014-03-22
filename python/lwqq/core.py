@@ -1,19 +1,12 @@
-from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref,c_size_t
+from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref,c_size_t,c_void_p
 import ctypes
 
-from .base import lib
+from .base import lib,s_strdup
 from .vplist import Command
-from .smemory import s_strdup
-from .msg import Msg
 
 
 __all__ = [
-        'Event',
-        'Events',
-        'Arguments',
-        'has_feature',
-        'VerifyCode',
-        'RecvMsgList'
+        'Event', 'Events', 'Arguments', 'has_feature', 'VerifyCode',
         ]
 
 lwqq_feature = c_long.in_dll(lib,"lwqq_features")
@@ -161,20 +154,6 @@ class VerifyCode():
         self.ref[0].str_ = ds
         self.ref[0].cmd.invoke()
 
-class RecvMsgList():
-    ref = None
-    def __init__(self,ref):
-        self.ref = ref
-    def poll(self,flags):
-        lib.lwqq_msglist_poll(self.ref,flags)
-    def close(self):
-        lib.lwqq_msglist_close(self.ref)
-    def read(self):
-        while True:
-            msg = lib.lwqq_msglist_read(self.ref)
-            if not msg: break
-            yield Msg(msg)
-
 
 def register_library(lib):
     #============LOW LEVEL ASYNC PART===============#
@@ -197,10 +176,5 @@ def register_library(lib):
 
     lib.lwqq_util_save_img.argtypes = [c_voidp,c_size_t,c_char_p,c_char_p]
     lib.lwqq_util_save_img.restype = c_long
-
-    lib.lwqq_msglist_poll.argtypes = [c_voidp,c_long]
-    lib.lwqq_msglist_close.argtypes = [c_voidp]
-    lib.lwqq_msglist_read.argtypes = [c_voidp]
-    lib.lwqq_msglist_read.restype = Msg.PT
 
 register_library(lib)

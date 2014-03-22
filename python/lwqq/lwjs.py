@@ -1,5 +1,4 @@
-from .base import lib
-from .smemory import s_strdup
+from .base import lib,s_strdup
 from .core import has_feature
 from .types import Features
 import ctypes
