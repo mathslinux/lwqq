@@ -1,4 +1,4 @@
-from .base import lib
+from .base import lib,LwqqBase
 from .queue import *
 from .types import *
 from ctypes import POINTER,cast
@@ -12,12 +12,10 @@ __all__ = [ 'Msg', 'MsgSeq', 'MsgContent', 'Face', 'Text', 'Img', 'CFace',
 
 c_time_t = ctypes.c_long
 
-class Msg():
+class Msg(LwqqBase):
     class T(ctypes.Structure):
         _fields_ = [('typeid',MsgType)]
     PT = ctypes.POINTER(T)
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     def destroy(self):
         lib.lwqq_msg_free(self.ref)
     @property
@@ -27,18 +25,22 @@ class Msg():
         if dest_type == Message:
             return MsgType.mt(self.typeid) == MsgType.mt(dest_type.TypeID)
         return self.typeid == dest_type.TypeID
+    @classmethod
+    def new(cls,**kw):
+        ins = super().new(malloc=True,**kw)
+        ins.ref[0].typeid = cls.TypeID
+        return ins
+        #return cls(lib.lwqq_msg_new(cls.TypeID))
 
 
 class MsgSeq(Msg):
-    class T(ctypes.Structure):
-        _fields_ = Msg.T._fields_ + [
+    class T(Msg.T):
+        _fields_ = [
             ('sender',ctypes.c_char_p),
             ('to',ctypes.c_char_p),
             ('msg_id',ctypes.c_int),
             ('msg_id2',ctypes.c_int)]
     PT = ctypes.POINTER(T)
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def super(self): return self.ref[0].parent
     @property
@@ -50,48 +52,47 @@ class MsgSeq(Msg):
     @property
     def msg_id2(self): return self.ref[0].msg_id2
 
-class MsgContent():
+class MsgContent(LwqqBase):
     class T(ctypes.Structure):
         _fields_ = [
             ('typeid',ContentType),
             ('entries',TAILQ_ENTRY)
             ]
     PT = ctypes.POINTER(T)
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property 
     def typeid(self): return self.ref[0].typeid.value
     def trycast(self,dest_type):
         return self.typeid == dest_type.TypeID
+    @classmethod
+    def new(cls,**kw):
+        instance = super().new(malloc=True,**kw)
+        instance.ref[0].typeid = cls.TypeID
+        return instance
 
 class Face(MsgContent):
-    class T(ctypes.Structure):
-        _fields_ = MsgContent.T._fields_ + [
+    class T(MsgContent.T):
+        _fields_ = [
             ('face',ctypes.c_int),
             ]
     PT = ctypes.POINTER(T)
     TypeID = ContentType.FACE
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def face(self): return self.ref[0].face
     
 
 class Text(MsgContent):
-    class T(ctypes.Structure):
-        _fields_ = MsgContent.T._fields_ + [
+    class T(MsgContent.T):
+        _fields_ =  [
             ('text',ctypes.c_char_p)
             ]
     PT = ctypes.POINTER(T)
     TypeID = ContentType.TEXT
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def text(self): return self.ref[0].text
 
 class Img(MsgContent):
-    class T(ctypes.Structure):
-        _fields_ = MsgContent.T._fields_+ [
+    class T(MsgContent.T):
+        _fields_ =  [
             ('name',ctypes.c_char_p),
             ('data',ctypes.c_voidp),
             ('size',ctypes.c_size_t),
@@ -101,8 +102,6 @@ class Img(MsgContent):
             ]
     PT = ctypes.POINTER(T)
     TypeID = ContentType.OFFPIC
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def name(self): return self.ref[0].name
     @property
@@ -130,8 +129,6 @@ class CFace(MsgContent):
             ]
     PT = ctypes.POINTER(T)
     TypeID = ContentType.CFACE
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def name(self): return self.ref[0].name
     @property
@@ -150,8 +147,8 @@ class CFace(MsgContent):
     def url(self): return self.ref[0].url
 
 class Message(MsgSeq):
-    class T(ctypes.Structure):
-        _fields_ = MsgSeq.T._fields_ + [
+    class T(MsgSeq.T):
+        _fields_ = [
             ('time',c_time_t),
             ('upload_retry',ctypes.c_int),
 
@@ -163,14 +160,17 @@ class Message(MsgSeq):
             ]
     PT = ctypes.POINTER(T)
     TypeID = MsgType.MT_MESSAGE
-    ref = None
     content = None
     def __init__(self,ref): 
-        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
+        print("Message Construct")
+        super().__init__(ref)
         self.content = TAILQ_HEAD(self.ref[0].content,MsgContent.T.entries)
     def contents(self):
         for item in self.content.foreach():
             yield MsgContent(item)
+    def append(self,content):
+        lib.lwqq_msg_content_append(self.ref,content.ref)
+        #self.content = TAILQ_HEAD(self.ref[0].content,MsgContent.T.entries)
     def __str__(self):
         ret = ""
         for item in self.contents():
@@ -179,18 +179,20 @@ class Message(MsgSeq):
                 if not t: continue
                 ret+=Text(item.ref).text.decode("utf-8")
         return ret
+    @classmethod
+    def new(cls,**kw):
+        ins = super().new(**kw)
+        ins.content.init()
+        return ins
+
 
 class BuddyMessage(Message):
-    class T(ctypes.Structure):
-        _fields_ = Message.T._fields_ + [
+    class T(Message.T):
+        _fields_ = [
             ('from',ctypes.c_void_p)
             ]
     PT = ctypes.POINTER(T)
     TypeID = MsgType.MS_BUDDY_MSG
-    ref = None
-    def __init__(self,ref): 
-        super().__init__(self,ref)
-        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
 
 class GroupMessage(Message):
     class T(ctypes.Structure):
@@ -200,10 +202,6 @@ class GroupMessage(Message):
             ]
     PT = ctypes.POINTER(T)
     TypeID = MsgType.MS_GROUP_MSG
-    ref = None
-    def __init__(self,ref): 
-        super().__init__(self,ref)
-        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
 
 class SessMessage(Message):
     class T(ctypes.Structure):
@@ -214,10 +212,6 @@ class SessMessage(Message):
             ]
     PT = ctypes.POINTER(T)
     TypeID = MsgType.MS_SESS_MSG
-    ref = None
-    def __init__(self,ref): 
-        super().__init__(self,ref)
-        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def id(self): return self.ref[0].id
     @property
@@ -230,10 +224,6 @@ class DiscuMessage(GroupMessage):
         _fields_ = GroupMessage.T._fields_
     PT = ctypes.POINTER(T)
     TypeID = MsgType.MS_DISCU_MSG
-    ref = None
-    def __init__(self,ref): 
-        super().__init__(self,ref)
-        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
 
 class GroupWebMessage(GroupMessage):
     TypeID = MsgType.MS_GROUP_WEB_MSG
@@ -247,8 +237,6 @@ class StatusChange(Msg):
                 ]
     PT = POINTER(T)
     TypeID = MsgType.MT_STATUS_CHANGE
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def who(self): return self.ref[0].who
     @property
@@ -265,8 +253,6 @@ class KickMessage(Msg):
                 ]
     PT = POINTER(T)
     TypeID = MsgType.MT_KICK_MESSAGE
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def show_reason(self): return self.ref[0].show_reason
     @property
@@ -285,8 +271,6 @@ class SystemMessage(MsgSeq):
             ]
     PT = POINTER(T)
     TypeID = MsgType.MT_SYSTEM
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def seq(self): return self.ref[0].seq
     @property
@@ -304,8 +288,6 @@ class MsgAddBuddy(SystemMessage):
         _fields_ = SystemMessage.T._fields_ + [('sig',ctypes.c_char_p)]
     PT = POINTER(T)
     SubTypeID = MsgSystemType.ADDED_BUDDY_SIG
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def sig(self): return self.ref[0].sig
 
@@ -316,8 +298,6 @@ class MsgVerifyRequired(SystemMessage):
                 ('allow',ctypes.c_char_p)]
     PT = POINTER(T)
     SubTypeID = MsgSystemType.VERIFY_REQUIRED
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def msg(self): return self.ref[0].msg
     @property
@@ -328,8 +308,6 @@ class MsgVerifyPass(SystemMessage):
         _fields_ = SystemMessage.T._fields_ + [('group_id',ctypes.c_char_p)]
     PT = POINTER(T)
     SubTypeID = MsgSystemType.VERIFY_PASS
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def group_id(self): return self.ref[0].group_id
 
@@ -353,8 +331,6 @@ class GroupSystemMessage(MsgSeq):
                 ]
     PT = POINTER(T)
     TypeID = MsgType.MT_SYS_G_MSG
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def typeid(self): return self.ref[0].typeid.value
     @property
@@ -393,10 +369,8 @@ class BlistChange(Msg):
                 ]
     PT = POINTER(T)
     TypeID = MsgType.MT_BLIST_CHANGE
-    ref = None
     added_friend = None
     removed_friend = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
 
 class InputNotify(Msg):
     class T(ctypes.Structure):
@@ -407,8 +381,6 @@ class InputNotify(Msg):
                 ]
     PT = POINTER(T)
     TypeID = MsgType.MT_INPUT_NOTIFY
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def sender(self): return self.ref[0].sender
     @property
@@ -421,13 +393,16 @@ class ShakeMessage(MsgSeq):
         _fields_ = MsgSeq.T._fields_ + [('reply_ip',ctypes.c_ulong)]
     PT = POINTER(T)
     TypeID = MsgType.MT_SHAKE_MESSAGE
-    ref = None
-    def __init__(self,ref): self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
     @property
     def reply_ip(self): return self.ref[0].reply_ip
 
 def register_library(lib):
+    lib.lwqq_msg_new.argtypes = [MsgType]
+    lib.lwqq_msg_new.restype = Msg.PT
     lib.lwqq_msg_free.argtypes = [Msg.PT]
+    lib.lwqq_msg_content_append.argtypes = [Message.PT,MsgContent.PT]
+    lib.lwqq_msg_content_new.argtypes = [ContentType]
+    lib.lwqq_msg_content_new.restype = MsgContent.PT
     
 
 register_library(lib)

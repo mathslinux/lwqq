@@ -15,10 +15,11 @@ set(LWQQ_LIST
     async.c
     http.c
     lwdb.c
-	lwjs.c
+	 lwjs.c
+	 queue.c
     )
 set(LWQQ_HEADER
-	queue.h
+	 queue.h
     async.h
     async_impl.h
     http.h

@@ -20,8 +20,8 @@ class ArgsParser(argparse.ArgumentParser):
     def error(self, message):
         print(message,file=sys.stderr)
 
-def prompt():
-    print('>>>',end='')
+def prompt(hint='>>>'):
+    print(hint,end='')
     sys.stdout.flush()
 
 def start_login(p_login_ec):
@@ -134,8 +134,31 @@ def quit_program(argv):
     lc.logout()
     quit.exit()
 
+talk = ArgsParser(prog='talk', description='talk to some one',add_help=False)
+talk.add_argument('to', help='some one you want to talk')
+
+def talk_mode(fd,events):
+    print()
+    prompt("Input:")
+    send = read(fd,512)[:-1]
+    if send == "":
+        loop.remove_handler(0)
+        loop.add_handler(0,command,loop.READ)
+    else:
+        txt = Text.T(send)
+        BuddyMessage().append(txt)
+
+def talk_to(argv):
+    args = talk.parse_args(argv)
+    if args.to:
+        b = lc.find_buddy(uin=args.to)
+        if b:
+            loop.remove_handler(0)
+            loop.add_handler(0,talk_mode,loop.READ)
+
+
 def command(fd,events):
-    argv = read(fd,100).decode('utf-8').rstrip().split(' ')
+    argv = read(fd,100).decode().rstrip().split(' ')
     if argv[0]=='ls' or argv[0] == 'l':
         list_friend(argv[1:])
     elif argv[0]=='quit' or argv[0]=='q':

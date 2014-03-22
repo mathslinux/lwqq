@@ -399,8 +399,7 @@ LwqqHistoryMsgList *lwqq_historymsg_list();
 void lwqq_historymsg_free(LwqqHistoryMsgList* list);
 
 //insert msg content
-#define lwqq_msg_content_append(msg,c) \
-    TAILQ_INSERT_TAIL(&msg->content,c,entries)
+void lwqq_msg_content_append(LwqqMsgMessage* msg,LwqqMsgContent* c);
 
 /**
  *

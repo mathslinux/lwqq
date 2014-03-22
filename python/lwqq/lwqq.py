@@ -78,7 +78,7 @@ class Buddy(LwqqBase):
     lc = None
     cate_list = None
     def __init__(self,ref,client=None): 
-        super().__init__(self,ref)
+        super().__init__(ref)
         if client: 
             self.lc = client.ref
             self.cate_list = client.cate_list
@@ -198,7 +198,7 @@ class SimpleBuddy(LwqqBase):
     PT = POINTER(T)
     lc = None
     def __init__(self,ref,client=None): 
-        super().__init__(self,ref)
+        super().__init__(ref)
         if client: 
             self.lc = client.ref if hasattr(client,'ref') else client
     def destroy(self): lib.lwqq_simple_buddy_free(self.ptr_)
@@ -259,7 +259,7 @@ class Group(LwqqBase):
     lc = None
     member_list = None
     def __init__(self,ref,client=None): 
-        super().__init__(self,ref)
+        super().__init__(ref)
         self.member_list = LIST_HEAD(self.ref[0].members,SimpleBuddy.T.entries)
         if client: 
             self.lc = client.ref
@@ -313,6 +313,10 @@ class Group(LwqqBase):
     def members(self): 
         for item in self.member_list.foreach():
             yield SimpleBuddy(item)
+    def find_member(self,uin=None,qqnumber=None):
+        for m in self.members():
+            if uin and m.uin == uin: return m
+            if qqnumber and m.qq == qqnumber: return m
 
     def get_qqnumber(self):
         if not self.lc: return None
@@ -383,7 +387,6 @@ class Lwqq(LwqqBase):
                 ]
     _events_ref = [] #keep reference registerd events
     PT = POINTER(T)
-    ref = None
     username = None
     password = None
 
