@@ -2419,8 +2419,3 @@ LwqqAsyncEvent* lwqq_msg_remove_uploaded_cface(LwqqClient* lc,LwqqMsgContent* cf
     return req->do_request_async(req,lwqq__hasnot_post(),_C_(p_i,lwqq__process_empty,req));
 }
 
-void lwqq_msg_content_append(LwqqMsgMessage* msg,LwqqMsgContent* c)
-{
-    TAILQ_INSERT_TAIL(&msg->content,c,entries);
-}
-

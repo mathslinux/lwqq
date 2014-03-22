@@ -16,7 +16,6 @@ set(LWQQ_LIST
     http.c
     lwdb.c
 	 lwjs.c
-	 queue.c
     )
 set(LWQQ_HEADER
 	 queue.h
