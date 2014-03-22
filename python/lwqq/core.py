@@ -29,45 +29,41 @@ class Event(object):
                 ('lc',c_voidp)
                 ]
     PT = POINTER(T)
-    ptr_ = None
+    ref = None
     eventsref = []
 
-    def __init__(self,event):
-        self.ptr_ = event
-
-    @property
-    def raw(self):
-        return self.ptr_[0]
-
+    def __init__(self,ref): self.ref = ref
     @classmethod
     def new(self,http_req):
         return Event(lib.lwqq_async_event_new(http_req))
-
+    def addto(self,evset):
+        return evset.add(self)
     def addListener(self,event):
         if not isinstance(event,Command):
             event = Command.make('void',event)
         self.eventsref.append(event)
-        lib.lwqq_async_add_event_listener(self.ptr_,event)
+        lib.lwqq_async_add_event_listener(self.ref,event)
         return self
-
     def finish(self):
-        lib.lwqq_async_event_finish(self.ptr_)
+        lib.lwqq_async_event_finish(self.ref)
         return self
 
 class Evset(object):
-    evset_ = None
-
-    def __init__(self,async_evset):
-        evset_ = async_evset
-
+    ref = None
+    eventsref = []
+    def __init__(self,ref):
+        evset_ = ref
     @classmethod
     def new(self):
         return Evset(lib.lwqq_async_evset_new())
-
-    def addListener(self,closure):
-        lib.lwqq_async_add_evset_listener(self.evset_,Command.make(closure))
+    def add(self,event):
+        lib.lwqq_async_evset_add_event(self.ref,event.ref)
+    def addListener(self,listener):
+        if not isinstance(listener,Command):
+            listener = Command.make('void',listener)
+        self.eventsref.append(listener)
+        lib.lwqq_async_add_evset_listener(self.ref,listener)
         return self
-
 
 class Events():
     class T(Structure):
@@ -197,6 +193,7 @@ def register_library(lib):
     lib.lwqq_async_evset_new.restype = c_voidp
 
     lib.lwqq_async_evset_free.argtypes = [c_voidp]
+    lib.lwqq_async_evset_add_event.argtypes = [c_voidp,Event.PT]
 
     lib.lwqq_util_save_img.argtypes = [c_voidp,c_size_t,c_char_p,c_char_p]
     lib.lwqq_util_save_img.restype = c_long

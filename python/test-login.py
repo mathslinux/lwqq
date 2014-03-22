@@ -1,7 +1,7 @@
 from lwqq.types import *
 from lwqq.vplist import *
 from lwqq.lwqq import *
-from lwqq.core import Event
+from lwqq.core import Event,Evset
 from lwqq import core
 from lwqq import lwjs
 from lwqq.msg import *
@@ -68,8 +68,14 @@ def load_info():
         js = lwjs.Lwjs()
         hashjs = urllib.request.urlopen("http://pidginlwqq.sinaapp.com/hash.js")
         js.load(hashjs.read())
-        lc.get_friends_info(js.hashfunc,js.js).addListener(poll_msg)
+        lc.get_friends_info(js.hashfunc,js.js).addListener(load_group_info)
     pass
+
+def load_group_info():
+    ev = Evset.new()
+    lc.get_group_list().addto(ev)
+    lc.get_discu_list().addto(ev)
+    ev.addListener(poll_msg)
 
 def poll_msg():
     lc.msg_list.poll(0)
@@ -90,7 +96,13 @@ def list_friend(argv):
         return
     if not args.who:
         for b in lc.friends():
-            print('[Buddy uin:{} nick:{}]'.format(b.uin,b.nick.decode('utf-8')))
+            print('[Buddy uin:{} nick:{}]'.format(b.uin,b.nick.decode()))
+        print()
+        for g in lc.groups():
+            print('[Group gid:{} name:{}]'.format(g.gid,g.name.decode()))
+        print()
+        for d in lc.discus():
+            print('[Discu did:{} name:{}]'.format(d.did,d.name.decode()))
         return
     b = lc.find_buddy(uin=args.who.encode('utf-8'))
     if not b:
