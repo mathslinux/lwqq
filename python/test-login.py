@@ -104,19 +104,23 @@ def list_friend(argv):
         for d in lc.discus():
             print('[Discu did:{} name:{}]'.format(d.did,d.name.decode()))
         return
-    b = lc.find_buddy(uin=args.who.encode('utf-8'))
-    if not b:
+    b = lc.find_buddy(uin=args.who.encode())
+    g = lc.find_group(gid=args.who.encode())
+    d = lc.find_discu(did=args.who.encode())
+    if not b and not g and not d:
         print("not found")
         return
-    if not b.qqnumber:
-        b.get_qqnumber()
-        b.get_detail().addListener(
+    found = b if b else g if g else d
+    if not found.qqnumber:
+        found.get_qqnumber()
+        found.get_detail().addListener(
                 functools.partial(list_friend,argv)
                 )
         print("waiting for a while, fetch from server")
         return
-    c = b.get_category()
-    if c: print('in Category:'+c.name.decode())
+    if b:
+        c = b.get_category()
+        if c: print('in Category:'+c.name.decode())
     print(str(b))
 
 quit = ArgsParser(prog='quit',description='quit program',add_help=False)

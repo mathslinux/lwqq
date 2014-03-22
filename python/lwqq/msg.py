@@ -1,4 +1,4 @@
-from .common import lib
+from .base import lib
 from .queue import *
 from .types import *
 from ctypes import POINTER,cast

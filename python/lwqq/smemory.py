@@ -1,4 +1,4 @@
-from .common import lib
+from .base import lib
 import ctypes
 
 __all__ = [

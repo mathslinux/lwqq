@@ -1,4 +1,4 @@
-from .common import lib,c_object_p
+from .base import lib
 
 from ctypes import c_voidp,c_int,Structure,c_size_t,CFUNCTYPE,POINTER
 
@@ -47,8 +47,8 @@ class Command(Structure):
         lib.vp_do(self,0)
 
 Command._fields_ = [
-        ('dsph',c_object_p),
-        ('func',c_object_p),
+        ('dsph',c_voidp),
+        ('func',c_voidp),
         ('data',vp_list),
         ('next',POINTER(Command))
         ]

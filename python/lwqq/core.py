@@ -1,7 +1,7 @@
 from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref,c_size_t
 import ctypes
 
-from .common import lib
+from .base import lib
 from .vplist import Command
 from .smemory import s_strdup
 from .msg import Msg

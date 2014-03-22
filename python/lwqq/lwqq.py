@@ -1,6 +1,6 @@
 from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref,c_void_p
 import ctypes
-from .common import lib
+from .base import lib, LwqqBase
 from .vplist import Command
 from .core import *
 from .http import HttpHandle
@@ -16,7 +16,7 @@ HASHFUNC = CFUNCTYPE(c_voidp,c_char_p,c_char_p,c_voidp)
 DISPATCH_FUNC = CFUNCTYPE(None,Command,c_ulong)
 FIND_BUDDY_FUNC = CFUNCTYPE(c_void_p,c_void_p,c_char_p)
 
-class Category():
+class Category(LwqqBase):
     class T(Structure):
         _fields_ = [
                 ('index',c_int),
@@ -26,9 +26,6 @@ class Category():
                 ('entries',LIST_ENTRY)
                 ]
     PT = POINTER(T)
-    ref = None
-    def __init__(self,ref):
-        self.ref = cast(ref,self.PT)
     @property
     def index(self): return self.ref[0].index
     @property
@@ -38,7 +35,7 @@ class Category():
     @property
     def count(self): return self.ref[0].count
 
-class Buddy():
+class Buddy(LwqqBase):
     class T(Structure):
         _fields_ = [
                 ('uin',c_char_p),
@@ -78,11 +75,10 @@ class Buddy():
                 ('entries',LIST_ENTRY)
                 ]
     PT = POINTER(T)
-    ref = None
     lc = None
     cate_list = None
     def __init__(self,ref,client=None): 
-        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
+        super().__init__(self,ref)
         if client: 
             self.lc = client.ref
             self.cate_list = client.cate_list
@@ -155,13 +151,6 @@ class Buddy():
     def data(self): return self.ref[0].data
     @property
     def level(self): return self.ref[0].level
-    def __str__(self):
-        ret = ""
-        for field,_ in self.T._fields_:
-            val = getattr(self.ref[0],field)
-            val = val.decode() if isinstance(val,bytes) else str(val)
-            ret +=field+':\t'+ val +'\n'
-        return ret
     def get_category(self):
         if not self.cate_list: return None
         for item in self.cate_list.foreach():
@@ -192,7 +181,7 @@ class Buddy():
         if not self.lc: return None
         return Event(lib.lwqq_info_delete_friend(self.lc,self.ref,del_type))
 
-class SimpleBuddy():
+class SimpleBuddy(LwqqBase):
     class T(Structure):
         _fields_ = [
                 ('uin',c_char_p),
@@ -207,10 +196,9 @@ class SimpleBuddy():
                 ('entries',LIST_ENTRY)
                 ]
     PT = POINTER(T)
-    ref = None
     lc = None
     def __init__(self,ref,client=None): 
-        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
+        super().__init__(self,ref)
         if client: 
             self.lc = client.ref if hasattr(client,'ref') else client
     def destroy(self): lib.lwqq_simple_buddy_free(self.ptr_)
@@ -239,7 +227,7 @@ class SimpleBuddy():
         return Event(lib.lwqq_info_get_qqnumber(self.lc,self.ref[0].uin,qqnumber))
 
 
-class Group():
+class Group(LwqqBase):
     class T(Structure):
         _fields_ = [
                 ('typeid',GroupType),
@@ -268,11 +256,10 @@ class Group():
                 ('members',LIST_HEAD.T)
                 ]
     PT = POINTER(T)
-    ref = None
     lc = None
     member_list = None
     def __init__(self,ref,client=None): 
-        self.ref = cast(ref.ref,self.PT) if hasattr(ref,'ref') else cast(ref,self.PT)
+        super().__init__(self,ref)
         self.member_list = LIST_HEAD(self.ref[0].members,SimpleBuddy.T.entries)
         if client: 
             self.lc = client.ref
@@ -338,7 +325,7 @@ class Group():
         return lib.lwqq_info_save_avatar(None,self.ref,path.encode())
     def get_detail(self):
         if not self.lc: return None
-        return Event(lib.lwqq_info_get_group_detail_info(self.lc,self.ref))
+        return Event(lib.lwqq_info_get_group_detail_info(self.lc,self.ref,None))
     def change_markname(self,mark):
         if not self.lc: return None
         return Event(lib.lwqq_info_change_group_markname(self.lc,self.ref,mark))
@@ -354,10 +341,9 @@ class Group():
         return Event(lib.lwqq_info_delete_group(self.lc,self.ref,del_type))
 
 
-
 Discu = Group
 
-class Lwqq(object):
+class Lwqq(LwqqBase):
     class T(Structure):
         _fields_ = [
                 ('username',c_char_p),
@@ -426,7 +412,7 @@ class Lwqq(object):
         self.group_list = LIST_HEAD(self.ref[0].groups,Group.T.entries)
         self.discu_list = LIST_HEAD(self.ref[0].discus,Discu.T.entries)
 
-    def __del_(self):
+    def __del__(self):
         lib.lwqq_client_free(self.ref)
 
     def setDispatcher(self,dispatcher):
@@ -467,6 +453,13 @@ class Lwqq(object):
             found = self.ref[0].find_buddy_by_qqnumber(self.ref,uin)
         if found:
             return Buddy(cast(found,Buddy.PT),self)
+    def find_group(self,gid=None,qqnumber=None):
+        for g in self.groups():
+            if gid and g.gid == gid: return g
+            if qqnumber and g.qq == qqnumber: return g
+    def find_discu(self,did=None):
+        for d in self.discus():
+            if did and d.did == did: return d
     ###### http actions ######
     def login(self,status): lib.lwqq_login(self.ref,status,0)
     def logout(self): lib.lwqq_logout(self.ref,0)

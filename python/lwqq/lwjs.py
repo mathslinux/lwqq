@@ -1,4 +1,4 @@
-from .common import lib
+from .base import lib
 from .smemory import s_strdup
 from .core import has_feature
 from .types import Features

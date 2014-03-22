@@ -1,9 +1,7 @@
-from .common import get_library
+from .base import lib
 
 from ctypes import c_long,c_char_p,c_int,c_voidp,c_size_t
 from ctypes import Structure
-
-lib = get_library()
 
 class HttpHandle(Structure):
     class Proxy(Structure):
