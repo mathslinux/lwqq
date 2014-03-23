@@ -199,7 +199,7 @@ class BuddyMessage(Message):
     TypeID = MsgType.MS_BUDDY_MSG
     def send(self,buddy):
         self.ref[0].to = buddy.uin
-        super().send(buddy.lc)
+        return super().send(buddy.lc)
 
 class GroupMessage(Message):
     class T(Message.T):

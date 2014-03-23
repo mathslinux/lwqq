@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from lwqq.types import *
 from lwqq.vplist import *
 from lwqq.lwqq import *
@@ -14,7 +16,8 @@ import sys
 import argparse
 
 loop = IOLoop.instance()
-lc = Lwqq(b'2501542492',b'1234567890+12345')
+lc = None 
+prompt_hint = '>>>'
 
 class ArgsParser(argparse.ArgumentParser):
     def error(self, message):
@@ -47,7 +50,7 @@ def message_cb():
             print(m.sender)
             print(str(m))
         msg.destroy()
-    prompt()
+    prompt(prompt_hint)
 
 def message_lost():
     lc.logout()
@@ -77,8 +80,17 @@ def load_group_info():
     lc.get_discu_list().addto(ev)
     ev.addListener(poll_msg)
 
+def print_help():
+    print("""avaliable command:
+    help --- show this help
+    ls   --- list friends and groups
+    talk --- talk to friends
+    quit --- quit program
+    """)
+
 def poll_msg():
     lc.msg_list.poll(0)
+    print_help()
     prompt()
 
 def ignore():
@@ -138,16 +150,21 @@ talk = ArgsParser(prog='talk', description='talk to some one',add_help=False)
 talk.add_argument('to', help='some one you want to talk')
 talk_tg = None
 
+
 def talk_mode(fd,events):
+    global prompt_hint
     print()
-    prompt("Input:")
-    send = read(fd,512)[:-1]
-    if send == "":
+    send = read(fd,512)
+    if not send :
         loop.remove_handler(0)
         loop.add_handler(0,command,loop.READ)
-    else:
-        txt = Text.new(text=send)
-        BuddyMessage.new().append(txt).send(talk_tg)
+        prompt_hint = '>>>'
+        prompt(prompt_hint)
+        return
+    send = send[:-1]
+    txt = Text.new(text=send)
+    BuddyMessage.new().append(txt).send(talk_tg)
+    prompt("Input:")
 
 def talk_to(argv):
     global talk_tg
@@ -155,11 +172,13 @@ def talk_to(argv):
     if args.to:
         b = lc.find_buddy(uin=args.to.encode())
         if b:
+            global prompt_hint
+            prompt_hint = 'Input:'
             loop.remove_handler(0)
             loop.add_handler(0,talk_mode,loop.READ)
             talk_tg = b
-            prompt("Input:")
-
+            print('Use Ctrl-D to end talk')
+            prompt(prompt_hint)
 
 def command(fd,events):
     argv = read(fd,100).decode().rstrip().split(' ')
@@ -169,6 +188,8 @@ def command(fd,events):
         quit_program(argv[1:])
     elif argv[0]=='talk' or argv[0]=='t':
         talk_to(argv[1:])
+    elif argv[0]=='help' or argv[0]=='h':
+        print_help()
     print()
     prompt()
 
@@ -184,12 +205,20 @@ def main():
     lc.login(Status.ONLINE)
     pass
 
+argp = argparse.ArgumentParser(description = 'command line tool to talk with qq friend')
+argp.add_argument('user',help='username')
+argp.add_argument('password',help='password')
+argp.add_argument('-v','--verbose',help='verbose level',type=int,nargs='?')
 
-print(Lwqq.time())
-Lwqq.log_level(3)
-lc.setDispatcher(dispatch)
-init_listener(lc)
-loop.add_callback(main)
-loop.add_handler(0,command,loop.READ)
-loop.start()
+if __name__ == '__main__':
+    args = argp.parse_args()
+
+    lc = Lwqq(args.user.encode(),args.password.encode())
+    if args.verbose:
+        Lwqq.log_level(args.verbose)
+    lc.setDispatcher(dispatch)
+    init_listener(lc)
+    loop.add_callback(main)
+    loop.add_handler(0,command,loop.READ)
+    loop.start()
 

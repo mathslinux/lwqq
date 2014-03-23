@@ -1,20 +1,18 @@
 from ctypes import CFUNCTYPE,POINTER,Structure,c_char_p,pointer,c_long,c_voidp,c_ulong,c_int,cast,byref,c_size_t,c_void_p
 import ctypes
 
-from .base import lib,s_strdup
+from .base import lib,s_strdup,LwqqBase
 from .vplist import Command
 
 
-__all__ = [
-        'Event', 'Events', 'Arguments', 'has_feature', 'VerifyCode',
-        ]
+__all__ = [ 'Event', 'Events', 'Arguments', 'has_feature', 'VerifyCode' ]
 
 lwqq_feature = c_long.in_dll(lib,"lwqq_features")
 
 def has_feature(feature):
     return lwqq_feature.value&feature
 
-class Event(object):
+class Event(LwqqBase):
     class T(Structure):
         _fields_ = [
                 ('result',c_int),
@@ -22,15 +20,17 @@ class Event(object):
                 ('lc',c_voidp)
                 ]
     PT = POINTER(T)
-    ref = None
     eventsref = []
+    @property
+    def result(self): return self.ref[0].result
+    @property
+    def failcode(self): return self.ref[0].failcode
 
-    def __init__(self,ref): self.ref = ref
     @classmethod
     def new(self,http_req):
         return Event(lib.lwqq_async_event_new(http_req))
     def addto(self,evset):
-        return evset.add(self)
+        evset.add(self)
     def addListener(self,event):
         if not isinstance(event,Command):
             event = Command.make('void',event)
@@ -39,18 +39,20 @@ class Event(object):
         return self
     def finish(self):
         lib.lwqq_async_event_finish(self.ref)
-        return self
 
-class Evset(object):
-    ref = None
+class Evset(LwqqBase):
+    class T(ctypes.Structure):
+        _fields_ = [('err_count',ctypes.c_int)]
+    PT = POINTER(T)
     eventsref = []
-    def __init__(self,ref):
-        evset_ = ref
+    @property
+    def err_count(self): return self.ref[0].err_count
     @classmethod
     def new(self):
         return Evset(lib.lwqq_async_evset_new())
     def add(self,event):
         lib.lwqq_async_evset_add_event(self.ref,event.ref)
+        return self
     def addListener(self,listener):
         if not isinstance(listener,Command):
             listener = Command.make('void',listener)
