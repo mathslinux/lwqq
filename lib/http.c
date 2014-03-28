@@ -502,6 +502,7 @@ static char *unzlib(const char *source, int len, int *total, int isgzip)
         totalsize += have;
         dest = s_realloc(dest, totalsize+1);
         memcpy(dest + totalsize - have, out, have);
+		  dest[totalsize] = 0;
     } while (strm.avail_out == 0);
 
 /* clean up and return */
