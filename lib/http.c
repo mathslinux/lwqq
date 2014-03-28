@@ -26,9 +26,8 @@
 #include "utility.h"
 #include "internal.h"
 
-
-
 #define LWQQ_HTTP_USER_AGENT "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"
+//#define LWQQ_HTTP_USER_AGENT "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36"
 
 static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body);
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
@@ -204,13 +203,15 @@ static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
 void lwqq_http_set_default_header(LwqqHttpRequest *request)
 {
     lwqq_http_set_header(request, "User-Agent", LWQQ_HTTP_USER_AGENT);
-    lwqq_http_set_header(request, "Accept", "*/*,text/html, application/xml;q=0.9, "
-                         "application/xhtml+xml, image/png, image/jpeg, "
-                         "image/gif, image/x-xbitmap,;q=0.1");
+    lwqq_http_set_header(request, "Accept", "*/*"
+			 //",text/html, application/xml;q=0.9, "
+			 //"application/xhtml+xml, image/png, image/jpeg, "
+			 //"image/gif, image/x-xbitmap,;q=0.1"
+			 );
     lwqq_http_set_header(request, "Accept-Language", "zh-cn,zh;q=0.9,en;q=0.8");
-    //lwqq_http_set_header(request, "Accept-Charset", "GBK, utf-8, utf-16, *;q=0.1");
-    lwqq_http_set_header(request, "Accept-Encoding", "deflate, gzip, x-gzip, "
-                         "identity, *;q=0");
+    lwqq_http_set_header(request, "Accept-Encoding", "gzip,deflate,x-gzip"
+                         //"identity, *;q=0"
+								 );
     lwqq_http_set_header(request, "Connection", "keep-alive");
 }
 
@@ -1197,21 +1198,22 @@ void lwqq_http_cancel(LwqqHttpRequest* req)
 }
 LwqqHttpHandle* lwqq_http_handle_new()
 {
-    LwqqHttpHandle_* h_ = s_malloc0(sizeof(LwqqHttpHandle_));
+	LwqqHttpHandle_* h_ = s_malloc0(sizeof(LwqqHttpHandle_));
+	h_->parent.proxy.type = LWQQ_HTTP_PROXY_NOT_SET;
 	h_->parent.ssl = 1;
-    h_->share = curl_share_init();
-    CURLSH* share = h_->share;
-    curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_DNS);
-    curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_CONNECT);
-    curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_SSL_SESSION);
-    curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_COOKIE);
-    curl_share_setopt(share,CURLSHOPT_LOCKFUNC,share_lock);
-    curl_share_setopt(share,CURLSHOPT_UNLOCKFUNC,share_unlock);
-    curl_share_setopt(share,CURLSHOPT_USERDATA,h_);
-    int i;
-    for(i=0;i<4;i++)
-        pthread_mutex_init(&h_->share_lock[i],NULL);
-    return (LwqqHttpHandle*)h_;
+	h_->share = curl_share_init();
+	CURLSH* share = h_->share;
+	curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_DNS);
+	curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_CONNECT);
+	curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_SSL_SESSION);
+	curl_share_setopt(share,CURLSHOPT_SHARE,CURL_LOCK_DATA_COOKIE);
+	curl_share_setopt(share,CURLSHOPT_LOCKFUNC,share_lock);
+	curl_share_setopt(share,CURLSHOPT_UNLOCKFUNC,share_unlock);
+	curl_share_setopt(share,CURLSHOPT_USERDATA,h_);
+	int i;
+	for(i=0;i<4;i++)
+		pthread_mutex_init(&h_->share_lock[i],NULL);
+	return (LwqqHttpHandle*)h_;
 }
 void lwqq_http_handle_free(LwqqHttpHandle* http)
 {

@@ -723,14 +723,17 @@ LwqqAsyncEvent* lwqq_info_get_friends_info(LwqqClient *lc, LwqqHashFunc hash, vo
     s_free(ptwebqq);
     /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
     snprintf(post, sizeof(post), "r={\"h\":\"hello\",\"hash\":\"%s\",\"vfwebqq\":\"%s\"}",h,lc->vfwebqq);
+	 char* urle = url_encode(post+2);
+	 strcpy(post+2, urle);
+	 s_free(urle);
 	 s_free(h);
 
     /* Create a POST request */
     const char* url = WEBQQ_S_HOST"/api/get_user_friends2";
     req = lwqq_http_create_default_request(lc,url, NULL);
     req->set_header(req, "Referer", WEBQQ_S_REF_URL);
-    req->set_header(req, "Content-Transfer-Encoding", "binary");
-    req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
+	 req->set_header(req, "Accept-Encoding", "gzip,deflate,sdch");
+    req->set_header(req, "Content-Type", "application/x-www-form-urlencoded");
 
     return req->do_request_async(req, lwqq__has_post(),_C_(p_i,get_friends_info_back,req));
 

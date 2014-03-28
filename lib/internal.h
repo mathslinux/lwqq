@@ -14,7 +14,7 @@
 #define WEBQQ_CHECK_HOST    WEBQQ_LOGIN_HOST
 #define WEBQQ_S_HOST        "http://s.web2.qq.com"
 
-#define WEBQQ_S_REF_URL     WEBQQ_S_HOST"/proxy.html?v=20110331002&callback=1"
+#define WEBQQ_S_REF_URL     WEBQQ_S_HOST"/proxy.html?v=201104120011&callback=1&id=1"
 #define WEBQQ_LOGIN_REF_URL WEBQQ_LOGIN_HOST"/proxy.html"
 #define WEBQQ_VERSION_URL   WEBQQ_LOGIN_UI_HOST"/cgi-bin/ver"
 #define WEBQQ_VERSION_URL   WEBQQ_LOGIN_UI_HOST"/cgi-bin/ver"
