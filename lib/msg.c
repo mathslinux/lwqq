@@ -1618,9 +1618,9 @@ void lwqq_msglist_poll(LwqqRecvMsgList *list,LwqqPollOption flags)
 {
 	static pthread_attr_t attr;
 	static int init = 0;
-	LwqqRecvMsgList_* internal = (LwqqRecvMsgList_*)list;
-	internal->flags = flags;
-	internal->running = 1;
+	LwqqRecvMsgList_* list_ = (LwqqRecvMsgList_*)list;
+	list_->flags = flags;
+	list_->running = 1;
 	pthread_attr_init(&attr);
 #if USE_MSG_THREAD
 #if DETACH_THREAD
@@ -1629,7 +1629,7 @@ void lwqq_msglist_poll(LwqqRecvMsgList *list,LwqqPollOption flags)
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	}
 #endif
-	pthread_create(&internal->tid, &attr, start_poll_msg, list);
+	pthread_create(&list_->tid, &attr, start_poll_msg, list);
 #else
 	start_poll_msg(list);
 #endif
@@ -1978,6 +1978,7 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
     char data[8192];
     data[0] = '\0';
     LwqqMsgMessage *mmsg = msg;
+	 LwqqRecvMsgList_* list_ = (LwqqRecvMsgList_*)lc->msg_list;
     const char *apistr = NULL;
     int has_cface = 0;
 
@@ -2065,6 +2066,12 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
     req->set_header(req, "Referer", WEBQQ_D_REF_URL);
     req->set_header(req, "Content-Transfer-Encoding", "binary");
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
+
+	 if(!list_->running){
+		 //message list stoped accidently
+		 vp_do_repeat(lc->events->poll_lost, NULL);
+		 goto failed;
+	 }
 
     return req->do_request_async(req, lwqq__has_post(),_C_(2p_i,msg_send_back,req,lc));
 failed:
