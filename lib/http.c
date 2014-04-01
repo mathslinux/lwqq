@@ -70,17 +70,17 @@ TABLE_BEGIN(proxy_map,long,0)
 TABLE_END()
 
 typedef enum{
-    HTTP_UNEXPECTED_RECV = 1<<1,
-    HTTP_FORCE_CANCEL = 1<<2
+    HTTP_UNEXPECTED_RECV = 1<<0,
+    HTTP_FORCE_CANCEL    = 1<<1,
 }HttpBits;
 
 typedef struct LwqqHttpRequest_
 {
     LwqqHttpRequest parent;
-    HttpBits bits;               /**store http internal status**/
-    //int internal_failed;
-    int retry_;
-    int flags;              /**store http option settings**/
+    HttpBits bits;                     // store http internal status
+    short retry_;
+    short timeout;                     // timeout orginal
+    short tmo_inc;                     // timeout increment
     SIMPLEQ_HEAD(,trunk_entry) trunks;
 }LwqqHttpRequest_;
 
@@ -151,7 +151,8 @@ static void composite_trunks(LwqqHttpRequest* req)
         s_free(trunk);
     }
 }
-static void http_clean(LwqqHttpRequest* req)
+static void http_clean(LwqqHttpRequest* req) 
+	//clean states between two curl request
 {
     LwqqHttpRequest_* req_ = (LwqqHttpRequest_*) req;
     composite_trunks(req);
@@ -161,6 +162,14 @@ static void http_clean(LwqqHttpRequest* req)
     curl_slist_free_all(req->recv_head);
     req->recv_head = NULL;
     req_->bits = 0;
+}
+static void http_reset(LwqqHttpRequest* req)
+	//clean and reset between two call do_request_*
+{
+	LwqqHttpRequest_* req_ = (LwqqHttpRequest_*) req;
+	http_clean(req);
+	req_->retry_ = req->retry;
+	lwqq_http_set_option(req, LWQQ_HTTP_TIMEOUT,req_->timeout);
 }
 
 static void lwqq_http_set_header(LwqqHttpRequest *request, const char *name,
@@ -302,7 +311,7 @@ static size_t write_header( void *ptr, size_t size, size_t nmemb, void *userdata
     char* str = (char*)ptr;
     LwqqHttpRequest* request = (LwqqHttpRequest*) userdata;
 
-    long http_code;
+    long http_code = 0;
     curl_easy_getinfo(request->req,CURLINFO_RESPONSE_CODE,&http_code);
     //this is a redirection. ignore it.
     if(http_code == 301||http_code == 302){
@@ -318,24 +327,13 @@ static size_t write_header( void *ptr, size_t size, size_t nmemb, void *userdata
         return size*nmemb;
     }
     request->recv_head = curl_slist_append(request->recv_head,(char*)ptr);
-    //read cookie from header;
-    /*if(strncmp(str,"Set-Cookie",strlen("Set-Cookie"))==0){
-        struct cookie_list * node = s_malloc0(sizeof(*node));
-        sscanf(str,"Set-Cookie: %[^=]=%[^;];",node->name,node->value);
-        request->cookie = slist_append(request->cookie,node);
-        LwqqClient* lc = request->lc;
-        if(lc&&!(req_->flags&LWQQ_HTTP_NOT_SET_COOKIE)){
-            if(!lc->cookies) lc->cookies = s_malloc0(sizeof(LwqqCookies));
-            lwqq_set_cookie(lc->cookies, node->name, node->value);
-        }
-    }*/
     return size*nmemb;
 }
 static size_t write_content(const char* ptr,size_t size,size_t nmemb,void* userdata)
 {
     LwqqHttpRequest* req = (LwqqHttpRequest*) userdata;
     LwqqHttpRequest_* req_ = (LwqqHttpRequest_*) req;
-    long http_code;
+    long http_code = 0;
     size_t sz_ = size*nmemb;
     curl_easy_getinfo(req->req,CURLINFO_RESPONSE_CODE,&http_code);
     //this is a redirection. ignore it.
@@ -398,6 +396,7 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
     LwqqHttpRequest_* req_;
     request = s_malloc0(sizeof(LwqqHttpRequest_));
     req_ = (LwqqHttpRequest_*)request;
+	 req_->timeout = 15;
     SIMPLEQ_INIT(&req_->trunks);
     
     request->req = curl_easy_init();
@@ -416,12 +415,12 @@ LwqqHttpRequest *lwqq_http_request_new(const char *uri)
     curl_easy_setopt(request->req,CURLOPT_WRITEDATA,request);
     curl_easy_setopt(request->req,CURLOPT_NOSIGNAL,1);
     curl_easy_setopt(request->req,CURLOPT_FOLLOWLOCATION,1);
-    curl_easy_setopt(request->req,CURLOPT_CONNECTTIMEOUT,30);
+    curl_easy_setopt(request->req,CURLOPT_CONNECTTIMEOUT,20);
     //set normal operate timeout to 30.official value.
     //curl_easy_setopt(request->req,CURLOPT_TIMEOUT,30);
     //low speed: 5B/s
     curl_easy_setopt(request->req,CURLOPT_LOW_SPEED_LIMIT,8*5);
-    curl_easy_setopt(request->req,CURLOPT_LOW_SPEED_TIME,30);
+    curl_easy_setopt(request->req,CURLOPT_LOW_SPEED_TIME,req_->timeout);
     curl_easy_setopt(request->req,CURLOPT_SSL_VERIFYPEER,0);
     curl_easy_setopt(request->req,CURLOPT_DEBUGFUNCTION,curl_debug_redirect);
     request->do_request = lwqq_http_do_request;
@@ -588,9 +587,11 @@ static void async_complete(D_ITEM* conn)
     LwqqHttpRequest* request = conn->req;
     composite_trunks(request);
     int res = 0;
+	 long http_code = 0;
     char** resp = &request->response;
 
-    curl_easy_getinfo(request->req,CURLINFO_RESPONSE_CODE,&request->http_code);
+    curl_easy_getinfo(request->req,CURLINFO_RESPONSE_CODE,&http_code);
+	 request->http_code = http_code;
 
     /* NB: *response may null */
     if (*resp != NULL) {
@@ -611,15 +612,15 @@ static void async_complete(D_ITEM* conn)
 static int set_error_code(LwqqHttpRequest* req,CURLcode err,LwqqErrorCode* ec)
 {
     LwqqHttpRequest_* req_ = (LwqqHttpRequest_*) req;
-    if(err == CURLE_ABORTED_BY_CALLBACK && req_->bits & HTTP_FORCE_CANCEL){
+    if(err == CURLE_ABORTED_BY_CALLBACK && req_->bits & HTTP_FORCE_CANCEL)
         req_->retry_ = 0;
-    }
-    if(err == CURLE_TOO_MANY_REDIRECTS){
+    if(err == CURLE_TOO_MANY_REDIRECTS)
         req_->retry_ = 0;
-    }
     if(err == CURLE_COULDNT_RESOLVE_HOST)
         req_->retry_ = 0;
     req_->retry_ --;
+	 if(req_->tmo_inc > 0)
+		 curl_easy_setopt(req->req, CURLOPT_LOW_SPEED_TIME, req_->timeout + req_->tmo_inc*(req->retry-req_->retry_));
     if(req_->retry_ >= 0){
         return 1;
     }
@@ -635,7 +636,6 @@ static void check_multi_info(GLOBAL *g)
     int msgs_left;
     D_ITEM *conn;
     LwqqHttpRequest* req;
-    LwqqHttpRequest_* req_;
     LwqqAsyncEvent* ev;
     CURL *easy;
     CURLcode ret;
@@ -650,7 +650,6 @@ static void check_multi_info(GLOBAL *g)
             curl_easy_getinfo(easy, CURLINFO_PRIVATE, &pridat);
             conn=(D_ITEM*)pridat;
             req = conn->req;
-            req_ = (LwqqHttpRequest_*) req;
             ev = conn->event;
             if(ret != 0){
                 lwqq_log(LOG_WARNING,"async retcode:%d\n",ret);
@@ -668,22 +667,17 @@ static void check_multi_info(GLOBAL *g)
                 ev->result = ret;
             }
 
-            curl_multi_remove_handle(g->multi, easy);
-            LIST_REMOVE(conn,entries);
-			
-			global.conn_length --;
-			//pthread_mutex_lock(&add_lock);
-			//check_handle_and_add_to_conn_link();
-			//pthread_mutex_unlock(&add_lock);
-			delay_add_handle();
+				curl_multi_remove_handle(g->multi, easy);
+				LIST_REMOVE(conn,entries);
 
-            LwqqClient* lc = conn->req->lc;
+				global.conn_length --;
+				delay_add_handle();
 
-            //if this handle doesn't timeout.so we restore it retry times
-            if(ev->failcode != LWQQ_CALLBACK_TIMEOUT) req_->retry_ = req->retry;
-            //执行完成时候的回调
-            if(lwqq_client_valid(lc))
-				lwqq_client_dispatch(lc,_C_(p,async_complete,conn));
+				LwqqClient* lc = conn->req->lc;
+
+				//执行完成时候的回调
+				if(lwqq_client_valid(lc))
+					lwqq_client_dispatch(lc,_C_(p,async_complete,conn));
         }
     }
 }
@@ -826,67 +820,58 @@ static void delay_add_handle()
 static LwqqAsyncEvent* lwqq_http_do_request_async(LwqqHttpRequest *request, int method,
                                       char *body, LwqqCommand command)
 {
-    if (!request->req)
-        return NULL;
-    LwqqClient* lc = request->lc;
+	if (!request->req)
+		return NULL;
+	LwqqClient* lc = request->lc;
 
-    if(LWQQ_SYNC_ENABLED(lc)){
-        LwqqAsyncEvent* ev = lwqq_async_event_new(request);
-        int err = lwqq_http_do_request(request,method,body);
-        vp_do(command,&err);
-        ev->result = err;
-        ev->failcode = LWQQ_CALLBACK_SYNCED;
-        return ev;
-    }
-    LwqqHttpRequest_* req_ = (LwqqHttpRequest_*) request;
-    req_->retry_ = request->retry;
+	if(LWQQ_SYNC_ENABLED(lc)){
+		LwqqAsyncEvent* ev = lwqq_async_event_new(request);
+		int err = lwqq_http_do_request(request,method,body);
+		vp_do(command,&err);
+		ev->result = err;
+		ev->failcode = LWQQ_CALLBACK_SYNCED;
+		return ev;
+	}
 
-    char **resp = &request->response;
+	/* Clear off last response */
+	http_reset(request);
 
-    /* Clear off last response */
-    http_clean(request);
+	/* Set http method */
+	if (method==0){
+	}else if (method == 1 && body) {
+		curl_easy_setopt(request->req,CURLOPT_POST,1);
+		curl_easy_setopt(request->req,CURLOPT_COPYPOSTFIELDS,body);
+	} else {
+		lwqq_log(LOG_WARNING, "Wrong http method\n");
+		goto failed;
+	}
 
-    /* Set http method */
-    if (method==0){
-    }else if (method == 1 && body) {
-        curl_easy_setopt(request->req,CURLOPT_POST,1);
-        curl_easy_setopt(request->req,CURLOPT_COPYPOSTFIELDS,body);
-    } else {
-        lwqq_log(LOG_WARNING, "Wrong http method\n");
-        goto failed;
-    }
-
-    if(global.multi == NULL){
-        lwqq_http_global_init();
-    }
-    D_ITEM* di = s_malloc0(sizeof(*di));
-    curl_easy_setopt(request->req,CURLOPT_PRIVATE,di);
-    di->cmd = command;
-    di->req = request;
-    di->event = lwqq_async_event_new(request);
-    pthread_mutex_lock(&add_lock);
-    LIST_INSERT_HEAD(&global.add_link,di,entries);
-    pthread_mutex_unlock(&add_lock);
+	if(global.multi == NULL){
+		lwqq_http_global_init();
+	}
+	D_ITEM* di = s_malloc0(sizeof(*di));
+	curl_easy_setopt(request->req,CURLOPT_PRIVATE,di);
+	di->cmd = command;
+	di->req = request;
+	di->event = lwqq_async_event_new(request);
+	pthread_mutex_lock(&add_lock);
+	LIST_INSERT_HEAD(&global.add_link,di,entries);
+	pthread_mutex_unlock(&add_lock);
 	delay_add_handle();
-    return di->event;
+	return di->event;
 
 failed:
-    if (*resp) {
-        s_free(*resp);
-        *resp = NULL;
-    }
-    return NULL;
+	return NULL;
 }
 static int lwqq_http_do_request(LwqqHttpRequest *request, int method, char *body)
 {
     if (!request->req)
         return -1;
     CURLcode ret;
-    LwqqHttpRequest_* req_ = (LwqqHttpRequest_*) request;
-    req_->retry_ = request->retry;
+	 http_reset(request);
+	 long http_code = 0;
 retry:
     ret=0;
-    char **resp = &request->response;
 
     /* Clear off last response */
     http_clean(request);
@@ -898,7 +883,7 @@ retry:
         curl_easy_setopt(request->req,CURLOPT_COPYPOSTFIELDS,body);
     } else {
         lwqq_log(LOG_WARNING, "Wrong http method\n");
-        goto failed;
+		  return -1;
     }
 
     ret = curl_easy_perform(request->req);
@@ -912,30 +897,19 @@ retry:
         request->failcode = ec;
         return ec;
     }
-    //perduce timeout.
-    req_->retry_ = request->retry;
-    curl_easy_getinfo(request->req,CURLINFO_RESPONSE_CODE,&request->http_code);
 
-    // NB: *response may null 
-    // jump it .that is no problem.
-    if (*resp == NULL) {
-        goto failed;
+    curl_easy_getinfo(request->req,CURLINFO_RESPONSE_CODE,&http_code);//safely copy to structure
+	 request->http_code = http_code;
+
+    if (request->response) {
+		 /* Uncompress data here if we have a Content-Encoding header */
+		 const char *enc_type = NULL;
+		 enc_type = lwqq_http_get_header(request, "Content-Encoding");
+		 if (enc_type && strstr(enc_type, "gzip")) {
+			 uncompress_response(request);
+		 }
     }
 
-    /* Uncompress data here if we have a Content-Encoding header */
-    const char *enc_type = NULL;
-    enc_type = lwqq_http_get_header(request, "Content-Encoding");
-    if (enc_type && strstr(enc_type, "gzip")) {
-        uncompress_response(request);
-    }
-
-    return 0;
-
-failed:
-    if (*resp) {
-        s_free(*resp);
-        *resp = NULL;
-    }
     return 0;
 }
 static void share_lock(CURL* handle,curl_lock_data data,curl_lock_access access,void* userptr)
@@ -1125,7 +1099,8 @@ static int lwqq_http_progress_trans(void* d,double dt,double dn,double ut,double
 {
     LwqqHttpRequest* req = d;
     LwqqHttpRequest_* req_ = d;
-    if(req_->retry_ == 0||req_->bits&HTTP_FORCE_CANCEL) return 1;
+    if(req_->retry_ == 0||req_->bits&HTTP_FORCE_CANCEL) 
+		 return 1;
     time_t ct = time(NULL);
     if(ct<=req->last_prog) return 0;
 
@@ -1152,43 +1127,48 @@ void lwqq_http_set_option(LwqqHttpRequest* req,LwqqHttpOption opt,...)
     LwqqHttpRequest_* req_ = (LwqqHttpRequest_*) req;
     va_list args;
     va_start(args,opt);
-    long val=0;
+    unsigned long val=0;
     switch(opt){
-        case LWQQ_HTTP_TIMEOUT:
-            curl_easy_setopt(req->req,CURLOPT_LOW_SPEED_TIME,va_arg(args,unsigned long));
-            break;
-        case LWQQ_HTTP_ALL_TIMEOUT:
-            curl_easy_setopt(req->req, CURLOPT_TIMEOUT,va_arg(args,unsigned long));
-            break;
-        case LWQQ_HTTP_NOT_FOLLOW:
-            curl_easy_setopt(req->req,CURLOPT_FOLLOWLOCATION,!va_arg(args,long));
-            break;
-        case LWQQ_HTTP_SAVE_FILE:
-            curl_easy_setopt(req->req,CURLOPT_WRITEFUNCTION,NULL);
-            curl_easy_setopt(req->req,CURLOPT_WRITEDATA,va_arg(args,FILE*));
-            break;
-        case LWQQ_HTTP_RESET_URL:
-            curl_easy_setopt(req->req,CURLOPT_URL,va_arg(args,const char*));
-            break;
-        case LWQQ_HTTP_VERBOSE:
-            curl_easy_setopt(req->req,CURLOPT_VERBOSE,va_arg(args,long));
-            break;
-        case LWQQ_HTTP_CANCELABLE:
-            if(va_arg(args,long)&&req->progress_func==NULL)
-                lwqq_http_on_progress(req, NULL, NULL);
-            break;
-        case LWQQ_HTTP_MAXREDIRS:
-            curl_easy_setopt(req->req, CURLOPT_MAXREDIRS, va_arg(args,long));
-            break;
-		case LWQQ_HTTP_MAX_LINK:
-			global.cache_size = va_arg(args,long);
-			break;
-        default:
-            val = va_arg(args,long);
-            val?(req_->flags&=opt):(req_->flags|=~opt);
-            break;
-    }
-    va_end(args);
+		 case LWQQ_HTTP_TIMEOUT:
+			 val = va_arg(args,unsigned long);
+			 curl_easy_setopt(req->req,CURLOPT_LOW_SPEED_TIME,val);
+			 req_->timeout = val;
+			 break;
+		 case LWQQ_HTTP_TIMEOUT_INCRE:
+			 val = va_arg(args,unsigned long);
+			 req_->tmo_inc = val;
+			 break;
+		 case LWQQ_HTTP_ALL_TIMEOUT:
+			 curl_easy_setopt(req->req, CURLOPT_TIMEOUT,va_arg(args,unsigned long));
+			 break;
+		 case LWQQ_HTTP_NOT_FOLLOW:
+			 curl_easy_setopt(req->req,CURLOPT_FOLLOWLOCATION,!va_arg(args,long));
+			 break;
+		 case LWQQ_HTTP_SAVE_FILE:
+			 curl_easy_setopt(req->req,CURLOPT_WRITEFUNCTION,NULL);
+			 curl_easy_setopt(req->req,CURLOPT_WRITEDATA,va_arg(args,FILE*));
+			 break;
+		 case LWQQ_HTTP_RESET_URL:
+			 curl_easy_setopt(req->req,CURLOPT_URL,va_arg(args,const char*));
+			 break;
+		 case LWQQ_HTTP_VERBOSE:
+			 curl_easy_setopt(req->req,CURLOPT_VERBOSE,va_arg(args,long));
+			 break;
+		 case LWQQ_HTTP_CANCELABLE:
+			 if(va_arg(args,long)&&req->progress_func==NULL)
+				 lwqq_http_on_progress(req, NULL, NULL);
+			 break;
+		 case LWQQ_HTTP_MAXREDIRS:
+			 curl_easy_setopt(req->req, CURLOPT_MAXREDIRS, va_arg(args,long));
+			 break;
+		 case LWQQ_HTTP_MAX_LINK:
+			 global.cache_size = va_arg(args,long);
+			 break;
+		 default:
+			 lwqq_log(LOG_ERROR, "unknow http option");
+			 break;
+	 }
+	 va_end(args);
 }
 void lwqq_http_cancel(LwqqHttpRequest* req)
 {

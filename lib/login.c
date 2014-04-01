@@ -69,8 +69,8 @@ static LwqqAsyncEvent* get_login_sig(LwqqClient* lc)
             "&enable_qlogin=0&s_url=http%%3A%%2F%%2Fweb2.qq.com%%2Floginproxy.html"
             );
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc, url, NULL);
-    lwqq_http_set_option(req, LWQQ_HTTP_TIMEOUT,30);
-    req->retry = 1;
+    lwqq_http_set_option(req, LWQQ_HTTP_TIMEOUT,5);
+	 lwqq_http_set_option(req, LWQQ_HTTP_TIMEOUT_INCRE,5);
     return req->do_request_async(req,lwqq__hasnot_post(),_C_(p_i,get_login_sig_back,req));
 }
 static int check_need_verify_back(LwqqHttpRequest* req)

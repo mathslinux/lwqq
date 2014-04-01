@@ -20,15 +20,15 @@ typedef enum {
     LWQQ_FORM_CONTENT
 } LWQQ_FORM;
 typedef enum {
-    LWQQ_HTTP_TIMEOUT,
-    LWQQ_HTTP_ALL_TIMEOUT,
-    LWQQ_HTTP_NOT_FOLLOW,
-    LWQQ_HTTP_SAVE_FILE,
-    LWQQ_HTTP_RESET_URL,
-    LWQQ_HTTP_VERBOSE,
-    LWQQ_HTTP_CANCELABLE,
-    LWQQ_HTTP_MAXREDIRS,
-    LWQQ_HTTP_NOT_SET_COOKIE = 1<<7,
+	LWQQ_HTTP_TIMEOUT,               // connection timeout
+	LWQQ_HTTP_TIMEOUT_INCRE,         // auto increment timeout
+	LWQQ_HTTP_ALL_TIMEOUT,           // all operand timeout
+	LWQQ_HTTP_NOT_FOLLOW,
+	LWQQ_HTTP_SAVE_FILE,
+	LWQQ_HTTP_RESET_URL,
+	LWQQ_HTTP_VERBOSE,
+	LWQQ_HTTP_CANCELABLE,
+	LWQQ_HTTP_MAXREDIRS,
 	LWQQ_HTTP_MAX_LINK = 1000
 }LwqqHttpOption;
 /**
@@ -48,9 +48,9 @@ struct _LwqqHttpRequest {
      * Http code return from server. e.g. 200, 404, this maybe changed
      * after do_request() called.
      */
-    long http_code;
+    short http_code; 
+    short retry;
     LwqqCallbackCode failcode;
-    int retry;
 
     /* Server response, used when do async request */
     char *location;

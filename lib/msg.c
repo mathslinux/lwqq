@@ -1596,13 +1596,13 @@ static void *start_poll_msg(void *msg_list)
     req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
     //long poll timeout is 90s.official value
     lwqq_http_set_option(req, LWQQ_HTTP_TIMEOUT,90);
-    lwqq_http_set_option(req, LWQQ_HTTP_CANCELABLE,1L);
+	 lwqq_http_set_option(req, LWQQ_HTTP_CANCELABLE,1L);
     req->retry = 5;
 
 #if USE_MSG_THREAD
     while(1) {
-        req->do_request(req, 1, msg);
-		if(process_poll_message_cb(req)==LWQQ_EC_ERROR) break;
+		 req->do_request(req, 1, msg);
+		 if(process_poll_message_cb(req)==LWQQ_EC_ERROR) break;
     }
     lwqq_puts("quit the msg_thread");
     if(req) lwqq_http_request_free(req);
