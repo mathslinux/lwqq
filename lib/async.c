@@ -63,17 +63,18 @@ static void dispatch_wrap(LwqqAsyncTimerHandle timer,void* p)
 }
 void lwqq_async_dispatch(LwqqCommand cmd)
 {
-	lwqq_async_dispatch_delay(cmd, 10);
+	lwqq_async_dispatch_delay(cmd, 0);
 }
 void lwqq_async_dispatch_delay(LwqqCommand cmd,unsigned long timeout)
 {
 #ifndef WITHOUT_ASYNC
-    async_dispatch_data* data = s_malloc0(sizeof(*data));
-    data->cmd = cmd;
-    data->timer = lwqq_async_timer_new();
-    lwqq_async_timer_watch(data->timer, timeout, dispatch_wrap, data);
+	if(timeout==0) timeout=10;
+	async_dispatch_data* data = s_malloc0(sizeof(*data));
+	data->cmd = cmd;
+	data->timer = lwqq_async_timer_new();
+	lwqq_async_timer_watch(data->timer, timeout, dispatch_wrap, data);
 #else
-    vp_do(cmd,NULL);
+	vp_do(cmd,NULL);
 #endif
 }
 

@@ -151,6 +151,7 @@ void lwqq_async_queue_rm(LwqqAsyncQueue* queue,void* func);
  * @see LwqqClient::dispatch
  */
 void lwqq_async_dispatch(LwqqCommand cmd);
+//timeout 0 means a default small delay
 void lwqq_async_dispatch_delay(LwqqCommand cmd,unsigned long timeout);
 //initialize lwqq client with default dispatch function
 void lwqq_async_init(LwqqClient* lc);

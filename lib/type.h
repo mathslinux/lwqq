@@ -345,7 +345,7 @@ struct LwqqClient {
     int magic;          /**< 0x4153 **/
 };
 #define lwqq_client_userdata(lc) (lc->data)
-#define lwqq_client_dispatch(lc,cmd) (lc->dispatch(cmd,10))
+#define lwqq_client_dispatch(lc,cmd) (lc->dispatch(cmd,0))
 
 /**
  * this is used for some long http request actions chain. 
