@@ -139,6 +139,9 @@ typedef struct LwqqMsgMessage {
     time_t time;
     int upload_retry;
 
+
+	 int reply_ip;
+
     /* For font  */
     char *f_name;
     int f_size;
@@ -152,8 +155,10 @@ typedef struct LwqqMsgMessage {
             LwqqBuddy* from;
         }buddy;
         struct {
-            char *send; /* only group use it to identify who send the group message */
-            char *group_code; /* only avaliable in group message */
+            char *send;       // only group use it to identify who send the group message
+            char *group_code; // only avaliable in group message
+            int info_seq;
+            int seq;          // conversation message sequence
         }group;
         struct { 
             char* send;
@@ -167,21 +172,11 @@ typedef struct LwqqMsgMessage {
         struct {
             char *send;
             char *did;
+            int info_seq;
+            int seq;      // conversation message sequence
         }discu;
     };
 } LwqqMsgMessage;
-
-#if 0
-typedef struct LwqqGroupWebMessage {
-    LwqqMsgSeq super;
-    char* group_code;
-    int group_type;
-    int ver;
-    char* send;
-
-    LwqqMsgContentHead content;
-}LwqqGroupWebMessage;
-#endif
 
 typedef struct LwqqMsgStatusChange {
     LwqqMsg super;
@@ -427,6 +422,14 @@ int lwqq_msg_send_simple(LwqqClient* lc,int type,const char* to,const char* mess
     ((buddy!=NULL)? lwqq_msg_send_simple(lc,LWQQ_MT_BUDDY_MSG,buddy->uin,message) : NULL)
 #define lwqq_msg_send_group(lc,group,message) \
     ((group!=NULL)? lwqq_msg_send_simple(lc,LWQQ_MT_GROUP_MSG,group->gid,message) : NULL)
+
+/* extension functional, add it to poll_msg to alert msg lost event
+ * @return : 1 --> lost message
+ *           0 --> no error
+ *          -1 --> duplicate message
+ */
+int lwqq_msg_check_lost(LwqqClient* lc,LwqqMsg** p_msg);
+
 /* LwqqRecvMsg API end */
 //
 //-----------------------------LWQQ MSG UPLOAD API---------------------------------///

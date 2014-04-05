@@ -9,7 +9,6 @@
  */
 
 #include <string.h>
-#include <sys/time.h>
 #include <locale.h>
 #include "type.h"
 #include "smemory.h"
@@ -76,8 +75,6 @@ typedef struct LwqqClient_
 LwqqClient *lwqq_client_new(const char *username, const char *password)
 {
     setlocale(LC_TIME,"en_US.utf8");///< use at get avatar
-    struct timeval tv;
-    long v;
 
     if (!username || !password) {
         lwqq_log(LOG_ERROR, "Username or password is null\n");

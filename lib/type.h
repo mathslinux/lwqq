@@ -36,6 +36,7 @@ struct LwqqHttpHandle;
 struct LwqqMsgContent;
 struct LwqqArguments;
 struct LwqqEvents;
+struct LwqqMsg;
 
 typedef struct _LwqqHttpRequest LwqqHttpRequest;
 typedef LIST_HEAD(,LwqqAsyncEntry) LwqqAsyncQueue;
@@ -273,6 +274,7 @@ typedef struct LwqqGroup {
 
     char *group_sig;            /** < use in sess msg */
 
+    int last_seq;               // readonly: received last message seq
     time_t last_modify;
     char *avatar;
     size_t avatar_len;
@@ -354,14 +356,19 @@ struct LwqqClient {
  */
 typedef struct LwqqEvents
 {
-	/** for test only**/
+   /**
+    * for test only
+    * modify: login_ec <- 2
+    */
 	LwqqCommand start_login;
     /**
      * this is login complete .whatever successed or failed
      * except need verify code
      */
 	LwqqCommand login_complete;
-    /* this is very important when poll message come */
+    /* 
+     * this is very important when poll message come 
+     */
 	LwqqCommand poll_msg;
     /* this is poll lost after recv retcode 112 or 108 */
 	LwqqCommand poll_lost;

@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #include "type.h"
 #include "smemory.h"
@@ -423,6 +424,8 @@ LwqqRecvMsgList *lwqq_msglist_new(void *client)
     list->parent.lc = client;
 
     /* Set msg_id */
+    struct timeval tv;
+    long v;
     gettimeofday(&tv, NULL);
     v = tv.tv_usec;
     v = (v - v % 1000) / 1000;
@@ -827,16 +830,22 @@ static int parse_new_msg(json_t *json, LwqqMsg *opaque)
     t = t ?: "0";
     msg->time = (time_t)strtoll(t, NULL, 10);
 
+    msg->reply_ip = lwqq__json_get_int(json, "reply_ip", 0);
+
     //if it failed means it is not group message.
     //so it equ NULL.
     if(opaque->type == LWQQ_MS_GROUP_MSG){
         msg->group.send = s_strdup(json_parse_simple_value(json, "send_uin"));
         msg->group.group_code = s_strdup(json_parse_simple_value(json,"group_code"));
+        msg->group.info_seq = lwqq__json_get_int(json, "info_seq", 0);
+        msg->group.seq = lwqq__json_get_int(json, "seq", 0);
     }else if(opaque->type == LWQQ_MS_SESS_MSG){
         msg->sess.id = s_strdup(json_parse_simple_value(json,"id"));
     }else if(opaque->type == LWQQ_MS_DISCU_MSG){
         msg->discu.send = s_strdup(json_parse_simple_value(json, "send_uin"));
         msg->discu.did = s_strdup(json_parse_simple_value(json,"did"));
+        msg->discu.info_seq = lwqq__json_get_int(json, "info_seq", 0);
+        msg->discu.seq = lwqq__json_get_int(json, "seq", 0);
     }else if(opaque->type == LWQQ_MS_GROUP_WEB_MSG){
         int err=0;
         msg->group_web.send = lwqq__json_get_value(json,"send_uin");
@@ -1958,7 +1967,7 @@ void msg_send_delay(LwqqClient* lc,LwqqMsgMessage* msg,LwqqAsyncEvent* event, lo
 	lc->dispatch(_C_(3p,msg_send_continue,lc,msg,event),delay);
 }
 
-/*
+#if 0
 static void clean_cface_of_im(LwqqClient* lc,LwqqMsgMessage* msg)
 {
     LwqqMsgContent* c;
@@ -1968,7 +1977,8 @@ static void clean_cface_of_im(LwqqClient* lc,LwqqMsgMessage* msg)
         }
     }
 }
-*/
+#endif
+
 /** 
  * 
  * 
@@ -2140,6 +2150,27 @@ int lwqq_msg_send_simple(LwqqClient* lc,int type,const char* to,const char* mess
 
     return ret;
 }
+
+int lwqq_msg_check_lost(LwqqClient* lc,LwqqMsg** p_msg)
+{
+   LwqqMsg* msg = *p_msg;
+   LwqqGroup* g = NULL;
+   int ret = 0;
+   if(msg->type != LWQQ_MS_GROUP_MSG && msg->type != LWQQ_MS_DISCU_MSG) return 0;
+
+   LwqqMsgMessage* message = (LwqqMsgMessage*)msg;
+   int seq = message->group.seq;
+   g = lwqq_group_find_group_by_gid(lc, (msg->type == LWQQ_MS_DISCU_MSG)?message->discu.did:message->super.from);
+   if(!g) return 0;
+
+	if(g->last_seq != 0){
+		if(g->last_seq+1<seq) ret = 1;
+		if(g->last_seq+1>seq) ret = -1;
+	}
+   g->last_seq = seq;
+   return ret;
+}
+
 const char* lwqq_msg_offfile_get_url(LwqqMsgOffFile* msg)
 {
     static char url[1024];

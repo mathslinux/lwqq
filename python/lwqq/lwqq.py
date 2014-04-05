@@ -247,6 +247,7 @@ class Group(LwqqBase):
                 ('option',c_char_p),
                 ('mask',MaskType),
                 ('group_sig',c_char_p),
+                ('last_seq',c_int),
                 ('last_modify',c_ulong),
                 ('avatar',c_void_p),
                 ('avatar_len',ctypes.c_size_t),

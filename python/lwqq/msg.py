@@ -152,6 +152,8 @@ class Message(MsgSeq):
             ('time',c_time_t),
             ('upload_retry',ctypes.c_int),
 
+            ('reply_ip',ctypes.c_int),
+
             ('f_name',ctypes.c_char_p),
             ('f_size',ctypes.c_int),
             ('f_style',FontStyle),
@@ -205,7 +207,9 @@ class GroupMessage(Message):
     class T(Message.T):
         _fields_ = [
             ('send',ctypes.c_char_p),
-            ('group_code',ctypes.c_char_p)
+            ('group_code',ctypes.c_char_p),
+            ('info_seq',ctypes.c_int),
+            ('seq',ctypes.c_int)
             ]
     PT = ctypes.POINTER(T)
     TypeID = MsgType.MS_GROUP_MSG
