@@ -49,7 +49,7 @@ typedef struct LwqqRecvMsgList_{
     LwqqPollOption flags;
     LwqqHttpRequest* req;
 	 unsigned long msg_id; // send message id, auto increment
-	 int last_id2;         // received last msg_id2
+	 int last_id;         // received last msg_id
     pthread_t tid;
     int running;
 } LwqqRecvMsgList_;
@@ -245,8 +245,8 @@ static void dispatch_poll_lost(LwqqClient* lc)
 
 static void insert_msg_delay_by_request_content(LwqqRecvMsgList* list,LwqqMsg* msg)
 {
-    insert_recv_msg_with_order(list,msg);
-    LwqqClient* lc = list->lc;
+	insert_recv_msg_with_order(list,msg);
+	LwqqClient* lc = list->lc;
 	lwqq_client_dispatch(lc, _C_(p,dispatch_poll_msg,lc));
 }
 static void add_passerby(LwqqClient* lc,LwqqBuddy* buddy)
@@ -420,7 +420,7 @@ LwqqRecvMsgList *lwqq_msglist_new(void *client)
     list = s_malloc0(sizeof(LwqqRecvMsgList_));
     list->parent.count = 0;
     list->flags = POLL_AUTO_DOWN_BUDDY_PIC&POLL_AUTO_DOWN_GROUP_PIC;
-    list->last_id2 = 0;
+    list->last_id = 0;
     list->parent.lc = client;
 
     /* Set msg_id */
@@ -1467,9 +1467,9 @@ static void insert_recv_msg_with_order(LwqqRecvMsgList* list,LwqqMsg* msg)
     pthread_mutex_lock(&list->mutex);
     //sort the order for messages.
     if((msg->type & LWQQ_MT_BITS) ==  LWQQ_MT_MESSAGE){
-        int id2 = ((LwqqMsgSeq*)msg)->msg_id2;
+        int id = ((LwqqMsgSeq*)msg)->msg_id;
         int inserted = 0;
-        if(msg_list->last_id2 == id2 && msg_list->flags & POLL_REMOVE_DUPLICATED_MSG){
+        if(msg_list->last_id == id && msg_list->flags & POLL_REMOVE_DUPLICATED_MSG){
             s_free(rmsg);
             lwqq_msg_free(msg);
             inserted = 1;
@@ -1478,11 +1478,11 @@ static void insert_recv_msg_with_order(LwqqRecvMsgList* list,LwqqMsg* msg)
                 if((iter->msg->type&LWQQ_MT_BITS)!=LWQQ_MT_MESSAGE)
                     continue;
                 LwqqMsgSeq* iter_msg = (LwqqMsgSeq*)iter->msg;
-                if(iter_msg->msg_id2<id2){
+                if(iter_msg->msg_id<id){
                     TAILQ_INSERT_AFTER(&list->head,iter,rmsg,entries);
                     inserted = 1;
                     break;
-                }else if(iter_msg->msg_id2==id2){
+                }else if(iter_msg->msg_id==id){
                     //this is duplicated message. we destroy it.
                     if(msg_list->flags & POLL_REMOVE_DUPLICATED_MSG){
                         s_free(rmsg);
@@ -1498,7 +1498,7 @@ static void insert_recv_msg_with_order(LwqqRecvMsgList* list,LwqqMsg* msg)
         if(!inserted){
             TAILQ_INSERT_HEAD(&list->head,rmsg,entries);
         }
-        msg_list->last_id2 = id2;
+        msg_list->last_id = id;
     }else{
         TAILQ_INSERT_TAIL(&list->head, rmsg, entries);
     }
@@ -2178,10 +2178,10 @@ int lwqq_msg_check_lost(LwqqClient* lc,LwqqMsg** p_msg)
    if(!g) return 0;
 
 	if(g->last_seq != 0){
+		if(g->last_seq+1>seq) return -1;
 		if(g->last_seq+1<seq) ret = 1;
-		if(g->last_seq+1>seq) ret = -1;
 	}
-   g->last_seq = seq;
+	g->last_seq = seq;
    return ret;
 }
 
