@@ -1979,6 +1979,18 @@ static void clean_cface_of_im(LwqqClient* lc,LwqqMsgMessage* msg)
 }
 #endif
 
+static void lwqq_msg_incre_seq(LwqqClient* lc,LwqqMsg* send)
+{
+   LwqqGroup* g = NULL;
+   if(send->type != LWQQ_MS_GROUP_MSG && send->type != LWQQ_MS_DISCU_MSG) return ;
+
+   LwqqMsgMessage* message = (LwqqMsgMessage*)send;
+   g = lwqq_group_find_group_by_gid(lc, message->super.to);
+   if(!g) return ;
+
+	if(g->last_seq != 0)
+		++g->last_seq;
+}
 /** 
  * 
  * 
@@ -2075,7 +2087,7 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
 
     /* Create a POST request */
     char url[512];
-	char* post = data;
+	 char* post = data;
     snprintf(url, sizeof(url), "%s/channel/%s",WEBQQ_D_HOST, apistr);
     req = lwqq_http_create_default_request(lc,url, NULL);
     if (!req) {
@@ -2090,6 +2102,8 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
 		 vp_do_repeat(lc->events->poll_lost, NULL);
 		 goto failed;
 	 }
+
+	 lwqq_msg_incre_seq(lc, (LwqqMsg*)msg);
 
     return req->do_request_async(req, lwqq__has_post(),_C_(2p_i,msg_send_back,req,lc));
 failed:
