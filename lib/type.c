@@ -110,13 +110,6 @@ LwqqClient *lwqq_client_new(const char *username, const char *password)
     lc->find_buddy_by_qqnumber = lwqq_buddy_find_buddy_by_qqnumber;
     lwqq_async_init(lc);
 
-    /* Set msg_id */
-    gettimeofday(&tv, NULL);
-    v = tv.tv_usec;
-    v = (v - v % 1000) / 1000;
-    v = v % 10000 * 10000;
-    lc->msg_id = v;
-
     LwqqClient_* lc_ = (LwqqClient_*) lc;
     lc_->http = lwqq_http_handle_new();
     

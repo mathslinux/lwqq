@@ -326,7 +326,6 @@ struct LwqqClient {
 	 struct LwqqArguments * args;
     struct LwqqRecvMsgList *msg_list;
 
-    long msg_id;            /**< Used to send message */
     LwqqStatus stat;
 
 	 void (*dispatch)(LwqqCommand,unsigned long timeout);

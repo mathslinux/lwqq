@@ -371,7 +371,6 @@ class Lwqq(LwqqBase):
                 ('args',Arguments.PT),
                 ('msg_list',c_voidp),
 
-                ('msg_id',c_long),
                 ('stat',c_int),
 
                 ('dispatch',DISPATCH_FUNC),

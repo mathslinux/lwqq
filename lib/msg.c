@@ -45,10 +45,10 @@ static void insert_recv_msg_with_order(LwqqRecvMsgList* list,LwqqMsg* msg);
 
 typedef struct LwqqRecvMsgList_{
     struct LwqqRecvMsgList parent;
-    //LwqqAsyncTimer tip_loop;
     LwqqPollOption flags;
     LwqqHttpRequest* req;
-    int last_id2;
+	 unsigned long msg_id; // send message id, auto increment
+	 int last_id2;         // received last msg_id2
     pthread_t tid;
     int running;
 } LwqqRecvMsgList_;
@@ -421,6 +421,14 @@ LwqqRecvMsgList *lwqq_msglist_new(void *client)
     list->flags = POLL_AUTO_DOWN_BUDDY_PIC&POLL_AUTO_DOWN_GROUP_PIC;
     list->last_id2 = 0;
     list->parent.lc = client;
+
+    /* Set msg_id */
+    gettimeofday(&tv, NULL);
+    v = tv.tv_usec;
+    v = (v - v % 1000) / 1000;
+    v = v % 10000 * 10000;
+    list->msg_id = v;
+
     pthread_mutex_init(&list->parent.mutex, NULL);
     TAILQ_INIT(&list->parent.head);
     
@@ -2051,7 +2059,7 @@ LwqqAsyncEvent* lwqq_msg_send(LwqqClient *lc, LwqqMsgMessage *msg)
             "\"msg_id\":%ld,"
             "\"clientid\":\"%s\","
             "\"psessionid\":\"%s\"}",
-            content,lc->msg_id,lc->clientid,lc->psessionid);
+            content,++list_->msg_id,lc->clientid,lc->psessionid);
     //format_append(data,"&clientid=%s&psessionid=%s",lc->clientid,lc->psessionid);
     if(strlen(data)+1==sizeof(data)) return NULL;
 
