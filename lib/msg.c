@@ -2165,16 +2165,17 @@ int lwqq_msg_send_simple(LwqqClient* lc,int type,const char* to,const char* mess
     return ret;
 }
 
-int lwqq_msg_check_lost(LwqqClient* lc,LwqqMsg** p_msg)
+int lwqq_msg_check_lost(LwqqClient* lc, LwqqMsg** p_msg, LwqqGroup* g)
 {
    LwqqMsg* msg = *p_msg;
-   LwqqGroup* g = NULL;
    int ret = 0;
    if(msg->type != LWQQ_MS_GROUP_MSG && msg->type != LWQQ_MS_DISCU_MSG) return 0;
 
    LwqqMsgMessage* message = (LwqqMsgMessage*)msg;
    int seq = message->group.seq;
-   g = lwqq_group_find_group_by_gid(lc, (msg->type == LWQQ_MS_DISCU_MSG)?message->discu.did:message->super.from);
+	if(g == NULL)
+		g = lwqq_group_find_group_by_gid(lc, (msg->type == LWQQ_MS_DISCU_MSG) ?
+				message->discu.did : message->super.from);
    if(!g) return 0;
 
 	if(g->last_seq != 0){

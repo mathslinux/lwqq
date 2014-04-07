@@ -423,12 +423,16 @@ int lwqq_msg_send_simple(LwqqClient* lc,int type,const char* to,const char* mess
 #define lwqq_msg_send_group(lc,group,message) \
     ((group!=NULL)? lwqq_msg_send_simple(lc,LWQQ_MT_GROUP_MSG,group->gid,message) : NULL)
 
-/* extension functional, add it to poll_msg to alert msg lost event
+/* extension functional, check group msg lost event, designed for support
+ * LwqqEvents
+ * @param : p_msg --> pass a pointer to a group message
+ *          g     --> pass NULL to find a group from p_msg,
+ *                    or a group to jump find
  * @return : 1 --> lost message
  *           0 --> no error
  *          -1 --> duplicate message
  */
-int lwqq_msg_check_lost(LwqqClient* lc,LwqqMsg** p_msg);
+int lwqq_msg_check_lost(LwqqClient* lc,LwqqMsg** p_msg,LwqqGroup* g);
 
 /* LwqqRecvMsg API end */
 //
