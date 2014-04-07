@@ -1,0 +1,12 @@
+
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${exec_prefix}/include/lwqq
+
+Name: lwqq
+URL: http://github.com/xiehuc/lwqq
+Description: light weight webqq protocol implement
+Version: @VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@
+Libs: -L${libdir} -llwqq
+Cflags: -I${includedir}
