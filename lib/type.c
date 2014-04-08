@@ -498,7 +498,7 @@ long lwqq_time()
     return ret;
 }
 
-void lwqq_add_event_listener(LwqqCommand* inko,LwqqCommand cmd)
+const LwqqCommand* lwqq_add_event_listener(LwqqCommand* inko,LwqqCommand cmd)
 {
-	vp_link(inko, &cmd);
+	return vp_link(inko, &cmd);
 }

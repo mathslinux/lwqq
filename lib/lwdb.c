@@ -37,6 +37,14 @@
 
 #define DB_PATH "/tmp/lwqq"
 
+typedef struct LwdbExtension {
+	LwqqExtension super;
+	LwdbUserDB* db;
+	LwqqClient* lc;
+	const LwqqCommand* friend_chg;
+	const LwqqCommand* group_chg;
+}LwdbExtension;
+
 static LwqqErrorCode lwdb_globaldb_add_new_user(
     struct LwdbGlobalDB *db, const char *qqnumber);
 static LwdbGlobalUserEntry *lwdb_globaldb_query_user_info(
@@ -580,7 +588,7 @@ LwdbUserDB *lwdb_userdb_new(const char *qqnumber,const char* dir,int flags)
     sws_exec_sql(udb->db, sql, NULL);*/
 
     udb->query_buddy_info = lwdb_userdb_query_buddy_info;
-    udb->update_buddy_info = lwdb_userdb_update_buddy_info;
+    //udb->update_buddy_info = lwdb_userdb_update_buddy_info;
 
     //sws_exec_sql(udb->db, "BEGIN;", NULL);
 
@@ -707,58 +715,62 @@ LwqqErrorCode lwdb_userdb_insert_buddy_info(LwdbUserDB* db,LwqqBuddy* buddy)
 
     sws_query_bind(stmt,1,SWS_BIND_TEXT,buddy->qqnumber);
     sws_query_next(stmt,NULL);
-    lwdb_userdb_update_buddy_info(db, buddy);
+    lwdb_userdb_update_buddy_info(db, &buddy);
     sws_query_reset(stmt);
 
     if(!cache)
         sws_query_end(stmt, NULL);
     return 0;
 }
-LwqqErrorCode lwdb_userdb_update_buddy_info(LwdbUserDB* db,LwqqBuddy* buddy)
+LwqqErrorCode lwdb_userdb_update_buddy_info(LwdbUserDB* db,LwqqBuddy** p_buddy)
 {
-    if(!db || !buddy || !buddy->qqnumber) return LWQQ_EC_ERROR;
-    SwsStmt* stmt = NULL;
-    int cache = 0;
-    const char* sql = "UPDATE buddies SET "
-        "nick=?,markname=?,long_nick=?,level=?,last_modify=datetime('now') WHERE qqnumber=?;";
+	if(!p_buddy) return LWQQ_EC_ERROR;
+	LwqqBuddy* buddy = *p_buddy;
+	if(!db || !buddy || !buddy->qqnumber) return LWQQ_EC_ERROR;
+	SwsStmt* stmt = NULL;
+	int cache = 0;
+	const char* sql = "UPDATE buddies SET "
+		"nick=?,markname=?,long_nick=?,level=?,last_modify=datetime('now') WHERE qqnumber=?;";
 
-    enable_cache(stmt,sql,cache);
+	enable_cache(stmt,sql,cache);
 
-    sws_query_bind(stmt, 1, SWS_BIND_TEXT,buddy->nick);
-    sws_query_bind(stmt, 2, SWS_BIND_TEXT,buddy->markname);
-    sws_query_bind(stmt, 3, SWS_BIND_TEXT,buddy->long_nick);
-    sws_query_bind(stmt, 4, SWS_BIND_INT, buddy->level);
-    sws_query_bind(stmt, 5, SWS_BIND_TEXT,buddy->qqnumber);
-    sws_query_next(stmt, NULL);
-    sws_query_reset(stmt);
+	sws_query_bind(stmt, 1, SWS_BIND_TEXT,buddy->nick);
+	sws_query_bind(stmt, 2, SWS_BIND_TEXT,buddy->markname);
+	sws_query_bind(stmt, 3, SWS_BIND_TEXT,buddy->long_nick);
+	sws_query_bind(stmt, 4, SWS_BIND_INT, buddy->level);
+	sws_query_bind(stmt, 5, SWS_BIND_TEXT,buddy->qqnumber);
+	sws_query_next(stmt, NULL);
+	sws_query_reset(stmt);
 
-    if(!cache)sws_query_end(stmt,NULL);
-    return 0;
+	if(!cache)sws_query_end(stmt,NULL);
+	return 0;
 }
-LwqqErrorCode lwdb_userdb_update_group_info(LwdbUserDB* db,LwqqGroup* group)
+LwqqErrorCode lwdb_userdb_update_group_info(LwdbUserDB* db,LwqqGroup** p_group)
 {
-    if(!db || !group || !group->account) return LWQQ_EC_ERROR;
-    SwsStmt* stmt = NULL;
-    int cache = 0;
-    const char* sql;
-    if(group->type == LWQQ_GROUP_QUN)
-        sql = "UPDATE groups SET name=? ,"
-            "markname=?,memo=?,last_modify=datetime('now') WHERE account=?;";
-    else
-        sql = "UPDATE discus SET name=? ,"
-            "markname=?,memo=?,last_modify=datetime('now') WHERE account=?;";
+	if(!p_group) return LWQQ_EC_ERROR;
+	LwqqGroup* group = *p_group;
+	if(!db || !group || !group->account) return LWQQ_EC_ERROR;
+	SwsStmt* stmt = NULL;
+	int cache = 0;
+	const char* sql;
+	if(group->type == LWQQ_GROUP_QUN)
+		sql = "UPDATE groups SET name=? ,"
+			"markname=?,memo=?,last_modify=datetime('now') WHERE account=?;";
+	else
+		sql = "UPDATE discus SET name=? ,"
+			"markname=?,memo=?,last_modify=datetime('now') WHERE account=?;";
 
-    enable_cache(stmt,sql,cache);
+	enable_cache(stmt,sql,cache);
 
-    sws_query_bind(stmt,1,SWS_BIND_TEXT,group->name);
-    sws_query_bind(stmt,2,SWS_BIND_TEXT,group->markname);
-    sws_query_bind(stmt,3,SWS_BIND_TEXT,group->memo);
-    sws_query_bind(stmt,4,SWS_BIND_TEXT,group->account);
-    sws_query_next(stmt, NULL);
-    sws_query_reset(stmt);
+	sws_query_bind(stmt,1,SWS_BIND_TEXT,group->name);
+	sws_query_bind(stmt,2,SWS_BIND_TEXT,group->markname);
+	sws_query_bind(stmt,3,SWS_BIND_TEXT,group->memo);
+	sws_query_bind(stmt,4,SWS_BIND_TEXT,group->account);
+	sws_query_next(stmt, NULL);
+	sws_query_reset(stmt);
 
-    if(!cache) sws_query_end(stmt, NULL);
-    return 0;
+	if(!cache) sws_query_end(stmt, NULL);
+	return 0;
 }
 LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group)
 {
@@ -778,7 +790,7 @@ LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group)
     sws_query_bind(stmt,2,SWS_BIND_TEXT,group->name);
     sws_query_bind(stmt,3,SWS_BIND_TEXT,group->markname);
     sws_query_next(stmt,NULL);
-    lwdb_userdb_update_group_info(db, group);
+    lwdb_userdb_update_group_info(db, &group);
     sws_query_reset(stmt);
 
     if(!cache) sws_query_end(stmt, NULL);
@@ -1005,6 +1017,32 @@ int lwdb_userdb_write(LwdbUserDB* db,const char* key,const char* value)
     char sql[1024];
     snprintf(sql,sizeof(sql),"INSERT OR REPLACE INTO pairs (key,value) VALUES ('%s','%s');",key,value);
     return sws_exec_sql(db->db, sql, NULL);
+}
+
+static void db_extension_init(LwqqClient* lc,LwqqExtension* ext)
+{
+	LwdbExtension* ext_ = (LwdbExtension*) ext;
+	
+	ext_->friend_chg = lwqq_add_event(lc->events->friend_chg,
+			_C_(2p,lwdb_userdb_update_buddy_info, ext_->db, &lc->args->buddy));
+	ext_->group_chg = lwqq_add_event(lc->events->group_chg,
+			_C_(2p,lwdb_userdb_update_group_info, ext_->db, &lc->args->group));
+}
+
+static void db_extension_remove(LwqqClient* lc,LwqqExtension* ext)
+{
+	LwdbExtension* ext_ = (LwdbExtension*) ext;
+	vp_unlink(&lc->events->friend_chg, ext_->friend_chg);
+	vp_unlink(&lc->events->group_chg, ext_->group_chg);
+}
+
+LwqqExtension* lwdb_make_extension(LwdbUserDB* db)
+{
+	LwdbExtension* ext = s_malloc0(sizeof(*ext));
+	ext->db = db;
+	ext->super.init = db_extension_init;
+	ext->super.remove = db_extension_remove;
+	return (LwqqExtension*) ext;
 }
 #if 0
 static void group_merge(LwqqGroup* into,LwqqGroup* from)

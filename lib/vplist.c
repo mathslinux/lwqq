@@ -79,7 +79,7 @@ void vp_cancel(vp_command cmd)
         free(p);
     }
 }
-void vp_link(vp_command* head,vp_command* elem)
+const vp_command* vp_link(vp_command* head,vp_command* elem)
 {
     vp_command* cmd = head;
     while(cmd->next)
@@ -88,6 +88,22 @@ void vp_link(vp_command* head,vp_command* elem)
     memcpy(item,elem,sizeof(vp_command));
     memset(elem,0,sizeof(vp_command));
     cmd->next = item;
+	 return item;
+}
+
+void vp_unlink(vp_command* head,const vp_command* elem)
+{
+	if(!elem) return;
+	vp_command** p_cmd = &head->next;
+	while(*p_cmd){
+		if(*p_cmd == elem){
+			*p_cmd = elem->next;
+			break;
+		}
+		p_cmd = &(*p_cmd)->next;
+	}
+	vp_cancel(*elem);
+	free((void*)elem);
 }
 
 void vp_func_void(VP_CALLBACK func,vp_list* vp,void* q)

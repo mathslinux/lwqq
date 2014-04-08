@@ -252,9 +252,9 @@ static void insert_msg_delay_by_request_content(LwqqRecvMsgList* list,LwqqMsg* m
 static void add_passerby(LwqqClient* lc,LwqqBuddy* buddy)
 {
     buddy->cate_index = LWQQ_FRIEND_CATE_IDX_PASSERBY;
-    LIST_INSERT_HEAD(&lc->friends,buddy,entries);
-	lc->args->buddy = buddy;
-	vp_do_repeat(lc->events->new_friend, NULL);
+	 LIST_INSERT_HEAD(&lc->friends,buddy,entries);
+	 lc->args->buddy = buddy;
+	 vp_do_repeat(lc->events->new_friend, NULL);
 }
 static int process_simple_response(LwqqHttpRequest* req)
 {

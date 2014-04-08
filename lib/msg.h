@@ -152,16 +152,17 @@ typedef struct LwqqMsgMessage {
 
     union{
         struct {
-            LwqqBuddy* from;
-        }buddy;
-        struct {
-            char *send;       // only group use it to identify who send the group message
-            char *group_code; // only avaliable in group message
-            int info_seq;
-            int seq;          // conversation message sequence
-        }group;
-        struct { 
-            char* send;
+				LwqqBuddy* from;  // bind a buddy from friend list or trigger
+				                  // new_friend event to create new (in case of passerby)
+				}buddy;
+				struct {
+				char *send;       // only group use it to identify who send the group message
+				char *group_code; // only avaliable in group message
+				int info_seq;
+				int seq;          // conversation message sequence
+				}group;
+				struct {
+				char* send;
             char* group_code;
         }group_web;
         struct {

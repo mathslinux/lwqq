@@ -139,8 +139,19 @@ static void do_change_markname(LwqqAsyncEvent* ev,LwqqBuddy* b,LwqqGroup* g,char
 {
     if(ev->failcode == LWQQ_CALLBACK_FAILED) {s_free(mark);return;}
     if(ev->result != LWQQ_EC_OK) {s_free(mark);return;}
-    if(b){s_free(b->markname); b->markname = mark;}
-    if(g){s_free(g->markname); g->markname = mark;}
+	 LwqqClient* lc = ev->lc;
+    if(b){
+		 s_free(b->markname); 
+		 b->markname = mark;
+		 lc->args->buddy = b;
+		 vp_do_repeat(lc->events->friend_chg, NULL);
+	 }
+    if(g){
+		 s_free(g->markname); 
+		 g->markname = mark;
+		 lc->args->group = g;
+		 vp_do_repeat(lc->events->group_chg, NULL);
+	 }
 }
 static void do_modify_category(LwqqAsyncEvent* ev,LwqqBuddy* b,int cate)
 {

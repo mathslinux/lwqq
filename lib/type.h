@@ -390,8 +390,14 @@ typedef struct LwqqEvents
      * you need flush displayed group member
      */
 	LwqqCommand group_member_chg;
-	/** set this to involve hash_function */
-	LwqqCommand hash_func;
+	/** a group information has changed
+	 *  modify : buddy <- changed buddy
+	 */
+	LwqqCommand friend_chg;
+	/** a group information has changed
+	 *  modify : group <- changed group
+	 */
+	LwqqCommand group_chg;
 }LwqqEvents;
 
 LwqqEvents* lwqq_client_get_events(LwqqClient* lc);
@@ -411,7 +417,12 @@ typedef struct LwqqArguments
 
 LwqqArguments* lwqq_client_get_args(LwqqClient* lc);
 
-void lwqq_add_event_listener(LwqqCommand* event,LwqqCommand cmd);
+/** add repeat event listener to lc->events->...
+ * @param : event <- a pointer to lc->events->...
+ *          cmd   <- _C_ macro
+ * @return <- an id used to unlink
+ */
+const LwqqCommand* lwqq_add_event_listener(LwqqCommand* event,LwqqCommand cmd);
 #define lwqq_add_event(event,cmd) lwqq_add_event_listener(&event,cmd);
 
 /* Struct defination end */

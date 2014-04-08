@@ -13,6 +13,7 @@
 #define LWDB_H
 
 #include "type.h"
+#include "async.h"
 #include "swsqlite.h"
 
 /** return default database store dir */
@@ -27,7 +28,7 @@ typedef struct LwdbUserDB {
         char* sql;
     }cache[LWDB_CACHE_LEN];
     LwqqBuddy * (*query_buddy_info)(struct LwdbUserDB *db, const char *qqnumber);
-    LwqqErrorCode (*update_buddy_info)(struct LwdbUserDB *db, LwqqBuddy *buddy);
+    //LwqqErrorCode (*update_buddy_info)(struct LwdbUserDB *db, LwqqBuddy *buddy);
 } LwdbUserDB;
 
 /** 
@@ -64,17 +65,18 @@ LwqqErrorCode lwdb_userdb_insert_buddy_info(LwdbUserDB* db,LwqqBuddy* buddy);
 LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group);
 #define lwdb_userdb_insert_discu_info(db,discu) lwdb_userdb_insert_group_info(db,discu)
 
-//LwqqErrorCode lwdb_userdb_migrate_discu_info(LwdbUserDB* db,LwqqGroup* discu,int old_account);
 /** 
  * update a buddy info to database
  * if there is no database entry, error occurs
+ * @param p_buddy <- a pointer to LwqqBuddy* . compable with LwqqEvents
  */
-LwqqErrorCode lwdb_userdb_update_buddy_info(LwdbUserDB* db,LwqqBuddy* buddy);
+LwqqErrorCode lwdb_userdb_update_buddy_info(LwdbUserDB* db,LwqqBuddy** p_buddy);
 /** 
  * update a group info to database
  * if there is no database entry, error occurs
+ * @param p_group <- a pointer to LwqqGroup* . compable with LwqqEvents
  */
-LwqqErrorCode lwdb_userdb_update_group_info(LwdbUserDB* db,LwqqGroup* group);
+LwqqErrorCode lwdb_userdb_update_group_info(LwdbUserDB* db,LwqqGroup** p_group);
 #define lwdb_userdb_update_discu_info(db,discu) lwdb_userdb_update_group_info(db,discu)
 
 /** erase infomation older than @day and at most @last entries , 
@@ -108,6 +110,7 @@ const char* lwdb_userdb_read(LwdbUserDB* db,const char* key);
 int lwdb_userdb_write(LwdbUserDB* db,const char* key,const char* value);
 /* LwdbUserDB API end */
 
+LwqqExtension* lwdb_make_extension(LwdbUserDB* db);
 
 /************************************************************************/
 /* Initialization and final API */

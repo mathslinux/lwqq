@@ -162,11 +162,11 @@ void lwqq_async_init(LwqqClient* lc);
 void lwqq_async_global_quit();
 
 
-//=========================PLUGIN API===========================//
-typedef struct LwqqPlugin{
-	void (*init)(struct LwqqPlugin* pl,LwqqClient* lc);
-	void (*remove)(struct LwqqPlugin* pl,LwqqClient* lc);
-}LwqqPlugin;
+//=========================EXTENSION API===========================//
+typedef struct LwqqExtension{
+	void (*init)(LwqqClient* lc, struct LwqqExtension* pl);
+	void (*remove)(LwqqClient* lc,struct LwqqExtension* pl);
+}LwqqExtension;
 
 
 //=========================LOW LEVEL EVENT LOOP API====================//

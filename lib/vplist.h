@@ -26,7 +26,14 @@ typedef struct vp_command{VP_DISPATCH dsph;VP_CALLBACK func;vp_list data;struct 
 vp_command vp_make_command(VP_DISPATCH,VP_CALLBACK,...);
 void vp_do(vp_command,void* retval);
 void vp_do_repeat(vp_command cmd,void* retval);
-void vp_link(vp_command* head,vp_command* elem);
+/** add repeat event listener to lc->events->...
+ *  @param : 
+ *		  event <- a pointer to lc->events->...
+ *      cmd   <- _C_ macro
+ *  @return   <- an id used to unlink
+ */
+const vp_command* vp_link(vp_command* head,vp_command* elem);
+void vp_unlink(vp_command* head,const vp_command* elem);
 void vp_cancel(vp_command);
 //cancel and clear memory to pass vp_do 
 #define vp_cancel0(cmd) {vp_cancel(cmd);memset(&cmd,0,sizeof(cmd));}
