@@ -388,3 +388,8 @@ void lwqq_async_implement(LwqqAsyncImpl* i)
     lwqq__async_impl_ = *i;
 }
 
+void lwqq_free_extension(LwqqClient* lc,LwqqExtension* ext)
+{
+	ext->remove(lc, ext);
+	s_free(ext);
+}

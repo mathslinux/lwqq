@@ -390,6 +390,7 @@ typedef struct LwqqEvents
      * you need flush displayed group member
      */
 	LwqqCommand group_member_chg;
+	LwqqCommand ext_clean;
 	/** a group information has changed
 	 *  modify : buddy <- changed buddy
 	 */

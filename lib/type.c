@@ -180,6 +180,9 @@ void lwqq_client_free(LwqqClient *client)
     s_free(client->login_sig);
     lwqq_buddy_free(client->myself);
 
+	 //remove all extensions
+	 vp_do_repeat(client->events->ext_clean, NULL);
+
 	vp_cancel(client->events->login_complete);
 	vp_cancel(client->events->poll_msg);
 	vp_cancel(client->events->poll_lost);
@@ -189,6 +192,9 @@ void lwqq_client_free(LwqqClient *client)
 	vp_cancel(client->events->need_verify);
 	vp_cancel(client->events->delete_group);
 	vp_cancel(client->events->group_member_chg);
+	vp_cancel(client->events->ext_clean);
+	vp_cancel(client->events->friend_chg);
+	vp_cancel(client->events->group_chg);
 	s_free(client->events);
 	s_free(client->args);
         

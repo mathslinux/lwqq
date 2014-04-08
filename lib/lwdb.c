@@ -43,6 +43,7 @@ typedef struct LwdbExtension {
 	LwqqClient* lc;
 	const LwqqCommand* friend_chg;
 	const LwqqCommand* group_chg;
+	const LwqqCommand* ext_clean;
 }LwdbExtension;
 
 static LwqqErrorCode lwdb_globaldb_add_new_user(
@@ -1027,6 +1028,8 @@ static void db_extension_init(LwqqClient* lc,LwqqExtension* ext)
 			_C_(2p,lwdb_userdb_update_buddy_info, ext_->db, &lc->args->buddy));
 	ext_->group_chg = lwqq_add_event(lc->events->group_chg,
 			_C_(2p,lwdb_userdb_update_group_info, ext_->db, &lc->args->group));
+	ext_->ext_clean = lwqq_add_event(lc->events->ext_clean,
+			_C_(2p,lwqq_free_extension, lc, ext));
 }
 
 static void db_extension_remove(LwqqClient* lc,LwqqExtension* ext)
@@ -1034,6 +1037,10 @@ static void db_extension_remove(LwqqClient* lc,LwqqExtension* ext)
 	LwdbExtension* ext_ = (LwdbExtension*) ext;
 	vp_unlink(&lc->events->friend_chg, ext_->friend_chg);
 	vp_unlink(&lc->events->group_chg, ext_->group_chg);
+	vp_unlink(&lc->events->ext_clean, ext_->ext_clean);
+	ext_->friend_chg = NULL;
+	ext_->group_chg = NULL;
+	ext_->ext_clean = NULL;
 }
 
 LwqqExtension* lwdb_make_extension(LwdbUserDB* db)

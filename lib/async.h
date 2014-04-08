@@ -168,6 +168,9 @@ typedef struct LwqqExtension{
 	void (*remove)(LwqqClient* lc,struct LwqqExtension* pl);
 }LwqqExtension;
 
+//basic and simply free extension, when no specialized version provided
+void lwqq_free_extension(LwqqClient* lc,LwqqExtension* ext);
+
 
 //=========================LOW LEVEL EVENT LOOP API====================//
 /** watch an io socket for special event
