@@ -801,16 +801,20 @@ void lwdb_userdb_query_qqnumbers(LwdbUserDB* db,LwqqClient* lc)
 {
     if(!lc || !db) return;
     LwqqBuddy* buddy;
-    LwqqGroup* group,* discu;
+    LwqqGroup* group;
     char qqnumber[32];
     char last_modify[64];
-    static SwsStmt* stmt1 = 0,*stmt2,*stmt3,*stmt4,*stmt5;
+    static SwsStmt* stmt1 = 0,*stmt2,*stmt3,*stmt4;
             
     sws_query_start(db->db, "SELECT qqnumber,last_modify FROM buddies WHERE nick=? AND markname=?", &stmt1, NULL);
     sws_query_start(db->db, "SELECT qqnumber,last_modify FROM buddies WHERE nick=?",&stmt2,NULL);
     sws_query_start(db->db, "SELECT account,last_modify FROM groups WHERE name=? AND markname=?",&stmt3,NULL);
     sws_query_start(db->db, "SELECT account,last_modify FROM groups WHERE name=?",&stmt4,NULL);
+#if DISCU_READ_DB
+	 LwqqGroup* discu;
+	 static SwsStmt* stmt5 = 0;
     sws_query_start(db->db, "SELECT account,last_modify FROM discus WHERE name=?", &stmt5, NULL);
+#endif
 
     LIST_FOREACH(buddy,&lc->friends,entries){
         if(buddy->markname){
@@ -887,7 +891,7 @@ void lwdb_userdb_query_qqnumbers(LwdbUserDB* db,LwqqClient* lc)
             }
         }
     }
-
+#if DISCU_READ_DB
     LIST_FOREACH(discu,&lc->discus,entries){
         sws_query_reset(stmt5);
         sws_query_bind(stmt5, 1, SWS_BIND_TEXT,discu->name);
@@ -906,12 +910,15 @@ void lwdb_userdb_query_qqnumbers(LwdbUserDB* db,LwqqClient* lc)
             discu->last_modify = -1;
         }
     }
+#endif
 
     sws_query_end(stmt1, NULL);
     sws_query_end(stmt2, NULL);
     sws_query_end(stmt3, NULL);
     sws_query_end(stmt4, NULL);
+#if DISCU_READ_DB
     sws_query_end(stmt5, NULL);
+#endif
 }
 
 void lwdb_userdb_begin(LwdbUserDB* db)

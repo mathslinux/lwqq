@@ -19,5 +19,8 @@
 //enable additional debug function
 #define USE_DEBUG @USE_DEBUG@
 
+//write discu into database
+#define DISCU_READ_DB 0
+
 #endif /* __CONFIG_H__ */
 
