@@ -256,7 +256,7 @@ typedef struct LwqqGroup {
                                  */
     char *qq;                    /** < QQ number */
     };
-    char *info_seq;              /** < avaliable for discu */
+    int  info_seq;               /** < avaliable for discu */
     char *code;    
     char *markname;              /** < QQ Group mark name */
 

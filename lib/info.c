@@ -1489,7 +1489,7 @@ static void parse_discus_info_child(LwqqClient* lc,LwqqGroup* discu,json_t* root
     json = json->child;
 
     discu->owner = s_strdup(json_parse_simple_value(json,"discu_owner"));
-    discu->info_seq = s_strdup(json_parse_simple_value(json, "info_seq"));
+    discu->info_seq = lwqq__json_get_int(json, "info_seq", 0);
 
     json = json_find_first_label(json,"mem_list");
     json = json->child->child;

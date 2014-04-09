@@ -233,7 +233,7 @@ class Group(LwqqBase):
                 ('name',c_char_p),
                 ('gid',c_char_p),
                 ('account',c_char_p),
-                ('info_seq',c_char_p),
+                ('info_seq',c_int),
                 ('code',c_char_p),
                 ('markname',c_char_p),
                 ('face',c_char_p),
