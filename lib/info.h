@@ -85,13 +85,6 @@ LwqqAsyncEvent* lwqq_info_get_friend_detail_info(LwqqClient *lc, LwqqBuddy *budd
 LwqqAsyncEvent* lwqq_info_get_avatar(LwqqClient* lc,LwqqBuddy* buddy,LwqqGroup* group);
 
 LwqqErrorCode lwqq_info_save_avatar(LwqqBuddy* b,LwqqGroup* g,const char* path);
-/** 
- * Get all friends qqnumbers
- * 
- * @param lc 
- * @param err 
- */
-void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc, LwqqErrorCode *err);
 
 /** 
  * Get friend qqnumber
@@ -245,7 +238,10 @@ LwqqErrorCode lwqq_discu_add_buddy(LwqqDiscuMemChange* mem,LwqqBuddy* b);
 LwqqErrorCode lwqq_discu_add_group_member(LwqqDiscuMemChange* mem,LwqqSimpleBuddy* sb,LwqqGroup* g);
 /** do real change member work . chg would be freed automaticly */
 LwqqAsyncEvent* lwqq_info_change_discu_mem(LwqqClient* lc,LwqqGroup* discu,LwqqDiscuMemChange* chg);
-/** create a new discu with members in chg */
+/** 
+ * create a new discu with members in chg 
+ * trigger new_group events
+ */
 LwqqAsyncEvent* lwqq_info_create_discu(LwqqClient* lc,LwqqDiscuMemChange* chg,const char* dname);
 
 #endif  /* LWQQ_INFO_H */

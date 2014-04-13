@@ -56,13 +56,15 @@ void lwdb_userdb_free(LwdbUserDB *db);
 /** 
  * insert a buddy info to database
  * if there is no database entry, create one and update it
+ * @param p_buddy <- a pointer to LwqqBuddy* . compable with LwqqEvents
  */
-LwqqErrorCode lwdb_userdb_insert_buddy_info(LwdbUserDB* db,LwqqBuddy* buddy);
+LwqqErrorCode lwdb_userdb_insert_buddy_info(LwdbUserDB* db,LwqqBuddy** p_buddy);
 /** 
  * insert a group info to database
  * if there is no database entry, create one and update it
+ * @param p_group <- a pointer to LwqqGroup* . compable with LwqqEvents
  */
-LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group);
+LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup** p_group);
 #define lwdb_userdb_insert_discu_info(db,discu) lwdb_userdb_insert_group_info(db,discu)
 
 /** 

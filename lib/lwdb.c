@@ -43,6 +43,7 @@ typedef struct LwdbExtension {
 	LwqqClient* lc;
 	const LwqqCommand* friend_chg;
 	const LwqqCommand* group_chg;
+	const LwqqCommand* new_group;
 	const LwqqCommand* ext_clean;
 }LwdbExtension;
 
@@ -704,10 +705,11 @@ static SwsStmt* get_cache(LwdbUserDB* db,const char* sql)
     }
     return NULL;
 }
-LwqqErrorCode lwdb_userdb_insert_buddy_info(LwdbUserDB* db,LwqqBuddy* buddy)
+LwqqErrorCode lwdb_userdb_insert_buddy_info(LwdbUserDB* db,LwqqBuddy** p_buddy)
 {
-    if(!db || !buddy ) return -1;
-    if(!buddy->qqnumber) return -1;
+    if(!db || !p_buddy ) return -1;
+	 LwqqBuddy* buddy = *p_buddy;
+    if(!buddy || !buddy->qqnumber) return -1;
     SwsStmt* stmt = NULL;
     const char* sql = "INSERT INTO buddies (qqnumber) VALUES (?);";
     LwqqOpCode cache = 0;
@@ -773,10 +775,11 @@ LwqqErrorCode lwdb_userdb_update_group_info(LwdbUserDB* db,LwqqGroup** p_group)
 	if(!cache) sws_query_end(stmt, NULL);
 	return 0;
 }
-LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup* group)
+LwqqErrorCode lwdb_userdb_insert_group_info(LwdbUserDB* db,LwqqGroup** p_group)
 {
-    if(!db || !group) return -1;
-    if(! group->account) return -1;
+    if(!db || !p_group) return -1;
+	 LwqqGroup* group = *p_group;
+    if(!group || !group->account) return -1;
     SwsStmt* stmt = NULL;
     int cache = 0;
     const char* sql;
@@ -1035,6 +1038,8 @@ static void db_extension_init(LwqqClient* lc,LwqqExtension* ext)
 			_C_(2p,lwdb_userdb_update_buddy_info, ext_->db, &lc->args->buddy));
 	ext_->group_chg = lwqq_add_event(lc->events->group_chg,
 			_C_(2p,lwdb_userdb_update_group_info, ext_->db, &lc->args->group));
+	ext_->new_group = lwqq_add_event(lc->events->new_group,
+			_C_(2p,lwdb_userdb_insert_group_info, ext_->db, &lc->args->group));
 	ext_->ext_clean = lwqq_add_event(lc->events->ext_clean,
 			_C_(2p,lwqq_free_extension, lc, ext));
 }
@@ -1044,9 +1049,11 @@ static void db_extension_remove(LwqqClient* lc,LwqqExtension* ext)
 	LwdbExtension* ext_ = (LwdbExtension*) ext;
 	vp_unlink(&lc->events->friend_chg, ext_->friend_chg);
 	vp_unlink(&lc->events->group_chg, ext_->group_chg);
+	vp_unlink(&lc->events->new_group, ext_->new_group);
 	vp_unlink(&lc->events->ext_clean, ext_->ext_clean);
 	ext_->friend_chg = NULL;
 	ext_->group_chg = NULL;
+	ext_->new_group = NULL;
 	ext_->ext_clean = NULL;
 }
 

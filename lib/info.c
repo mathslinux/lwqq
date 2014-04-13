@@ -179,17 +179,20 @@ static void do_rename_discu(LwqqAsyncEvent* ev,LwqqGroup* d,char* name)
 {
     if(ev->failcode == LWQQ_CALLBACK_FAILED) {s_free(name);return;}
     if(ev->result != LWQQ_EC_OK) {s_free(name);return;}
+	 LwqqClient* lc = ev->lc;
     s_free(d->name);
     d->name = name;
+	 lc->args->group = d;
+	 vp_do_repeat(lc->events->group_chg, NULL);
 }
 static void do_delete_group(LwqqAsyncEvent* ev,LwqqGroup* g)
 {
     lwqq__return_if_ev_fail(ev);
     LwqqClient* lc = ev->lc;
-    LIST_REMOVE(g,entries);
-	lc->args->deleted_group = g;
-	vp_do_repeat(lc->events->delete_group, NULL);
-    lwqq_group_free(g);
+	 LIST_REMOVE(g,entries);
+	 lc->args->deleted_group = g;
+	 vp_do_repeat(lc->events->delete_group, NULL);
+	 lwqq_group_free(g);
 }
 
 static void do_change_discu_mem(LwqqAsyncEvent* ev,LwqqGroup* discu,LwqqDiscuMemChange* chg)
@@ -234,21 +237,21 @@ static void do_change_discu_mem(LwqqAsyncEvent* ev,LwqqGroup* discu,LwqqDiscuMem
     }
 done:
     if(err)
-        lwqq_puts("[change discu member failed]");
-	lc->args->group = discu;
-	vp_do_repeat(lc->events->group_member_chg, NULL);
-    lwqq_discu_mem_change_free(chg);
+		 lwqq_puts("[change discu member failed]");
+	 lc->args->group = discu;
+	 vp_do_repeat(lc->events->group_member_chg, NULL);
+	 lwqq_discu_mem_change_free(chg);
 }
 
 static void do_create_discu(LwqqAsyncEvent* ev,LwqqGroup* discu)
 {
     int err=0;
     lwqq__jump_if_ev_fail(ev,err);
-    LwqqClient* lc = ev->lc;
-    LIST_INSERT_HEAD(&lc->discus,discu,entries);
-    //lc->action->new_group(lc,discu);
-	lc->args->group = discu;
-	vp_do_repeat(lc->events->new_group, NULL);
+	 LwqqClient* lc = ev->lc;
+	 LIST_INSERT_HEAD(&lc->discus,discu,entries);
+	 //lc->action->new_group(lc,discu);
+	 lc->args->group = discu;
+	 vp_do_repeat(lc->events->new_group, NULL);
 done:
     if(err){
         lwqq_group_free(discu);
@@ -387,9 +390,9 @@ static int process_simple_response(LwqqHttpRequest* req)
         err = retcode;
     }
 done:
-	lwqq__log_if_error(err, req);
-    lwqq__clean_json_and_req(root,req);
-    return err;
+	 lwqq__log_if_error(err, req);
+	 lwqq__clean_json_and_req(root,req);
+	 return err;
 }
 static int process_friend_detail(LwqqHttpRequest* req,LwqqBuddy* out)
 {
@@ -406,9 +409,9 @@ static int process_friend_detail(LwqqHttpRequest* req,LwqqBuddy* out)
     else err = LWQQ_EC_NO_RESULT;
 
 done:
-	lwqq__log_if_error(err, req);
-    lwqq__clean_json_and_req(root,req);
-    return err;
+	 lwqq__log_if_error(err, req);
+	 lwqq__clean_json_and_req(root,req);
+	 return err;
 }
 
 static int process_qqnumber(LwqqHttpRequest* req,char** value)
@@ -424,9 +427,9 @@ static int process_qqnumber(LwqqHttpRequest* req,char** value)
         lwqq_override(*value, account);
     }
 done:
-	lwqq__log_if_error(err, req);
-    lwqq__clean_json_and_req(root,req);
-    return err;
+	 lwqq__log_if_error(err, req);
+	 lwqq__clean_json_and_req(root,req);
+	 return err;
 }
 
 static int process_online_buddies(LwqqHttpRequest* req,LwqqClient* lc)
@@ -448,9 +451,9 @@ static int process_online_buddies(LwqqHttpRequest* req,LwqqClient* lc)
         }
     }
 done:
-	lwqq__log_if_error(err, req);
-    lwqq__clean_json_and_req(root,req);
-    return err;
+	 lwqq__log_if_error(err, req);
+	 lwqq__clean_json_and_req(root,req);
+	 return err;
 }
 static int process_group_info(LwqqHttpRequest*req,LwqqGroup* g)
 {
@@ -465,9 +468,9 @@ static int process_group_info(LwqqHttpRequest*req,LwqqGroup* g)
         parse_group_info(parse_key_child(result, "ginfo"),g);
     }
 done:
-	lwqq__log_if_error(err, req);
-    lwqq__clean_json_and_req(root,req);
-    return err;
+	 lwqq__log_if_error(err, req);
+	 lwqq__clean_json_and_req(root,req);
+	 return err;
 }
 
 static int process_business_card(LwqqHttpRequest* req,LwqqBusinessCard* card)
@@ -483,9 +486,9 @@ static int process_business_card(LwqqHttpRequest* req,LwqqBusinessCard* card)
         parse_business_card(result,card);
     }
 done:
-	lwqq__log_if_error(err, req);
-    lwqq__clean_json_and_req(root,req);
-    return err;
+	 lwqq__log_if_error(err, req);
+	 lwqq__clean_json_and_req(root,req);
+	 return err;
 }
 
 static int process_simple_string(LwqqHttpRequest* req,const char* key,char ** ptr)
@@ -500,7 +503,7 @@ static int process_simple_string(LwqqHttpRequest* req,const char* key,char ** pt
         lwqq_override(*ptr,lwqq__json_get_string(result,key));
     }
 done:
-	lwqq__log_if_error(err, req);
+	 lwqq__log_if_error(err, req);
     lwqq__clean_json_and_req(json,req);
     return err;
 }
@@ -525,7 +528,7 @@ static int process_recent_list(LwqqHttpRequest* req,LwqqRecentList* list)
         }
     }
 done:
-	lwqq__log_if_error(err, req);
+	 lwqq__log_if_error(err, req);
     lwqq__clean_json_and_req(json,req);
     return err;
 }
@@ -544,7 +547,7 @@ static int process_qq_level(LwqqHttpRequest* req,LwqqBuddy* b)
         s_free(raw_level);
     }
 done:
-	lwqq__log_if_error(err, req);
+	 lwqq__log_if_error(err, req);
     lwqq__clean_json_and_req(root,req);
     return err;
 }
@@ -811,9 +814,9 @@ static int get_friends_info_back(LwqqHttpRequest* req)
     }
 
 done:
-	lwqq__log_if_error(err, req);
-	lwqq__clean_json_and_req(json, req);
-    return err;
+	 lwqq__log_if_error(err, req);
+	 lwqq__clean_json_and_req(json, req);
+	 return err;
 }
 
 LwqqAsyncEvent* lwqq_info_get_avatar(LwqqClient* lc,LwqqBuddy* buddy,LwqqGroup* group)
@@ -1003,24 +1006,23 @@ static void parse_groups_gmarklist_child(LwqqClient *lc, json_t *json)
  */
 LwqqAsyncEvent* lwqq_info_get_group_name_list(LwqqClient *lc, LwqqErrorCode *err)
 {
-
 	char post[512] = {0};
-    LwqqHttpRequest *req = NULL;
+	LwqqHttpRequest *req = NULL;
 
-    const char* url =  WEBQQ_S_HOST"/api/get_group_name_list_mask2";
-    /* Create a POST request */
-    /* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
+	const char* url =  WEBQQ_S_HOST"/api/get_group_name_list_mask2";
+	/* Create a POST request */
+	/* Create post data: {"h":"hello","vfwebqq":"4354j53h45j34"} */
 	snprintf(post, sizeof(post), "r={\"vfwebqq\":\"%s\"}",lc->vfwebqq);
 	char* upost = url_encode(post+2);
 	strcpy(post+2, upost);
 	s_free(upost);
 
-    req = lwqq_http_create_default_request(lc,url, err);
-    req->set_header(req, "Referer", WEBQQ_S_REF_URL);
-    req->set_header(req, "Content-Transfer-Encoding", "binary");
-    req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
+	req = lwqq_http_create_default_request(lc,url, err);
+	req->set_header(req, "Referer", WEBQQ_S_REF_URL);
+	req->set_header(req, "Content-Transfer-Encoding", "binary");
+	req->set_header(req, "Content-type", "application/x-www-form-urlencoded");
 
-    return req->do_request_async(req, lwqq__has_post(),_C_(2p_i,get_group_name_list_back,req,lc));
+	return req->do_request_async(req, lwqq__has_post(),_C_(2p_i,get_group_name_list_back,req,lc));
 }
 static int get_group_name_list_back(LwqqHttpRequest* req,LwqqClient* lc)
 {
@@ -1158,35 +1160,6 @@ done:
     lwqq_http_request_free(req);
     return err;
 }
-
-/**
- * Get all friends qqnumbers
- *
- * @param lc
- * @param err
- */
-void lwqq_info_get_all_friend_qqnumbers(LwqqClient *lc, LwqqErrorCode *err)
-{
-    LwqqBuddy *buddy;
-
-    if (!lc)
-        return ;
-
-    LIST_FOREACH(buddy, &lc->friends, entries) {
-        if (!buddy->qqnumber) {
-            /** If qqnumber hasnt been fetched(NB: lc->myself has qqnumber),
-             * fetch it
-             */
-            lwqq_info_get_friend_qqnumber(lc,buddy);
-            //lwqq_log(LOG_DEBUG, "Get buddy qqnumber: %s\n", buddy->qqnumber);
-        }
-    }
-
-    if (err) {
-        *err = LWQQ_EC_OK;
-    }
-}
-
 
 /**
  * Parse group members info
@@ -1988,7 +1961,7 @@ LwqqAsyncEvent* lwqq_info_mask_group(LwqqClient* lc,LwqqGroup* group,LwqqMask ma
     }
     group->mask = mask_ori;
     ds_cat(postd,"\"cAll\":0,\"idx\":",lc->index,",\"port\":",lc->port,"}}&vfwebqq=",lc->vfwebqq,NULL);
-	post = ds_c_str(postd);
+	 post = ds_c_str(postd);
 
 
     LwqqHttpRequest* req = lwqq_http_create_default_request(lc,url,NULL);
