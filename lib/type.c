@@ -49,6 +49,20 @@ static struct LwqqTypeMap status_type_map[] = {
     {LWQQ_STATUS_LOGOUT  ,NULL,          }
 };
 
+static char* generate_random_id(int length)
+{
+	static long seed = 0;
+	char* range = "1234567890abcdefghijklmnopqrstuvwxyz";
+	int range_len = strlen(range);
+	srand(time(0)+ ++seed);
+	char* s = s_malloc0(length+1);
+	s[0] = 'D';
+	int i;
+	for(i=1;i<length;i++)
+		s[i] = range[rand()%range_len];
+	return s;
+}
+
 const char* lwqq_status_to_str(LwqqStatus status)
 {
     return lwqq_util_mapto_str(status_type_map, status);
@@ -375,7 +389,10 @@ LwqqGroup *lwqq_group_new(int type)
 {
     LwqqGroup *g = s_malloc0(sizeof(*g));
     if (type == 0) g->type = LWQQ_GROUP_QUN;
-    else g->type = LWQQ_GROUP_DISCU;
+    else{
+		 g->type = LWQQ_GROUP_DISCU;
+		 g->account = generate_random_id(9);
+	 }
     return g;
 }
 
